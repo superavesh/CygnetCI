@@ -2,7 +2,7 @@
 from fastapi import FastAPI, HTTPException, Depends, Query
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field
-from typing import List, Optional, Dict
+from typing import List, Optional, Dict, Any
 from datetime import datetime, timedelta
 from enum import Enum
 from sqlalchemy.orm import Session
@@ -178,6 +178,37 @@ class DashboardData(BaseModel):
     stats: Stats
     services: Services
 
+# ==================== UPDATED PYDANTIC MODELS ====================
+
+class PipelineStepData(BaseModel):
+    name: str
+    command: str
+    order: int
+
+class PipelineParameterData(BaseModel):
+    name: str
+    type: str  # 'string', 'number', 'boolean', 'choice'
+    defaultValue: Optional[str] = None
+    required: bool = False
+    description: Optional[str] = None
+    choices: Optional[List[str]] = None
+
+class PipelineCreate(BaseModel):
+    name: str
+    branch: str
+    description: Optional[str] = None
+    agentId: Optional[int] = None
+    steps: List[PipelineStepData] = []
+    parameters: List[PipelineParameterData] = []
+
+class PipelineUpdate(BaseModel):
+    name: Optional[str] = None
+    status: Optional[str] = None
+    branch: Optional[str] = None
+    agentId: Optional[int] = None
+    steps: Optional[List[PipelineStepData]] = None
+    parameters: Optional[List[PipelineParameterData]] = None
+
 # ==============================================
 # HELPER FUNCTIONS
 # ==============================================
@@ -255,6 +286,50 @@ def format_service(service):
         "url": service.url
     }
 
+
+def format_pipeline_full(pipeline, db: Session):
+    """Format pipeline with steps and parameters"""
+    
+    # Get steps
+    steps = db.query(models.PipelineStep)\
+        .filter(models.PipelineStep.pipeline_id == pipeline.id)\
+        .order_by(models.PipelineStep.step_order)\
+        .all()
+    
+    # Get parameters
+    parameters = db.query(models.PipelineParameter)\
+        .filter(models.PipelineParameter.pipeline_id == pipeline.id)\
+        .all()
+    
+    return {
+        "id": pipeline.id,
+        "name": pipeline.name,
+        "status": pipeline.status,
+        "lastRun": relative_time(pipeline.last_run),
+        "duration": pipeline.duration or "-",
+        "branch": pipeline.branch,
+        "commit": pipeline.commit or "N/A",
+        "agent_id": pipeline.agent_id,
+        "steps": [
+            {
+                "name": step.name,
+                "command": step.command,
+                "order": step.step_order
+            }
+            for step in steps
+        ],
+        "parameters": [
+            {
+                "name": param.name,
+                "type": param.type,
+                "defaultValue": param.default_value,
+                "required": param.required,
+                "description": param.description,
+                "choices": param.choices if param.choices else []
+            }
+            for param in parameters
+        ]
+    }
 # ==============================================
 # FASTAPI APP
 # ==============================================
@@ -444,7 +519,7 @@ def get_agent_logs(
 
 @app.get("/pipelines")
 def get_pipelines(
-    status: Optional[PipelineStatus] = None,
+    status: Optional[str] = None,
     branch: Optional[str] = None,
     db: Session = Depends(get_db)
 ):
@@ -452,38 +527,68 @@ def get_pipelines(
     query = db.query(models.Pipeline)
     
     if status:
-        query = query.filter(models.Pipeline.status == status.value)
+        query = query.filter(models.Pipeline.status == status)
     if branch:
         query = query.filter(models.Pipeline.branch == branch)
     
     pipelines = query.order_by(models.Pipeline.last_run.desc()).all()
-    return [format_pipeline(pipeline) for pipeline in pipelines]
+    
+    # Return pipelines with steps and parameters
+    return [format_pipeline_full(pipeline, db) for pipeline in pipelines]
 
 @app.post("/pipelines", status_code=201)
 def create_pipeline(pipeline: PipelineCreate, db: Session = Depends(get_db)):
-    """Create a new pipeline"""
+    """Create a new pipeline with steps and parameters"""
+    
+    # Create pipeline
     db_pipeline = models.Pipeline(
         name=pipeline.name,
         description=pipeline.description,
         branch=pipeline.branch,
         status="pending",
+        agent_id=pipeline.agentId,
         commit="",
         duration="-"
     )
     
     db.add(db_pipeline)
+    db.flush()  # Get the pipeline ID
+    
+    # Create steps
+    for step_data in pipeline.steps:
+        db_step = models.PipelineStep(
+            pipeline_id=db_pipeline.id,
+            name=step_data.name,
+            command=step_data.command,
+            step_order=step_data.order
+        )
+        db.add(db_step)
+    
+    # Create parameters
+    for param_data in pipeline.parameters:
+        db_param = models.PipelineParameter(
+            pipeline_id=db_pipeline.id,
+            name=param_data.name,
+            type=param_data.type,
+            default_value=param_data.defaultValue,
+            required=param_data.required,
+            description=param_data.description,
+            choices=param_data.choices
+        )
+        db.add(db_param)
+    
     db.commit()
     db.refresh(db_pipeline)
     
-    return format_pipeline(db_pipeline)
+    return format_pipeline_full(db_pipeline, db)
 
 @app.get("/pipelines/{pipeline_id}")
 def get_pipeline(pipeline_id: int, db: Session = Depends(get_db)):
-    """Get pipeline by ID"""
+    """Get pipeline by ID with steps and parameters"""
     pipeline = db.query(models.Pipeline).filter(models.Pipeline.id == pipeline_id).first()
     if not pipeline:
         raise HTTPException(status_code=404, detail="Pipeline not found")
-    return format_pipeline(pipeline)
+    return format_pipeline_full(pipeline, db)
 
 @app.put("/pipelines/{pipeline_id}")
 def update_pipeline(pipeline_id: int, pipeline: PipelineUpdate, db: Session = Depends(get_db)):
@@ -492,46 +597,129 @@ def update_pipeline(pipeline_id: int, pipeline: PipelineUpdate, db: Session = De
     if not db_pipeline:
         raise HTTPException(status_code=404, detail="Pipeline not found")
     
+    # Update basic fields
     if pipeline.name is not None:
         db_pipeline.name = pipeline.name
     if pipeline.status is not None:
-        db_pipeline.status = pipeline.status.value
+        db_pipeline.status = pipeline.status
     if pipeline.branch is not None:
         db_pipeline.branch = pipeline.branch
+    if pipeline.agentId is not None:
+        db_pipeline.agent_id = pipeline.agentId
+    
+    # Update steps if provided
+    if pipeline.steps is not None:
+        # Delete existing steps
+        db.query(models.PipelineStep).filter(
+            models.PipelineStep.pipeline_id == pipeline_id
+        ).delete()
+        
+        # Add new steps
+        for step_data in pipeline.steps:
+            db_step = models.PipelineStep(
+                pipeline_id=pipeline_id,
+                name=step_data.name,
+                command=step_data.command,
+                step_order=step_data.order
+            )
+            db.add(db_step)
+    
+    # Update parameters if provided
+    if pipeline.parameters is not None:
+        # Delete existing parameters
+        db.query(models.PipelineParameter).filter(
+            models.PipelineParameter.pipeline_id == pipeline_id
+        ).delete()
+        
+        # Add new parameters
+        for param_data in pipeline.parameters:
+            db_param = models.PipelineParameter(
+                pipeline_id=pipeline_id,
+                name=param_data.name,
+                type=param_data.type,
+                default_value=param_data.defaultValue,
+                required=param_data.required,
+                description=param_data.description,
+                choices=param_data.choices
+            )
+            db.add(db_param)
     
     db.commit()
     db.refresh(db_pipeline)
     
-    return format_pipeline(db_pipeline)
-
-@app.delete("/pipelines/{pipeline_id}")
-def delete_pipeline(pipeline_id: int, db: Session = Depends(get_db)):
-    """Delete a pipeline"""
-    db_pipeline = db.query(models.Pipeline).filter(models.Pipeline.id == pipeline_id).first()
-    if not db_pipeline:
-        raise HTTPException(status_code=404, detail="Pipeline not found")
-    
-    db.delete(db_pipeline)
-    db.commit()
-    
-    return {"success": True, "message": "Pipeline deleted successfully"}
+    return format_pipeline_full(db_pipeline, db)
 
 @app.post("/pipelines/{pipeline_id}/run")
-def run_pipeline(pipeline_id: int, db: Session = Depends(get_db)):
-    """Trigger a pipeline execution"""
+def run_pipeline(
+    pipeline_id: int, 
+    params: Dict[str, Any] = None,
+    db: Session = Depends(get_db)
+):
+    """Trigger a pipeline execution with parameters"""
     db_pipeline = db.query(models.Pipeline).filter(models.Pipeline.id == pipeline_id).first()
     if not db_pipeline:
         raise HTTPException(status_code=404, detail="Pipeline not found")
     
     db_pipeline.status = "running"
     db_pipeline.last_run = datetime.now()
+    
+    # Create execution record
+    execution = models.PipelineExecution(
+        pipeline_id=pipeline_id,
+        status="running",
+        started_at=datetime.now()
+    )
+    db.add(execution)
+    db.flush()  # Get execution ID
+    
+    # Store execution parameters
+    if params:
+        for param_name, param_value in params.items():
+            exec_param = models.PipelineExecutionParam(
+                execution_id=execution.id,
+                param_name=param_name,
+                param_value=str(param_value)
+            )
+            db.add(exec_param)
+    
     db.commit()
     
     return {
         "success": True,
         "message": "Pipeline started",
-        "executionId": pipeline_id
+        "executionId": execution.id
     }
+
+@app.get("/pipelines/{pipeline_id}/executions")
+def get_pipeline_executions(
+    pipeline_id: int,
+    limit: int = 10,
+    db: Session = Depends(get_db)
+):
+    """Get execution history for a pipeline"""
+    executions = db.query(models.PipelineExecution)\
+        .filter(models.PipelineExecution.pipeline_id == pipeline_id)\
+        .order_by(models.PipelineExecution.started_at.desc())\
+        .limit(limit)\
+        .all()
+    
+    result = []
+    for execution in executions:
+        # Get parameters used in this execution
+        params = db.query(models.PipelineExecutionParam)\
+            .filter(models.PipelineExecutionParam.execution_id == execution.id)\
+            .all()
+        
+        result.append({
+            "id": execution.id,
+            "status": execution.status,
+            "startedAt": execution.started_at.isoformat(),
+            "completedAt": execution.completed_at.isoformat() if execution.completed_at else None,
+            "duration": execution.duration,
+            "parameters": {p.param_name: p.param_value for p in params}
+        })
+    
+    return result
 
 @app.post("/pipelines/{pipeline_id}/stop")
 def stop_pipeline(pipeline_id: int, db: Session = Depends(get_db)):

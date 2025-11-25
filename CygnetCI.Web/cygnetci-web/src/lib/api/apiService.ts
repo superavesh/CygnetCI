@@ -35,13 +35,24 @@ class ApiService {
     }
   }
 
-  async runPipeline(pipelineId: number) {
+  async runPipeline(pipelineId: number, parameters?: Record<string, any>) {
     if (!CONFIG.app.useRealAPI) {
-      console.log(`Running pipeline ${pipelineId} (dummy mode)`);
-      return { success: true };
+      console.log(`Running pipeline ${pipelineId} (dummy mode)`, parameters);
+      return { success: true, executionId: Date.now() };
     }
 
-    return await this.fetchData(`/pipelines/${pipelineId}/run`);
+    const url = `${CONFIG.api.baseUrl}/pipelines/${pipelineId}/run`;
+    const response = await fetch(url, {
+      method: 'POST',
+      headers: CONFIG.api.headers,
+      body: JSON.stringify(parameters || {})
+    });
+
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
+
+    return await response.json();
   }
 
   async stopPipeline(pipelineId: number) {
@@ -50,7 +61,17 @@ class ApiService {
       return { success: true };
     }
 
-    return await this.fetchData(`/pipelines/${pipelineId}/stop`);
+    const url = `${CONFIG.api.baseUrl}/pipelines/${pipelineId}/stop`;
+    const response = await fetch(url, {
+      method: 'POST',
+      headers: CONFIG.api.headers
+    });
+
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
+
+    return await response.json();
   }
 
   async updateServiceStatus(serviceId: string, newCategory: string) {
@@ -59,8 +80,21 @@ class ApiService {
       return { success: true };
     }
 
-    return await this.fetchData(`/services/${serviceId}/move`);
+    const url = `${CONFIG.api.baseUrl}/services/${serviceId}/move`;
+    const response = await fetch(url, {
+      method: 'POST',
+      headers: CONFIG.api.headers,
+      body: JSON.stringify({ category: newCategory })
+    });
+
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
+
+    return await response.json();
   }
+
+  // ==================== AGENT METHODS ====================
 
   async addAgent(agentData: { name: string; description: string; uuid: string; location: string }) {
     if (!CONFIG.app.useRealAPI) {
@@ -109,6 +143,76 @@ class ApiService {
     }
 
     const url = `${CONFIG.api.baseUrl}/agents/${agentId}`;
+    const response = await fetch(url, {
+      method: 'DELETE',
+      headers: CONFIG.api.headers
+    });
+
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
+
+    return await response.json();
+  }
+
+  // ==================== PIPELINE METHODS ====================
+
+  async createPipeline(pipelineData: any) {
+    if (!CONFIG.app.useRealAPI) {
+      console.log('Creating pipeline (dummy mode):', pipelineData);
+      return { success: true, id: Date.now() };
+    }
+
+    const url = `${CONFIG.api.baseUrl}/pipelines`;
+    const response = await fetch(url, {
+      method: 'POST',
+      headers: CONFIG.api.headers,
+      body: JSON.stringify({
+        name: pipelineData.name,
+        description: pipelineData.description,
+        branch: pipelineData.branch,
+        parameters: pipelineData.parameters || []
+      })
+    });
+
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
+
+    return await response.json();
+  }
+
+  async updatePipeline(pipelineId: number, pipelineData: any) {
+    if (!CONFIG.app.useRealAPI) {
+      console.log(`Updating pipeline ${pipelineId} (dummy mode):`, pipelineData);
+      return { success: true };
+    }
+
+    const url = `${CONFIG.api.baseUrl}/pipelines/${pipelineId}`;
+    const response = await fetch(url, {
+      method: 'PUT',
+      headers: CONFIG.api.headers,
+      body: JSON.stringify({
+        name: pipelineData.name,
+        branch: pipelineData.branch,
+        parameters: pipelineData.parameters
+      })
+    });
+
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
+
+    return await response.json();
+  }
+
+  async deletePipeline(pipelineId: number) {
+    if (!CONFIG.app.useRealAPI) {
+      console.log(`Deleting pipeline ${pipelineId} (dummy mode)`);
+      return { success: true };
+    }
+
+    const url = `${CONFIG.api.baseUrl}/pipelines/${pipelineId}`;
     const response = await fetch(url, {
       method: 'DELETE',
       headers: CONFIG.api.headers

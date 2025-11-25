@@ -19,6 +19,21 @@ export interface ResourceDataPoint {
   disk: number;
 }
 
+export interface PipelineStep {
+  name: string;
+  command: string;
+  order: number;
+}
+
+export interface PipelineParameter {
+  name: string;
+  type: 'string' | 'number' | 'boolean' | 'choice';
+  defaultValue: string;
+  required: boolean;
+  description: string;
+  choices: string[];
+}
+
 export interface Pipeline {
   id: number;
   name: string;
@@ -27,6 +42,9 @@ export interface Pipeline {
   duration: string;
   branch: string;
   commit: string;
+  agent_id?: number | null;
+  steps?: PipelineStep[];
+  parameters?: PipelineParameter[];
 }
 
 export interface Task {

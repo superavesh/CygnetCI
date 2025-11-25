@@ -1,7 +1,5 @@
-# models.py - SQLAlchemy ORM Models
-# Save this as: models.py
-
-from sqlalchemy import Column, Integer, String, Text, TIMESTAMP, ForeignKey, Numeric, Date, CheckConstraint
+# models.py - Complete SQLAlchemy ORM Models for CygnetCI
+from sqlalchemy import Column, Integer, String, Text, TIMESTAMP, ForeignKey, Numeric, Date, CheckConstraint, Boolean, JSON
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import relationship
 from sqlalchemy.sql import func
@@ -9,6 +7,10 @@ from datetime import datetime
 
 Base = declarative_base()
 
+
+# ===================================================
+# AGENT MODELS
+# ===================================================
 
 class Agent(Base):
     __tablename__ = "agents"
@@ -52,8 +54,8 @@ class AgentResourceData(Base):
     agent = relationship("Agent", back_populates="resource_data")
     
     __table_args__ = (
-        CheckConstraint("cpu >= 0 AND cpu <= 100", name="check_cpu"),
-        CheckConstraint("memory >= 0 AND memory <= 100", name="check_memory"),
+        CheckConstraint("cpu >= 0 AND cpu <= 100", name="check_cpu_resource"),
+        CheckConstraint("memory >= 0 AND memory <= 100", name="check_memory_resource"),
         CheckConstraint("disk >= 0 AND disk <= 100", name="check_disk"),
     )
 
@@ -76,6 +78,10 @@ class AgentLog(Base):
     )
 
 
+# ===================================================
+# PIPELINE MODELS
+# ===================================================
+
 class Pipeline(Base):
     __tablename__ = "pipelines"
     
@@ -87,15 +93,56 @@ class Pipeline(Base):
     commit = Column(String(255))
     last_run = Column(TIMESTAMP)
     duration = Column(String(50))
+    agent_id = Column(Integer, ForeignKey("agents.id", ondelete="SET NULL"))
     created_at = Column(TIMESTAMP, server_default=func.now())
     updated_at = Column(TIMESTAMP, server_default=func.now(), onupdate=func.now())
     
     # Relationships
     executions = relationship("PipelineExecution", back_populates="pipeline", cascade="all, delete-orphan")
     tasks = relationship("Task", back_populates="pipeline")
+    steps = relationship("PipelineStep", back_populates="pipeline", cascade="all, delete-orphan")
+    parameters = relationship("PipelineParameter", back_populates="pipeline", cascade="all, delete-orphan")
+    agent = relationship("Agent")
     
     __table_args__ = (
         CheckConstraint("status IN ('success', 'failed', 'running', 'pending')", name="check_pipeline_status"),
+    )
+
+
+class PipelineStep(Base):
+    __tablename__ = "pipeline_steps"
+    
+    id = Column(Integer, primary_key=True, index=True)
+    pipeline_id = Column(Integer, ForeignKey("pipelines.id", ondelete="CASCADE"), nullable=False)
+    name = Column(String(255), nullable=False)
+    command = Column(Text, nullable=False)
+    step_order = Column(Integer, nullable=False)
+    created_at = Column(TIMESTAMP, server_default=func.now())
+    updated_at = Column(TIMESTAMP, server_default=func.now(), onupdate=func.now())
+    
+    # Relationships
+    pipeline = relationship("Pipeline", back_populates="steps")
+
+
+class PipelineParameter(Base):
+    __tablename__ = "pipeline_parameters"
+    
+    id = Column(Integer, primary_key=True, index=True)
+    pipeline_id = Column(Integer, ForeignKey("pipelines.id", ondelete="CASCADE"), nullable=False)
+    name = Column(String(255), nullable=False)
+    type = Column(String(50), nullable=False)
+    default_value = Column(Text)
+    required = Column(Boolean, default=False)
+    description = Column(Text)
+    choices = Column(JSON)  # Store array of choices as JSON
+    created_at = Column(TIMESTAMP, server_default=func.now())
+    updated_at = Column(TIMESTAMP, server_default=func.now(), onupdate=func.now())
+    
+    # Relationships
+    pipeline = relationship("Pipeline", back_populates="parameters")
+    
+    __table_args__ = (
+        CheckConstraint("type IN ('string', 'number', 'boolean', 'choice')", name="check_param_type"),
     )
 
 
@@ -113,11 +160,29 @@ class PipelineExecution(Base):
     
     # Relationships
     pipeline = relationship("Pipeline", back_populates="executions")
+    params = relationship("PipelineExecutionParam", back_populates="execution", cascade="all, delete-orphan")
     
     __table_args__ = (
         CheckConstraint("status IN ('success', 'failed', 'running', 'cancelled')", name="check_execution_status"),
     )
 
+
+class PipelineExecutionParam(Base):
+    __tablename__ = "pipeline_execution_params"
+    
+    id = Column(Integer, primary_key=True, index=True)
+    execution_id = Column(Integer, ForeignKey("pipeline_executions.id", ondelete="CASCADE"), nullable=False)
+    param_name = Column(String(255), nullable=False)
+    param_value = Column(Text, nullable=False)
+    created_at = Column(TIMESTAMP, server_default=func.now())
+    
+    # Relationships
+    execution = relationship("PipelineExecution", back_populates="params")
+
+
+# ===================================================
+# TASK MODELS
+# ===================================================
 
 class Task(Base):
     __tablename__ = "tasks"
@@ -143,6 +208,10 @@ class Task(Base):
         CheckConstraint("status IN ('completed', 'running', 'queued', 'failed')", name="check_task_status"),
     )
 
+
+# ===================================================
+# SERVICE MODELS
+# ===================================================
 
 class Service(Base):
     __tablename__ = "services"
@@ -185,6 +254,10 @@ class ServiceHealthHistory(Base):
         CheckConstraint("status IN ('healthy', 'warning', 'critical', 'down', 'unknown')", name="check_health_status"),
     )
 
+
+# ===================================================
+# STATISTICS MODEL
+# ===================================================
 
 class Statistics(Base):
     __tablename__ = "statistics"

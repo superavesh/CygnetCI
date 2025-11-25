@@ -73,7 +73,32 @@ export const DUMMY_DATA: DashboardData = {
       lastRun: "5 minutes ago",
       duration: "2m 34s",
       branch: "main",
-      commit: "abc123f"
+      commit: "abc123f",
+      agent_id: 1,
+      steps: [
+        { name: "Install Dependencies", command: "npm install", order: 1 },
+        { name: "Run Tests", command: "npm test", order: 2 },
+        { name: "Build Application", command: "npm run build --env={{ENV}}", order: 3 },
+        { name: "Deploy to Server", command: "npm run deploy", order: 4 }
+      ],
+      parameters: [
+        {
+          name: "ENV",
+          type: "choice",
+          defaultValue: "staging",
+          required: true,
+          description: "Target deployment environment",
+          choices: ["dev", "staging", "production"]
+        },
+        {
+          name: "VERSION",
+          type: "string",
+          defaultValue: "latest",
+          required: false,
+          description: "Version tag for deployment",
+          choices: []
+        }
+      ]
     },
     {
       id: 2,
@@ -82,7 +107,40 @@ export const DUMMY_DATA: DashboardData = {
       lastRun: "now",
       duration: "1m 12s",
       branch: "develop",
-      commit: "def456g"
+      commit: "def456g",
+      agent_id: 2,
+      steps: [
+        { name: "Setup Environment", command: "python -m venv venv", order: 1 },
+        { name: "Install Dependencies", command: "pip install -r requirements.txt", order: 2 },
+        { name: "Run Tests", command: "pytest", order: 3 },
+        { name: "Build Docker Image", command: "docker build -t api:{{VERSION}} .", order: 4 }
+      ],
+      parameters: [
+        {
+          name: "VERSION",
+          type: "string",
+          defaultValue: "1.0.0",
+          required: true,
+          description: "Docker image version",
+          choices: []
+        },
+        {
+          name: "PORT",
+          type: "number",
+          defaultValue: "8000",
+          required: false,
+          description: "API port number",
+          choices: []
+        },
+        {
+          name: "DEBUG",
+          type: "boolean",
+          defaultValue: "false",
+          required: false,
+          description: "Enable debug mode",
+          choices: []
+        }
+      ]
     },
     {
       id: 3,
@@ -91,7 +149,31 @@ export const DUMMY_DATA: DashboardData = {
       lastRun: "1 hour ago",
       duration: "45s",
       branch: "main",
-      commit: "ghi789h"
+      commit: "ghi789h",
+      agent_id: 1,
+      steps: [
+        { name: "Backup Database", command: "pg_dump mydb > backup.sql", order: 1 },
+        { name: "Run Migrations", command: "alembic upgrade head", order: 2 },
+        { name: "Verify Schema", command: "alembic current", order: 3 }
+      ],
+      parameters: [
+        {
+          name: "DB_HOST",
+          type: "string",
+          defaultValue: "localhost",
+          required: true,
+          description: "Database host address",
+          choices: []
+        },
+        {
+          name: "DRY_RUN",
+          type: "boolean",
+          defaultValue: "true",
+          required: false,
+          description: "Test migration without applying",
+          choices: []
+        }
+      ]
     },
     {
       id: 4,
@@ -100,7 +182,14 @@ export const DUMMY_DATA: DashboardData = {
       lastRun: "2 hours ago",
       duration: "5m 23s",
       branch: "feature/mobile",
-      commit: "jkl012i"
+      commit: "jkl012i",
+      agent_id: null,
+      steps: [
+        { name: "Setup React Native", command: "npx react-native init", order: 1 },
+        { name: "Install Dependencies", command: "npm install", order: 2 },
+        { name: "Build Android APK", command: "cd android && ./gradlew assembleRelease", order: 3 }
+      ],
+      parameters: []
     }
   ],
   tasks: [
