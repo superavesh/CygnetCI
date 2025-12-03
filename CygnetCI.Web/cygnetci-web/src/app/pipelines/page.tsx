@@ -3,12 +3,13 @@
 'use client';
 
 import React, { useState } from 'react';
-import { Play, Plus, Settings, Eye, Sliders } from 'lucide-react';
+import { Play, Plus, Settings, Eye, Sliders, RefreshCw, History } from 'lucide-react';
 import { useData } from '@/lib/hooks/useData';
 import { PipelineFilter, filterPipelines } from '@/components/tables/PipelineFilter';
 import { CreatePipelineModal, PipelineFormData } from '@/components/pipelines/CreatePipelineModal';
 import { EditPipelineModal } from '@/components/pipelines/EditPipelineModal';
 import { ExecutionViewModal } from '@/components/pipelines/ExecutionViewModal';
+import { ExecutionHistoryModal } from '@/components/pipelines/ExecutionHistoryModal';
 import { RunPipelineModal } from '@/components/pipelines/RunPipelineModal';
 import { apiService } from '@/lib/api/apiService';
 import { CONFIG } from '@/lib/config';
@@ -19,6 +20,7 @@ export default function PipelinesPage() {
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
   const [showExecutionModal, setShowExecutionModal] = useState(false);
+  const [showHistoryModal, setShowHistoryModal] = useState(false);
   const [showRunModal, setShowRunModal] = useState(false);
   const [selectedPipeline, setSelectedPipeline] = useState<any | null>(null);
   const [currentExecutionId, setCurrentExecutionId] = useState<number | null>(null);
@@ -62,20 +64,37 @@ export default function PipelinesPage() {
     }
   };
 
-  const handleRunClick = (pipeline: any) => {
-    setSelectedPipeline(pipeline);
-    setShowRunModal(true);
+  const handleRunClick = async (pipeline: any) => {
+    try {
+      // Fetch full pipeline details including steps and parameters
+      const fullPipeline = await apiService.getPipeline(pipeline.id);
+      setSelectedPipeline(fullPipeline);
+      setShowRunModal(true);
+    } catch (err) {
+      console.error('Error fetching pipeline details:', err);
+      alert('Failed to fetch pipeline details');
+    }
   };
 
   const handleQuickRun = async (pipeline: any) => {
-    // Quick run without parameters
+    // Check if pipeline has a default agent
+    if (!pipeline.agent_id) {
+      alert('No default agent assigned to this pipeline. Please configure an agent or use "Run with Parameters" to select one.');
+      return;
+    }
+
+    // Quick run without parameters using pipeline's default agent
     try {
-      const result = await apiService.runPipeline(pipeline.id, {});
-      
-      setSelectedPipeline(pipeline);
-      setCurrentExecutionId(result.executionId || Date.now());
-      setShowExecutionModal(true);
-      
+      const result = await apiService.runPipeline(pipeline.id, {}, pipeline.agent_id);
+
+      if (result.executionId) {
+        setSelectedPipeline(pipeline);
+        setCurrentExecutionId(result.executionId);
+        setShowExecutionModal(true);
+      } else {
+        alert('Pipeline queued but no execution ID returned');
+      }
+
       refetch();
     } catch (err) {
       console.error('Error running pipeline:', err);
@@ -83,17 +102,19 @@ export default function PipelinesPage() {
     }
   };
 
-  const handleRunPipeline = async (pipelineId: number, parameters: Record<string, any>) => {
+  const handleRunPipeline = async (pipelineId: number, parameters: Record<string, any>, agentId: number | null) => {
     try {
-      const result = await apiService.runPipeline(pipelineId, parameters);
+      const result = await apiService.runPipeline(pipelineId, parameters, agentId);
       const pipeline = pipelines.find(p => p.id === pipelineId);
-      
-      if (pipeline) {
+
+      if (pipeline && result.executionId) {
         setSelectedPipeline(pipeline);
-        setCurrentExecutionId(result.executionId || Date.now());
+        setCurrentExecutionId(result.executionId);
         setShowExecutionModal(true);
+      } else if (!result.executionId) {
+        alert('Pipeline queued but no execution ID returned');
       }
-      
+
       refetch();
     } catch (err) {
       console.error('Error running pipeline:', err);
@@ -112,14 +133,25 @@ export default function PipelinesPage() {
     }
   };
 
-  const handleEditClick = (pipeline: any) => {
-    setSelectedPipeline(pipeline);
-    setShowEditModal(true);
+  const handleEditClick = async (pipeline: any) => {
+    try {
+      // Fetch full pipeline details including steps and parameters
+      const fullPipeline = await apiService.getPipeline(pipeline.id);
+      setSelectedPipeline(fullPipeline);
+      setShowEditModal(true);
+    } catch (err) {
+      console.error('Error fetching pipeline details:', err);
+      alert('Failed to fetch pipeline details');
+    }
   };
 
   const handleViewExecution = (pipeline: any) => {
     setSelectedPipeline(pipeline);
-    setCurrentExecutionId(Date.now());
+    setShowHistoryModal(true);
+  };
+
+  const handleViewLogs = (executionId: number) => {
+    setCurrentExecutionId(executionId);
     setShowExecutionModal(true);
   };
 
@@ -136,13 +168,22 @@ export default function PipelinesPage() {
               {filteredPipelines.length} of {pipelines.length} pipelines
             </p>
           </div>
-          <button 
-            onClick={() => setShowCreateModal(true)}
-            className="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-lg flex items-center space-x-2 transition-colors"
-          >
-            <Plus className="h-4 w-4" />
-            <span>New Pipeline</span>
-          </button>
+          <div className="flex gap-3">
+            <button
+              onClick={refetch}
+              className="bg-gray-100 hover:bg-gray-200 text-gray-700 px-4 py-2 rounded-lg flex items-center space-x-2 transition-colors"
+            >
+              <RefreshCw className="h-4 w-4" />
+              <span>Refresh</span>
+            </button>
+            <button
+              onClick={() => setShowCreateModal(true)}
+              className="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-lg flex items-center space-x-2 transition-colors"
+            >
+              <Plus className="h-4 w-4" />
+              <span>New Pipeline</span>
+            </button>
+          </div>
         </div>
 
         {/* Search Filter */}
@@ -212,32 +253,33 @@ export default function PipelinesPage() {
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
                           <div className="flex space-x-2">
-                            {/* Show different run buttons based on parameters */}
-                            {hasParameters ? (
-                              <button 
-                                onClick={() => handleRunClick(pipeline)}
-                                className="text-purple-600 hover:text-purple-900 transition-colors flex items-center space-x-1"
-                                title="Run with Parameters"
-                              >
-                                <Sliders className="h-4 w-4" />
-                                <span className="text-xs">Params</span>
-                              </button>
-                            ) : (
-                              <button 
+                            {/* Always show Run with Parameters button */}
+                            <button
+                              onClick={() => handleRunClick(pipeline)}
+                              className="text-purple-600 hover:text-purple-900 transition-colors flex items-center space-x-1"
+                              title="Run with Parameters"
+                            >
+                              <Sliders className="h-4 w-4" />
+                              <span className="text-xs">Run</span>
+                            </button>
+
+                            {/* Show Quick Run only if pipeline has default agent and no parameters */}
+                            {!hasParameters && pipeline.agent_id && (
+                              <button
                                 onClick={() => handleQuickRun(pipeline)}
                                 className="text-green-600 hover:text-green-900 transition-colors"
-                                title="Quick Run"
+                                title="Quick Run (with default agent)"
                               >
                                 <Play className="h-4 w-4" />
                               </button>
                             )}
-                            
-                            <button 
+
+                            <button
                               onClick={() => handleViewExecution(pipeline)}
                               className="text-blue-600 hover:text-blue-900 transition-colors"
-                              title="View Execution"
+                              title="Execution History"
                             >
-                              <Eye className="h-4 w-4" />
+                              <History className="h-4 w-4" />
                             </button>
                             <button 
                               onClick={() => handleEditClick(pipeline)}
@@ -303,19 +345,29 @@ export default function PipelinesPage() {
           setShowRunModal(false);
           setSelectedPipeline(null);
         }}
-        onRun={(params) => {
-          handleRunPipeline(selectedPipeline?.id, params);
+        onRun={(params, agentId) => {
+          handleRunPipeline(selectedPipeline?.id, params, agentId);
           setShowRunModal(false);
         }}
         pipeline={selectedPipeline}
         parameters={selectedPipeline?.parameters || []}
       />
 
+      <ExecutionHistoryModal
+        isOpen={showHistoryModal}
+        onClose={() => {
+          setShowHistoryModal(false);
+          setSelectedPipeline(null);
+        }}
+        pipelineId={selectedPipeline?.id || 0}
+        pipelineName={selectedPipeline?.name || ''}
+        onViewLogs={handleViewLogs}
+      />
+
       <ExecutionViewModal
         isOpen={showExecutionModal}
         onClose={() => {
           setShowExecutionModal(false);
-          setSelectedPipeline(null);
           setCurrentExecutionId(null);
         }}
         onStop={handleStopPipeline}

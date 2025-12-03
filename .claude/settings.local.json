@@ -1,0 +1,17 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(tasklist:*)",
+      "Bash(start CygnetCI.Agent.exe)",
+      "Bash(dotnet run)",
+      "Bash(ping:*)",
+      "Bash(python:*)",
+      "Bash(powershell -Command \"Stop-Process -Id 2132 -Force\")",
+      "Bash(pip install:*)",
+      "Bash(psql:*)",
+      "Bash(dotnet build:*)"
+    ],
+    "deny": [],
+    "ask": []
+  }
+}

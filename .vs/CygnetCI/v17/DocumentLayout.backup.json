@@ -1,0 +1,85 @@
+{
+  "Version": 1,
+  "WorkspaceRootPath": "D:\\Avesh\\CygnetCI\\SourceCode\\CygnetCI\\",
+  "Documents": [
+    {
+      "AbsoluteMoniker": "D:0:0:{1F5D0DD4-0EB7-EB2D-1082-32D9A34C2F05}|CygnetCI.Agent\\CygnetCI.Agent.csproj|d:\\avesh\\cygnetci\\sourcecode\\cygnetci\\cygnetci.agent\\http\\cygnetapiclient.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{1F5D0DD4-0EB7-EB2D-1082-32D9A34C2F05}|CygnetCI.Agent\\CygnetCI.Agent.csproj|solutionrelative:cygnetci.agent\\http\\cygnetapiclient.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{1F5D0DD4-0EB7-EB2D-1082-32D9A34C2F05}|CygnetCI.Agent\\CygnetCI.Agent.csproj|d:\\avesh\\cygnetci\\sourcecode\\cygnetci\\cygnetci.agent\\services\\filetransferservice.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{1F5D0DD4-0EB7-EB2D-1082-32D9A34C2F05}|CygnetCI.Agent\\CygnetCI.Agent.csproj|solutionrelative:cygnetci.agent\\services\\filetransferservice.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{1F5D0DD4-0EB7-EB2D-1082-32D9A34C2F05}|CygnetCI.Agent\\CygnetCI.Agent.csproj|d:\\avesh\\cygnetci\\sourcecode\\cygnetci\\cygnetci.agent\\program.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{1F5D0DD4-0EB7-EB2D-1082-32D9A34C2F05}|CygnetCI.Agent\\CygnetCI.Agent.csproj|solutionrelative:cygnetci.agent\\program.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{1F5D0DD4-0EB7-EB2D-1082-32D9A34C2F05}|CygnetCI.Agent\\CygnetCI.Agent.csproj|d:\\avesh\\cygnetci\\sourcecode\\cygnetci\\cygnetci.agent\\appsettings.json||{90A6B3A7-C1A3-4009-A288-E2FF89E96FA0}",
+      "RelativeMoniker": "D:0:0:{1F5D0DD4-0EB7-EB2D-1082-32D9A34C2F05}|CygnetCI.Agent\\CygnetCI.Agent.csproj|solutionrelative:cygnetci.agent\\appsettings.json||{90A6B3A7-C1A3-4009-A288-E2FF89E96FA0}"
+    }
+  ],
+  "DocumentGroupContainers": [
+    {
+      "Orientation": 0,
+      "VerticalTabListWidth": 256,
+      "DocumentGroups": [
+        {
+          "DockedWidth": 200,
+          "SelectedChildIndex": 1,
+          "Children": [
+            {
+              "$type": "Document",
+              "DocumentIndex": 2,
+              "Title": "Program.cs",
+              "DocumentMoniker": "D:\\Avesh\\CygnetCI\\SourceCode\\CygnetCI\\CygnetCI.Agent\\Program.cs",
+              "RelativeDocumentMoniker": "CygnetCI.Agent\\Program.cs",
+              "ToolTip": "D:\\Avesh\\CygnetCI\\SourceCode\\CygnetCI\\CygnetCI.Agent\\Program.cs",
+              "RelativeToolTip": "CygnetCI.Agent\\Program.cs",
+              "ViewState": "AgIAABQAAAAAAAAAAAAAABwAAABHAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2025-11-27T12:40:12.69Z"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 0,
+              "Title": "CygnetApiClient.cs",
+              "DocumentMoniker": "D:\\Avesh\\CygnetCI\\SourceCode\\CygnetCI\\CygnetCI.Agent\\Http\\CygnetApiClient.cs",
+              "RelativeDocumentMoniker": "CygnetCI.Agent\\Http\\CygnetApiClient.cs",
+              "ToolTip": "D:\\Avesh\\CygnetCI\\SourceCode\\CygnetCI\\CygnetCI.Agent\\Http\\CygnetApiClient.cs",
+              "RelativeToolTip": "CygnetCI.Agent\\Http\\CygnetApiClient.cs",
+              "ViewState": "AgIAANgAAAAAAAAAAAA8wOgAAAAMAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2025-11-27T12:38:50.29Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 3,
+              "Title": "appsettings.json",
+              "DocumentMoniker": "D:\\Avesh\\CygnetCI\\SourceCode\\CygnetCI\\CygnetCI.Agent\\appsettings.json",
+              "RelativeDocumentMoniker": "CygnetCI.Agent\\appsettings.json",
+              "ToolTip": "D:\\Avesh\\CygnetCI\\SourceCode\\CygnetCI\\CygnetCI.Agent\\appsettings.json",
+              "RelativeToolTip": "CygnetCI.Agent\\appsettings.json",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAAAMAAAA2AAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.001642|",
+              "WhenOpened": "2025-11-27T10:58:23.905Z"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 1,
+              "Title": "FileTransferService.cs",
+              "DocumentMoniker": "D:\\Avesh\\CygnetCI\\SourceCode\\CygnetCI\\CygnetCI.Agent\\Services\\FileTransferService.cs",
+              "RelativeDocumentMoniker": "CygnetCI.Agent\\Services\\FileTransferService.cs",
+              "ToolTip": "D:\\Avesh\\CygnetCI\\SourceCode\\CygnetCI\\CygnetCI.Agent\\Services\\FileTransferService.cs",
+              "RelativeToolTip": "CygnetCI.Agent\\Services\\FileTransferService.cs",
+              "ViewState": "AgIAAB4AAAAAAAAAAAAgwCYAAAAIAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2025-11-27T10:52:27.76Z"
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

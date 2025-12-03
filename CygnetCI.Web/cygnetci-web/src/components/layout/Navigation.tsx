@@ -5,13 +5,15 @@
 import React from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { BarChart3, GitBranch, Server, Activity, Monitor } from 'lucide-react';
+import { BarChart3, GitBranch, Server, Activity, Monitor, Rocket, Upload } from 'lucide-react';
 
 const navItems = [
   { id: 'overview', name: 'Overview', icon: BarChart3, href: '/' },
   { id: 'pipelines', name: 'Pipelines', icon: GitBranch, href: '/pipelines' },
+  // { id: 'releases', name: 'Releases', icon: Rocket, href: '/releases' },
+  { id: 'transfer', name: 'Transfer', icon: Upload, href: '/transfer' },
   { id: 'agents', name: 'Agents', icon: Server, href: '/agents' },
-  { id: 'tasks', name: 'Tasks', icon: Activity, href: '/tasks' },
+  // { id: 'tasks', name: 'Tasks', icon: Activity, href: '/tasks' },
   { id: 'monitoring', name: 'Service Monitoring', icon: Monitor, href: '/monitoring' }
 ];
 

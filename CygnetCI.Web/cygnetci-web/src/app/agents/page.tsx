@@ -3,7 +3,7 @@
 'use client';
 
 import React, { useState } from 'react';
-import { Server } from 'lucide-react';
+import { Server, RefreshCw } from 'lucide-react';
 import { useData } from '@/lib/hooks/useData';
 import { apiService } from '@/lib/api/apiService';
 import { CONFIG } from '@/lib/config';
@@ -104,13 +104,22 @@ export default function AgentsPage() {
       <div className="space-y-6">
         <div className="flex items-center justify-between">
           <h2 className="text-2xl font-bold text-gray-800">Deployment Agents</h2>
-          <button 
-            onClick={() => setShowAddModal(true)}
-            className="bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded-lg flex items-center space-x-2 transition-colors"
-          >
-            <Server className="h-4 w-4" />
-            <span>Add Agent</span>
-          </button>
+          <div className="flex gap-3">
+            <button
+              onClick={refetch}
+              className="bg-gray-100 hover:bg-gray-200 text-gray-700 px-4 py-2 rounded-lg flex items-center space-x-2 transition-colors"
+            >
+              <RefreshCw className="h-4 w-4" />
+              <span>Refresh</span>
+            </button>
+            <button
+              onClick={() => setShowAddModal(true)}
+              className="bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded-lg flex items-center space-x-2 transition-colors"
+            >
+              <Server className="h-4 w-4" />
+              <span>Add Agent</span>
+            </button>
+          </div>
         </div>
 
         {/* Agent Resource Usage Charts */}

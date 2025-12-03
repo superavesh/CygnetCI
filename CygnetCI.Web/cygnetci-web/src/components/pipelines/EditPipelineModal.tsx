@@ -4,7 +4,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { X, Save, Trash2, Plus } from 'lucide-react';
-import type { PipelineFormData } from './CreatePipelineModal';
+import type { PipelineFormData, PipelineParameter } from './CreatePipelineModal';
 
 interface EditPipelineModalProps {
   isOpen: boolean;
@@ -27,7 +27,8 @@ export const EditPipelineModal: React.FC<EditPipelineModalProps> = ({
   const [description, setDescription] = useState('');
   const [branch, setBranch] = useState('');
   const [agentId, setAgentId] = useState<number | null>(null);
-  const [steps, setSteps] = useState<Array<{ name: string; command: string; order: number }>>([]);
+  const [steps, setSteps] = useState<Array<{ name: string; command: string; order: number; shellType: 'powershell' | 'cmd' | 'bash' }>>([]);
+  const [parameters, setParameters] = useState<PipelineParameter[]>([]);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [errors, setErrors] = useState<{ [key: string]: string }>({});
 
@@ -37,26 +38,78 @@ export const EditPipelineModal: React.FC<EditPipelineModalProps> = ({
       setDescription(pipeline.description || '');
       setBranch(pipeline.branch || 'main');
       setAgentId(pipeline.agent_id || null);
-      setSteps(pipeline.steps || [
-        { name: 'Build', command: 'npm run build', order: 1 }
+      setSteps(pipeline.steps?.map((step: any) => ({
+        name: step.name,
+        command: step.command,
+        order: step.order,
+        shellType: step.shellType || 'cmd'
+      })) || [
+        { name: 'Build', command: 'npm run build', order: 1, shellType: 'cmd' }
       ]);
+      setParameters(pipeline.parameters || []);
     }
   }, [pipeline]);
 
   if (!isOpen || !pipeline) return null;
 
   const addStep = () => {
-    setSteps([...steps, { name: '', command: '', order: steps.length + 1 }]);
+    setSteps([...steps, { name: '', command: '', order: steps.length + 1, shellType: 'cmd' }]);
   };
 
   const removeStep = (index: number) => {
     setSteps(steps.filter((_, i) => i !== index));
   };
 
-  const updateStep = (index: number, field: 'name' | 'command', value: string) => {
+  const updateStep = (index: number, field: 'name' | 'command' | 'shellType', value: string) => {
     const newSteps = [...steps];
-    newSteps[index][field] = value;
+    newSteps[index][field] = value as any;
     setSteps(newSteps);
+  };
+
+  // Parameter Management
+  const addParameter = () => {
+    setParameters([
+      ...parameters,
+      {
+        name: '',
+        type: 'string',
+        defaultValue: '',
+        required: false,
+        description: '',
+        choices: []
+      }
+    ]);
+  };
+
+  const removeParameter = (index: number) => {
+    setParameters(parameters.filter((_, i) => i !== index));
+  };
+
+  const updateParameter = (index: number, field: keyof PipelineParameter, value: any) => {
+    const newParams = [...parameters];
+    newParams[index] = { ...newParams[index], [field]: value };
+    setParameters(newParams);
+  };
+
+  const addChoice = (paramIndex: number) => {
+    const newParams = [...parameters];
+    if (!newParams[paramIndex].choices) {
+      newParams[paramIndex].choices = [];
+    }
+    newParams[paramIndex].choices!.push('');
+    setParameters(newParams);
+  };
+
+  const updateChoice = (paramIndex: number, choiceIndex: number, value: string) => {
+    const newParams = [...parameters];
+    newParams[paramIndex].choices![choiceIndex] = value;
+    setParameters(newParams);
+  };
+
+  const removeChoice = (paramIndex: number, choiceIndex: number) => {
+    const newParams = [...parameters];
+    newParams[paramIndex].choices = newParams[paramIndex].choices!.filter((_, i) => i !== choiceIndex);
+    setParameters(newParams);
   };
 
   const validateForm = () => {
@@ -69,6 +122,13 @@ export const EditPipelineModal: React.FC<EditPipelineModalProps> = ({
     steps.forEach((step, index) => {
       if (!step.name.trim()) newErrors[`step_name_${index}`] = 'Step name is required';
       if (!step.command.trim()) newErrors[`step_command_${index}`] = 'Command is required';
+    });
+
+    parameters.forEach((param, index) => {
+      if (!param.name.trim()) newErrors[`param_name_${index}`] = 'Parameter name is required';
+      if (param.type === 'choice' && (!param.choices || param.choices.length === 0)) {
+        newErrors[`param_choices_${index}`] = 'At least one choice is required';
+      }
     });
 
     setErrors(newErrors);
@@ -87,6 +147,11 @@ export const EditPipelineModal: React.FC<EditPipelineModalProps> = ({
         steps: steps.map((step, index) => ({
           ...step,
           order: index + 1
+        })),
+        parameters: parameters.map(p => ({
+          ...p,
+          name: p.name.trim(),
+          description: p.description.trim()
         }))
       });
 
@@ -203,6 +268,151 @@ export const EditPipelineModal: React.FC<EditPipelineModalProps> = ({
             {errors.agentId && <p className="mt-1 text-sm text-red-500">{errors.agentId}</p>}
           </div>
 
+          {/* Pipeline Parameters */}
+          <div>
+            <div className="flex items-center justify-between mb-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700">
+                  Pipeline Parameters
+                </label>
+                <p className="text-xs text-gray-500 mt-1">
+                  Define parameters that can be set when running this pipeline
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={addParameter}
+                className="flex items-center space-x-2 px-3 py-1 bg-purple-500 hover:bg-purple-600 text-white rounded-lg text-sm transition-colors"
+              >
+                <Plus className="h-4 w-4" />
+                <span>Add Parameter</span>
+              </button>
+            </div>
+
+            {parameters.length > 0 && (
+              <div className="space-y-4">
+                {parameters.map((param, index) => (
+                  <div
+                    key={index}
+                    className="border border-gray-200 rounded-lg p-4 bg-purple-50"
+                  >
+                    <div className="flex items-start justify-between mb-3">
+                      <span className="text-sm font-medium text-gray-600">
+                        Parameter {index + 1}
+                      </span>
+                      <button
+                        type="button"
+                        onClick={() => removeParameter(index)}
+                        className="text-red-500 hover:text-red-700 transition-colors"
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </button>
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-3">
+                      <div>
+                        <input
+                          type="text"
+                          value={param.name}
+                          onChange={(e) => updateParameter(index, 'name', e.target.value)}
+                          placeholder="Parameter name (e.g., ENV, VERSION)"
+                          className={`w-full px-3 py-2 border rounded-lg text-sm text-gray-900 ${
+                            errors[`param_name_${index}`] ? 'border-red-500' : 'border-gray-300'
+                          }`}
+                        />
+                        {errors[`param_name_${index}`] && (
+                          <p className="mt-1 text-xs text-red-500">{errors[`param_name_${index}`]}</p>
+                        )}
+                      </div>
+
+                      <select
+                        value={param.type}
+                        onChange={(e) => updateParameter(index, 'type', e.target.value)}
+                        className="px-3 py-2 border border-gray-300 rounded-lg text-sm text-gray-900"
+                      >
+                        <option value="string">String</option>
+                        <option value="number">Number</option>
+                        <option value="boolean">Boolean</option>
+                        <option value="choice">Choice</option>
+                      </select>
+                    </div>
+
+                    <div className="mt-3">
+                      <input
+                        type="text"
+                        value={param.defaultValue}
+                        onChange={(e) => updateParameter(index, 'defaultValue', e.target.value)}
+                        placeholder="Default value"
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm text-gray-900"
+                      />
+                    </div>
+
+                    <div className="mt-3">
+                      <textarea
+                        value={param.description}
+                        onChange={(e) => updateParameter(index, 'description', e.target.value)}
+                        placeholder="Parameter description"
+                        rows={2}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm text-gray-900 resize-none"
+                      />
+                    </div>
+
+                    {/* Choices for choice type */}
+                    {param.type === 'choice' && (
+                      <div className="mt-3">
+                        <div className="flex items-center justify-between mb-2">
+                          <label className="text-xs font-medium text-gray-600">Choices</label>
+                          <button
+                            type="button"
+                            onClick={() => addChoice(index)}
+                            className="text-xs text-purple-600 hover:text-purple-800"
+                          >
+                            + Add Choice
+                          </button>
+                        </div>
+                        <div className="space-y-2">
+                          {param.choices?.map((choice, choiceIndex) => (
+                            <div key={choiceIndex} className="flex items-center space-x-2">
+                              <input
+                                type="text"
+                                value={choice}
+                                onChange={(e) => updateChoice(index, choiceIndex, e.target.value)}
+                                placeholder={`Choice ${choiceIndex + 1}`}
+                                className="flex-1 px-3 py-1 border border-gray-300 rounded text-sm text-gray-900"
+                              />
+                              <button
+                                type="button"
+                                onClick={() => removeChoice(index, choiceIndex)}
+                                className="text-red-500 hover:text-red-700"
+                              >
+                                <X className="h-4 w-4" />
+                              </button>
+                            </div>
+                          ))}
+                        </div>
+                        {errors[`param_choices_${index}`] && (
+                          <p className="mt-1 text-xs text-red-500">{errors[`param_choices_${index}`]}</p>
+                        )}
+                      </div>
+                    )}
+
+                    <div className="mt-3">
+                      <label className="flex items-center space-x-2">
+                        <input
+                          type="checkbox"
+                          checked={param.required}
+                          onChange={(e) => updateParameter(index, 'required', e.target.checked)}
+                          className="rounded border-gray-300"
+                        />
+                        <span className="text-sm text-gray-700">Required parameter</span>
+                      </label>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+
           {/* Pipeline Steps */}
           <div>
             <div className="flex items-center justify-between mb-4">
@@ -245,6 +455,23 @@ export const EditPipelineModal: React.FC<EditPipelineModalProps> = ({
                         errors[`step_name_${index}`] ? 'border-red-500' : 'border-gray-300'
                       }`}
                     />
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                        Shell Type
+                      </label>
+                      <select
+                        value={step.shellType}
+                        onChange={(e) => updateStep(index, 'shellType', e.target.value)}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none text-gray-900"
+                      >
+                        <option value="cmd">Command Prompt (cmd)</option>
+                        <option value="powershell">PowerShell</option>
+                        <option value="bash">Bash</option>
+                      </select>
+                      <p className="text-xs text-gray-500 mt-1">
+                        Select the shell executor for this step
+                      </p>
+                    </div>
                     <textarea
                       value={step.command}
                       onChange={(e) => updateStep(index, 'command', e.target.value)}

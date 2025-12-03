@@ -30,6 +30,7 @@ export interface PipelineFormData {
     name: string;
     command: string;
     order: number;
+    shellType: 'powershell' | 'cmd' | 'bash';
   }>;
   parameters: PipelineParameter[];
 }
@@ -45,7 +46,7 @@ export const CreatePipelineModal: React.FC<CreatePipelineModalProps> = ({
   const [branch, setBranch] = useState('main');
   const [agentId, setAgentId] = useState<number | null>(null);
   const [steps, setSteps] = useState([
-    { name: 'Build', command: 'npm run build', order: 1 }
+    { name: 'Build', command: 'npm run build', order: 1, shellType: 'cmd' as const }
   ]);
   const [parameters, setParameters] = useState<PipelineParameter[]>([]);
   const [errors, setErrors] = useState<{ [key: string]: string }>({});
@@ -55,7 +56,7 @@ export const CreatePipelineModal: React.FC<CreatePipelineModalProps> = ({
   const addStep = () => {
     setSteps([
       ...steps,
-      { name: '', command: '', order: steps.length + 1 }
+      { name: '', command: '', order: steps.length + 1, shellType: 'cmd' }
     ]);
   };
 
@@ -63,9 +64,9 @@ export const CreatePipelineModal: React.FC<CreatePipelineModalProps> = ({
     setSteps(steps.filter((_, i) => i !== index));
   };
 
-  const updateStep = (index: number, field: 'name' | 'command', value: string) => {
+  const updateStep = (index: number, field: 'name' | 'command' | 'shellType', value: string) => {
     const newSteps = [...steps];
-    newSteps[index][field] = value;
+    newSteps[index][field] = value as any;
     setSteps(newSteps);
   };
 
@@ -181,7 +182,7 @@ export const CreatePipelineModal: React.FC<CreatePipelineModalProps> = ({
       setDescription('');
       setBranch('main');
       setAgentId(null);
-      setSteps([{ name: 'Build', command: 'npm run build', order: 1 }]);
+      setSteps([{ name: 'Build', command: 'npm run build', order: 1, shellType: 'cmd' }]);
       setParameters([]);
       setErrors({});
       onClose();
@@ -193,7 +194,7 @@ export const CreatePipelineModal: React.FC<CreatePipelineModalProps> = ({
     setDescription('');
     setBranch('main');
     setAgentId(null);
-    setSteps([{ name: 'Build', command: 'npm run build', order: 1 }]);
+    setSteps([{ name: 'Build', command: 'npm run build', order: 1, shellType: 'cmd' }]);
     setParameters([]);
     setErrors({});
     onClose();
@@ -492,6 +493,24 @@ export const CreatePipelineModal: React.FC<CreatePipelineModalProps> = ({
                       {errors[`step_name_${index}`] && (
                         <p className="mt-1 text-xs text-red-500">{errors[`step_name_${index}`]}</p>
                       )}
+                    </div>
+
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                        Shell Type
+                      </label>
+                      <select
+                        value={step.shellType}
+                        onChange={(e) => updateStep(index, 'shellType', e.target.value)}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none text-gray-900"
+                      >
+                        <option value="cmd">Command Prompt (cmd)</option>
+                        <option value="powershell">PowerShell</option>
+                        <option value="bash">Bash</option>
+                      </select>
+                      <p className="text-xs text-gray-500 mt-1">
+                        Select the shell executor for this step
+                      </p>
                     </div>
 
                     <div>

@@ -15,9 +15,13 @@ interface ExecutionViewModalProps {
 }
 
 interface LogLine {
+  id: number;
   timestamp: string;
-  type: 'info' | 'success' | 'error' | 'command';
+  log_level: 'debug' | 'info' | 'warning' | 'error' | 'success';
   message: string;
+  step_name?: string;
+  step_index?: number;
+  source: 'system' | 'agent' | 'user';
 }
 
 export const ExecutionViewModal: React.FC<ExecutionViewModalProps> = ({
@@ -39,66 +43,49 @@ export const ExecutionViewModal: React.FC<ExecutionViewModalProps> = ({
     logsEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [logs]);
 
-  // Simulate real-time log streaming
+  // Fetch execution logs from API
   useEffect(() => {
     if (!isOpen || !executionId) return;
 
-    // Initial logs
-    const initialLogs: LogLine[] = [
-      { timestamp: new Date().toISOString(), type: 'info', message: `Starting pipeline: ${pipelineName}` },
-      { timestamp: new Date().toISOString(), type: 'info', message: `Execution ID: ${executionId}` },
-      { timestamp: new Date().toISOString(), type: 'info', message: 'Connecting to agent...' },
-      { timestamp: new Date().toISOString(), type: 'success', message: 'Agent connected successfully' },
-      { timestamp: new Date().toISOString(), type: 'info', message: 'Preparing execution environment...' }
-    ];
+    const fetchLogs = async () => {
+      try {
+        const response = await fetch(`http://127.0.0.1:8000/pipeline-executions/${executionId}/logs`);
+        if (response.ok) {
+          const data = await response.json();
+          setLogs(data);
 
-    setLogs(initialLogs);
+          // Check if execution is still running by checking the last log
+          if (data.length > 0) {
+            const lastLog = data[data.length - 1];
+            const isComplete = lastLog.log_level === 'success' &&
+                             (lastLog.message.includes('completed') || lastLog.message.includes('finished'));
+            setIsRunning(!isComplete);
+          }
+        }
+      } catch (error) {
+        console.error('Failed to fetch logs:', error);
+        setLogs([{
+          id: 0,
+          timestamp: new Date().toISOString(),
+          log_level: 'error',
+          message: 'Failed to fetch execution logs',
+          source: 'system'
+        }]);
+      }
+    };
 
-    // Simulate streaming logs
+    // Initial fetch
+    fetchLogs();
+
+    // Poll for new logs every 2 seconds while running
     const logInterval = setInterval(() => {
-      const sampleLogs = [
-        { type: 'command' as const, message: '$ npm install' },
-        { type: 'info' as const, message: 'Installing dependencies...' },
-        { type: 'info' as const, message: 'added 1523 packages in 12s' },
-        { type: 'success' as const, message: 'Dependencies installed successfully' },
-        { type: 'command' as const, message: '$ npm run build' },
-        { type: 'info' as const, message: 'Building application...' },
-        { type: 'info' as const, message: 'Compiling TypeScript...' },
-        { type: 'info' as const, message: 'Generating bundle...' },
-        { type: 'success' as const, message: 'Build completed: dist/bundle.js (245 KB)' },
-        { type: 'command' as const, message: '$ npm test' },
-        { type: 'info' as const, message: 'Running test suites...' },
-        { type: 'info' as const, message: 'Test Suites: 5 passed, 5 total' },
-        { type: 'info' as const, message: 'Tests: 42 passed, 42 total' },
-        { type: 'success' as const, message: 'All tests passed!' },
-        { type: 'command' as const, message: '$ npm run deploy' },
-        { type: 'info' as const, message: 'Deploying to production...' },
-        { type: 'info' as const, message: 'Uploading files to server...' },
-        { type: 'info' as const, message: 'Files uploaded: 156/156' },
-        { type: 'success' as const, message: 'Deployment successful!' },
-        { type: 'success' as const, message: `Pipeline ${pipelineName} completed successfully` }
-      ];
-
-      setLogs(prev => {
-        if (prev.length >= initialLogs.length + sampleLogs.length) {
-          clearInterval(logInterval);
-          setIsRunning(false);
-          return prev;
-        }
-
-        const nextLog = sampleLogs[prev.length - initialLogs.length];
-        if (nextLog) {
-          return [...prev, {
-            timestamp: new Date().toISOString(),
-            ...nextLog
-          }];
-        }
-        return prev;
-      });
-    }, 800);
+      if (isRunning) {
+        fetchLogs();
+      }
+    }, 2000);
 
     return () => clearInterval(logInterval);
-  }, [isOpen, executionId, pipelineName]);
+  }, [isOpen, executionId, isRunning]);
 
   if (!isOpen) return null;
 
@@ -106,27 +93,30 @@ export const ExecutionViewModal: React.FC<ExecutionViewModalProps> = ({
     return new Date(timestamp).toLocaleTimeString();
   };
 
-  const getLogColor = (type: string) => {
-    switch (type) {
+  const getLogColor = (level: string) => {
+    switch (level) {
       case 'success': return 'text-green-400';
       case 'error': return 'text-red-400';
-      case 'command': return 'text-cyan-400';
+      case 'warning': return 'text-yellow-400';
+      case 'debug': return 'text-gray-500';
       default: return 'text-gray-300';
     }
   };
 
-  const getLogPrefix = (type: string) => {
-    switch (type) {
+  const getLogPrefix = (level: string, source: string) => {
+    if (source === 'agent') return '▶';
+    switch (level) {
       case 'success': return '✓';
       case 'error': return '✗';
-      case 'command': return '>';
+      case 'warning': return '⚠';
+      case 'debug': return '◦';
       default: return '•';
     }
   };
 
   const downloadLogs = () => {
     const logText = logs
-      .map(log => `[${formatTime(log.timestamp)}] ${getLogPrefix(log.type)} ${log.message}`)
+      .map(log => `[${formatTime(log.timestamp)}] ${getLogPrefix(log.log_level, log.source)} ${log.step_name ? `[${log.step_name}] ` : ''}${log.message}`)
       .join('\n');
 
     const blob = new Blob([logText], { type: 'text/plain' });
@@ -142,7 +132,7 @@ export const ExecutionViewModal: React.FC<ExecutionViewModalProps> = ({
 
   const copyLogs = () => {
     const logText = logs
-      .map(log => `[${formatTime(log.timestamp)}] ${getLogPrefix(log.type)} ${log.message}`)
+      .map(log => `[${formatTime(log.timestamp)}] ${getLogPrefix(log.log_level, log.source)} ${log.step_name ? `[${log.step_name}] ` : ''}${log.message}`)
       .join('\n');
 
     navigator.clipboard.writeText(logText);
@@ -153,9 +143,11 @@ export const ExecutionViewModal: React.FC<ExecutionViewModalProps> = ({
   const handleStop = () => {
     setIsRunning(false);
     setLogs(prev => [...prev, {
+      id: Date.now(),
       timestamp: new Date().toISOString(),
-      type: 'error',
-      message: 'Pipeline execution stopped by user'
+      log_level: 'error',
+      message: 'Pipeline execution stopped by user',
+      source: 'user'
     }]);
     onStop();
   };
@@ -221,15 +213,20 @@ export const ExecutionViewModal: React.FC<ExecutionViewModalProps> = ({
           className="flex-1 overflow-y-auto p-6 bg-black font-mono text-sm"
           style={{ fontFamily: 'Consolas, Monaco, "Courier New", monospace' }}
         >
-          {logs.map((log, index) => (
-            <div key={index} className="flex space-x-3 mb-2">
+          {logs.map((log) => (
+            <div key={log.id} className="flex space-x-3 mb-2">
               <span className="text-gray-600 flex-shrink-0">
                 {formatTime(log.timestamp)}
               </span>
-              <span className={`flex-shrink-0 ${getLogColor(log.type)}`}>
-                {getLogPrefix(log.type)}
+              <span className={`flex-shrink-0 ${getLogColor(log.log_level)}`}>
+                {getLogPrefix(log.log_level, log.source)}
               </span>
-              <span className={getLogColor(log.type)}>
+              {log.step_name && (
+                <span className="text-blue-400 flex-shrink-0">
+                  [{log.step_name}]
+                </span>
+              )}
+              <span className={getLogColor(log.log_level)}>
                 {log.message}
               </span>
             </div>

@@ -2,17 +2,12 @@
 from sqlalchemy import create_engine
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker
-from urllib.parse import quote_plus
-import os
+from config import app_config
 
-# URL-encode the password to handle special characters like @
-password = quote_plus("Admin@123")
+# Get database URL from config
+DATABASE_URL = app_config.get_database_url()
 
-# Database URL with encoded password
-DATABASE_URL = os.getenv(
-    "DATABASE_URL",
-    f"postgresql://postgres:{password}@localhost:5432/CygnetCI"
-)
+print(f"Connecting to database: {app_config.get_db_name()} at {app_config.get_db_host()}:{app_config.get_db_port()}")
 
 # Create engine
 engine = create_engine(DATABASE_URL)

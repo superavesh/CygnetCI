@@ -120,14 +120,10 @@ export const useData = () => {
     }));
   }, []);
 
+  // Initial data fetch on mount - removed automatic polling
   useEffect(() => {
     fetchData();
-
-    // Set up polling if using real API
-    if (CONFIG.app.useRealAPI) {
-      const pollInterval = setInterval(fetchData, CONFIG.app.pollingInterval);
-      return () => clearInterval(pollInterval);
-    }
+    // Removed automatic polling - user can manually refresh using the refresh buttons
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   return {

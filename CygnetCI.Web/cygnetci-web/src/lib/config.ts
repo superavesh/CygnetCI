@@ -31,6 +31,6 @@ export const CONFIG = {
     name: 'CygnetCI',
     version: '1.0.0',
     pollingInterval: 30000, // 30 seconds
-    useRealAPI: false // Set to true when your API is ready
+    useRealAPI: true // Set to true when your API is ready
   }
 };
