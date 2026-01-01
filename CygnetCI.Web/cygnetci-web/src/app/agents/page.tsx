@@ -5,6 +5,7 @@
 import React, { useState } from 'react';
 import { Server, RefreshCw } from 'lucide-react';
 import { useData } from '@/lib/hooks/useData';
+import { useCustomer } from '@/lib/contexts/CustomerContext';
 import { apiService } from '@/lib/api/apiService';
 import { CONFIG } from '@/lib/config';
 import { AgentCard } from '@/components/cards/AgentCard';
@@ -16,7 +17,8 @@ import { generateResourceData } from '@/data/dummyData';
 import type { Agent } from '@/types';
 
 export default function AgentsPage() {
-  const { agents, refetch, addAgentLocally, updateAgentLocally, deleteAgentLocally } = useData();
+  const { selectedCustomer } = useCustomer();
+  const { agents, refetch } = useData(selectedCustomer?.id);
   const [showAddModal, setShowAddModal] = useState(false);
   const [showConfigModal, setShowConfigModal] = useState(false);
   const [showLogsModal, setShowLogsModal] = useState(false);
@@ -29,16 +31,8 @@ export default function AgentsPage() {
     location: string;
   }) => {
     try {
-      if (CONFIG.app.useRealAPI) {
-        // Use real API
-        await apiService.addAgent(agentData);
-        refetch();
-      } else {
-        // Use local dummy data
-        addAgentLocally(agentData);
-        console.log('Agent added successfully (dummy mode):', agentData);
-      }
-      
+      await apiService.addAgent(agentData);
+      await refetch();
       setShowAddModal(false);
     } catch (error) {
       console.error('Error adding agent:', error);
@@ -51,16 +45,8 @@ export default function AgentsPage() {
     agentData: { name: string; description: string; location: string }
   ) => {
     try {
-      if (CONFIG.app.useRealAPI) {
-        // Use real API
-        await apiService.updateAgent(agentId, agentData);
-        refetch();
-      } else {
-        // Use local dummy data
-        updateAgentLocally(agentId, agentData);
-        console.log('Agent updated successfully (dummy mode):', agentId, agentData);
-      }
-      
+      await apiService.updateAgent(agentId, agentData);
+      await refetch();
       setShowConfigModal(false);
       setSelectedAgent(null);
     } catch (error) {
@@ -71,16 +57,8 @@ export default function AgentsPage() {
 
   const handleDeleteAgent = async (agentId: number) => {
     try {
-      if (CONFIG.app.useRealAPI) {
-        // Use real API
-        await apiService.deleteAgent(agentId);
-        refetch();
-      } else {
-        // Use local dummy data
-        deleteAgentLocally(agentId);
-        console.log('Agent deleted successfully (dummy mode):', agentId);
-      }
-      
+      await apiService.deleteAgent(agentId);
+      await refetch();
       setShowConfigModal(false);
       setSelectedAgent(null);
     } catch (error) {

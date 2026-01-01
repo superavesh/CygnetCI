@@ -460,6 +460,25 @@ class ApiService {
     return await response.json();
   }
 
+  async getReleaseExecutionLogs(stageExecutionId: number): Promise<{ logs: string }> {
+    if (!CONFIG.app.useRealAPI) {
+      console.log(`Getting logs for stage execution ${stageExecutionId} (dummy mode)`);
+      return { logs: 'Dummy logs - no real data available in dummy mode' };
+    }
+
+    const url = `${CONFIG.api.baseUrl}/stage-executions/${stageExecutionId}/logs`;
+    const response = await fetch(url, {
+      method: 'GET',
+      headers: CONFIG.api.headers
+    });
+
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
+
+    return await response.json();
+  }
+
   async approveStage(stageExecutionId: number, approvalData: { approved_by: string; comments?: string }) {
     if (!CONFIG.app.useRealAPI) {
       console.log(`Approving stage ${stageExecutionId} (dummy mode):`, approvalData);

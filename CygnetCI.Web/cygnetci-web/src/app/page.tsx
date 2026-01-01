@@ -5,12 +5,14 @@
 import React from 'react';
 import { Server, GitBranch, CheckCircle, Clock, RefreshCw, XCircle, Monitor } from 'lucide-react';
 import { useData } from '@/lib/hooks/useData';
+import { useCustomer } from '@/lib/contexts/CustomerContext';
 import { StatCard } from '@/components/cards/StatCard';
 import { StatusBadge } from '@/components/common/StatusBadge';
 import { CONFIG } from '@/lib/config';
 
 export default function OverviewPage() {
-  const { agents, pipelines, stats, refetch } = useData();
+  const { selectedCustomer } = useCustomer();
+  const { agents, pipelines, stats, refetch } = useData(selectedCustomer?.id);
 
   return (
     <div className="space-y-8">
