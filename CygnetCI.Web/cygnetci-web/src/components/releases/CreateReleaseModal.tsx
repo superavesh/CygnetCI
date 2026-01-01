@@ -6,6 +6,7 @@ import React, { useState, useEffect } from 'react';
 import { X, Plus, Trash2, ChevronUp, ChevronDown } from 'lucide-react';
 import { apiService } from '@/lib/api/apiService';
 import type { Environment, Pipeline } from '@/types';
+import { useCustomer } from '@/lib/contexts/CustomerContext';
 
 interface CreateReleaseModalProps {
   onClose: () => void;
@@ -22,6 +23,7 @@ interface ReleaseStageForm {
 }
 
 export const CreateReleaseModal: React.FC<CreateReleaseModalProps> = ({ onClose, onSuccess }) => {
+  const { selectedCustomer } = useCustomer();
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
   const [version, setVersion] = useState('');
@@ -113,6 +115,7 @@ export const CreateReleaseModal: React.FC<CreateReleaseModalProps> = ({ onClose,
         description: description.trim() || undefined,
         version: version.trim() || undefined,
         pipeline_id: pipelineId,
+        customer_id: selectedCustomer?.id,
         stages: stages
       });
 

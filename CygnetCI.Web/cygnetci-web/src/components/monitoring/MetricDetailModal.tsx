@@ -1,9 +1,10 @@
 // src/components/monitoring/MetricDetailModal.tsx
 
 import React, { useState, useEffect } from 'react';
-import { X, Calendar, TrendingUp, RefreshCw } from 'lucide-react';
+import { X, Calendar, TrendingUp, RefreshCw, Trash2 } from 'lucide-react';
 
 interface MetricHistory {
+  id?: number;
   timestamp: string;
   cpu: number;
   memory: number;
@@ -30,13 +31,23 @@ export const MetricDetailModal: React.FC<MetricDetailModalProps> = ({
   const [history, setHistory] = useState<MetricHistory[]>([]);
   const [timeRange, setTimeRange] = useState(24); // hours
   const [loading, setLoading] = useState(false);
+  const [useCustomRange, setUseCustomRange] = useState(false);
+  const [startDate, setStartDate] = useState('');
+  const [endDate, setEndDate] = useState('');
+  const [selectedRows, setSelectedRows] = useState<Set<number>>(new Set());
 
   const fetchHistory = async () => {
     setLoading(true);
     try {
-      const response = await fetch(
-        `http://127.0.0.1:8000/monitoring/agents/${agentUuid}/metrics/history?hours=${timeRange}`
-      );
+      let url = `http://127.0.0.1:8000/monitoring/agents/${agentUuid}/metrics/history`;
+
+      if (useCustomRange && startDate && endDate) {
+        url += `?start_date=${startDate}&end_date=${endDate}`;
+      } else {
+        url += `?hours=${timeRange}`;
+      }
+
+      const response = await fetch(url);
       if (response.ok) {
         const data = await response.json();
         setHistory(data);
@@ -48,11 +59,57 @@ export const MetricDetailModal: React.FC<MetricDetailModalProps> = ({
     }
   };
 
+  const handleDelete = async () => {
+    if (selectedRows.size === 0) {
+      alert('Please select rows to delete');
+      return;
+    }
+
+    if (!confirm(`Are you sure you want to delete ${selectedRows.size} selected log(s)?`)) {
+      return;
+    }
+
+    try {
+      const deletePromises = Array.from(selectedRows).map(index => {
+        const record = history[index];
+        return fetch(`http://127.0.0.1:8000/monitoring/agents/${agentUuid}/metrics/${record.timestamp}`, {
+          method: 'DELETE'
+        });
+      });
+
+      await Promise.all(deletePromises);
+      setSelectedRows(new Set());
+      fetchHistory();
+    } catch (error) {
+      console.error('Failed to delete logs:', error);
+      alert('Failed to delete some logs');
+    }
+  };
+
+  const toggleRowSelection = (index: number) => {
+    const newSelected = new Set(selectedRows);
+    if (newSelected.has(index)) {
+      newSelected.delete(index);
+    } else {
+      newSelected.add(index);
+    }
+    setSelectedRows(newSelected);
+  };
+
+  const toggleSelectAll = () => {
+    if (selectedRows.size === history.length) {
+      setSelectedRows(new Set());
+    } else {
+      setSelectedRows(new Set(history.map((_, i) => i)));
+    }
+  };
+
   useEffect(() => {
     if (isOpen) {
       fetchHistory();
+      setSelectedRows(new Set());
     }
-  }, [isOpen, agentUuid, timeRange]);
+  }, [isOpen, agentUuid, timeRange, useCustomRange, startDate, endDate]);
 
   if (!isOpen) return null;
 
@@ -106,14 +163,22 @@ export const MetricDetailModal: React.FC<MetricDetailModalProps> = ({
 
         {/* Controls */}
         <div className="p-4 border-b border-gray-200 bg-gray-50">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-4">
+          <div className="flex items-center justify-between flex-wrap gap-3">
+            <div className="flex items-center gap-4 flex-wrap">
               <div className="flex items-center gap-2">
                 <Calendar className="h-4 w-4 text-gray-600" />
                 <select
                   value={timeRange}
-                  onChange={(e) => setTimeRange(Number(e.target.value))}
-                  className="px-3 py-1.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent text-gray-900 bg-white"
+                  onChange={(e) => {
+                    const value = Number(e.target.value);
+                    setTimeRange(value);
+                    if (value === 0) {
+                      setUseCustomRange(true);
+                    } else {
+                      setUseCustomRange(false);
+                    }
+                  }}
+                  className="px-3 py-1.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-[#FEB114] focus:border-transparent text-gray-900 bg-white"
                 >
                   <option value={1}>Last Hour</option>
                   <option value={6}>Last 6 Hours</option>
@@ -121,16 +186,75 @@ export const MetricDetailModal: React.FC<MetricDetailModalProps> = ({
                   <option value={24}>Last 24 Hours</option>
                   <option value={48}>Last 2 Days</option>
                   <option value={168}>Last Week</option>
+                  <option value={0}>Custom Date Range</option>
                 </select>
               </div>
+
+              {useCustomRange && (
+                <div className="flex items-center gap-2">
+                  <div className="flex items-center gap-2">
+                    <input
+                      type="date"
+                      value={startDate.split('T')[0]}
+                      onChange={(e) => {
+                        const time = startDate.split('T')[1] || '00:00';
+                        setStartDate(`${e.target.value}T${time}`);
+                      }}
+                      className="px-3 py-1.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-[#FEB114] focus:border-transparent text-gray-900 bg-white"
+                    />
+                    <input
+                      type="time"
+                      value={startDate.split('T')[1] || '00:00'}
+                      onChange={(e) => {
+                        const date = startDate.split('T')[0] || new Date().toISOString().split('T')[0];
+                        setStartDate(`${date}T${e.target.value}`);
+                      }}
+                      className="px-3 py-1.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-[#FEB114] focus:border-transparent text-gray-900 bg-white"
+                    />
+                  </div>
+                  <span className="text-gray-600 font-medium">to</span>
+                  <div className="flex items-center gap-2">
+                    <input
+                      type="date"
+                      value={endDate.split('T')[0]}
+                      onChange={(e) => {
+                        const time = endDate.split('T')[1] || '23:59';
+                        setEndDate(`${e.target.value}T${time}`);
+                      }}
+                      className="px-3 py-1.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-[#FEB114] focus:border-transparent text-gray-900 bg-white"
+                    />
+                    <input
+                      type="time"
+                      value={endDate.split('T')[1] || '23:59'}
+                      onChange={(e) => {
+                        const date = endDate.split('T')[0] || new Date().toISOString().split('T')[0];
+                        setEndDate(`${date}T${e.target.value}`);
+                      }}
+                      className="px-3 py-1.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-[#FEB114] focus:border-transparent text-gray-900 bg-white"
+                    />
+                  </div>
+                </div>
+              )}
             </div>
-            <button
-              onClick={fetchHistory}
-              className="px-3 py-1.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors flex items-center gap-2"
-            >
-              <RefreshCw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
-              Refresh
-            </button>
+
+            <div className="flex items-center gap-2">
+              {selectedRows.size > 0 && (
+                <button
+                  onClick={handleDelete}
+                  className="px-3 py-1.5 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors flex items-center gap-2"
+                >
+                  <Trash2 className="h-4 w-4" />
+                  Delete ({selectedRows.size})
+                </button>
+              )}
+              <button
+                onClick={fetchHistory}
+                className="px-3 py-1.5 bg-[#FEB114] hover:bg-[#E59D00] text-gray-800 rounded-lg transition-colors flex items-center gap-2"
+              >
+                <RefreshCw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
+                Refresh
+              </button>
+            </div>
           </div>
         </div>
 
@@ -173,45 +297,133 @@ export const MetricDetailModal: React.FC<MetricDetailModalProps> = ({
             </div>
           ) : (
             <div>
-              {/* Bar Chart */}
-              <div className={`p-6 bg-${color}-50 rounded-lg`}>
-                <div className="flex items-end justify-between h-64 gap-1">
-                  {history.map((m, i) => {
-                    const value = getMetricData(m);
-                    return (
-                      <div key={i} className="flex-1 flex flex-col items-center group">
-                        <div
-                          className={`w-full bg-${color}-500 rounded-t transition-all hover:bg-${color}-600 relative`}
-                          style={{ height: `${value}%`, minHeight: '2px' }}
-                          title={`${value}% at ${new Date(m.timestamp).toLocaleString()}`}
-                        >
-                          <span className="absolute -top-6 left-1/2 transform -translate-x-1/2 text-xs font-semibold opacity-0 group-hover:opacity-100 transition-opacity bg-gray-900 text-white px-2 py-1 rounded whitespace-nowrap">
-                            {value}%
-                          </span>
-                        </div>
-                      </div>
-                    );
-                  })}
+              {/* Line Chart with Area */}
+              <div className="p-6 bg-gray-50 rounded-lg border border-gray-200">
+                <div className="relative h-80">
+                  {/* Y-axis labels */}
+                  <div className="absolute left-0 top-0 bottom-0 w-12 flex flex-col justify-between text-xs text-gray-600">
+                    <span>100%</span>
+                    <span>75%</span>
+                    <span>50%</span>
+                    <span>25%</span>
+                    <span>0%</span>
+                  </div>
+
+                  {/* Grid lines */}
+                  <div className="absolute left-12 right-0 top-0 bottom-0">
+                    {[0, 25, 50, 75, 100].map((val) => (
+                      <div
+                        key={val}
+                        className="absolute w-full border-t border-gray-200"
+                        style={{ bottom: `${val}%` }}
+                      />
+                    ))}
+                  </div>
+
+                  {/* Chart area */}
+                  <div className="absolute left-12 right-0 top-0 bottom-0">
+                    <svg className="w-full h-full" preserveAspectRatio="none">
+                      {/* Area fill */}
+                      <defs>
+                        <linearGradient id={`gradient-${color}`} x1="0%" y1="0%" x2="0%" y2="100%">
+                          <stop offset="0%" stopColor={color === 'blue' ? '#3b82f6' : color === 'purple' ? '#a855f7' : '#f97316'} stopOpacity="0.3" />
+                          <stop offset="100%" stopColor={color === 'blue' ? '#3b82f6' : color === 'purple' ? '#a855f7' : '#f97316'} stopOpacity="0.05" />
+                        </linearGradient>
+                      </defs>
+
+                      {history.length > 1 && (
+                        <>
+                          {/* Area polygon */}
+                          <polygon
+                            points={`
+                              ${history.map((m, i) => {
+                                const x = (i / (history.length - 1)) * 100;
+                                const y = 100 - getMetricData(m);
+                                return `${x},${y}`;
+                              }).join(' ')}
+                              100,100 0,100
+                            `}
+                            fill={`url(#gradient-${color})`}
+                            vectorEffect="non-scaling-stroke"
+                          />
+
+                          {/* Line */}
+                          <polyline
+                            points={history.map((m, i) => {
+                              const x = (i / (history.length - 1)) * 100;
+                              const y = 100 - getMetricData(m);
+                              return `${x},${y}`;
+                            }).join(' ')}
+                            fill="none"
+                            stroke={color === 'blue' ? '#3b82f6' : color === 'purple' ? '#a855f7' : '#f97316'}
+                            strokeWidth="3"
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            vectorEffect="non-scaling-stroke"
+                          />
+                        </>
+                      )}
+                    </svg>
+                  </div>
+
+                  {/* X-axis time labels */}
+                  <div className="absolute left-12 right-0 -bottom-6 flex justify-between text-xs text-gray-600">
+                    {history.length > 0 && (
+                      <>
+                        <span>{new Date(history[0].timestamp).toLocaleTimeString()}</span>
+                        {history.length > 1 && (
+                          <span>{new Date(history[history.length - 1].timestamp).toLocaleTimeString()}</span>
+                        )}
+                      </>
+                    )}
+                  </div>
                 </div>
               </div>
 
               {/* Data Table */}
               <div className="mt-6">
-                <h4 className="text-sm font-semibold text-gray-900 mb-3">Recent Data Points</h4>
-                <div className="overflow-x-auto max-h-64 overflow-y-auto">
+                <div className="flex items-center justify-between mb-3">
+                  <h4 className="text-sm font-semibold text-gray-900">Recent Data Points ({history.length})</h4>
+                  {selectedRows.size > 0 && (
+                    <span className="text-sm text-gray-600">{selectedRows.size} selected</span>
+                  )}
+                </div>
+                <div className="overflow-x-auto max-h-96 overflow-y-auto border border-gray-200 rounded-lg">
                   <table className="w-full text-sm">
                     <thead className="bg-gray-50 sticky top-0">
                       <tr>
+                        <th className="px-4 py-2 text-left">
+                          <input
+                            type="checkbox"
+                            checked={selectedRows.size === history.length && history.length > 0}
+                            onChange={toggleSelectAll}
+                            className="rounded border-gray-300 text-[#FEB114] focus:ring-[#FEB114]"
+                          />
+                        </th>
                         <th className="px-4 py-2 text-left text-gray-700">Timestamp</th>
                         <th className="px-4 py-2 text-left text-gray-700">{metricName} %</th>
                         <th className="px-4 py-2 text-left text-gray-700">Status</th>
                       </tr>
                     </thead>
-                    <tbody>
+                    <tbody className="bg-white">
                       {history.slice().reverse().map((m, i) => {
                         const value = getMetricData(m);
+                        const reversedIndex = history.length - 1 - i;
                         return (
-                          <tr key={i} className="border-b border-gray-100">
+                          <tr
+                            key={i}
+                            className={`border-b border-gray-100 hover:bg-gray-50 transition-colors ${
+                              selectedRows.has(reversedIndex) ? 'bg-blue-50' : ''
+                            }`}
+                          >
+                            <td className="px-4 py-2">
+                              <input
+                                type="checkbox"
+                                checked={selectedRows.has(reversedIndex)}
+                                onChange={() => toggleRowSelection(reversedIndex)}
+                                className="rounded border-gray-300 text-[#FEB114] focus:ring-[#FEB114]"
+                              />
+                            </td>
                             <td className="px-4 py-2 text-gray-900">
                               {new Date(m.timestamp).toLocaleString()}
                             </td>

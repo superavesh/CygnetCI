@@ -303,13 +303,15 @@ class ApiService {
 
   // ==================== RELEASE METHODS ====================
 
-  async getReleases(): Promise<Release[]> {
+  async getReleases(customerId?: number): Promise<Release[]> {
     if (!CONFIG.app.useRealAPI) {
       console.log('Getting releases (dummy mode)');
       return [];
     }
 
-    const url = `${CONFIG.api.baseUrl}/releases`;
+    const url = customerId
+      ? `${CONFIG.api.baseUrl}/releases?customer_id=${customerId}`
+      : `${CONFIG.api.baseUrl}/releases`;
     const response = await fetch(url, {
       method: 'GET',
       headers: CONFIG.api.headers
@@ -346,6 +348,7 @@ class ApiService {
     description?: string;
     pipeline_id?: number;
     version?: string;
+    customer_id?: number;
     stages: Array<{
       environment_id: number;
       order_index: number;
@@ -417,6 +420,7 @@ class ApiService {
     triggered_by: string;
     artifact_version?: string;
     parameters?: Record<string, any>;
+    agent_id?: number | null;
   }) {
     if (!CONFIG.app.useRealAPI) {
       console.log(`Deploying release ${releaseId} (dummy mode):`, deployData);
@@ -444,6 +448,25 @@ class ApiService {
     }
 
     const url = `${CONFIG.api.baseUrl}/releases/${releaseId}/executions`;
+    const response = await fetch(url, {
+      method: 'GET',
+      headers: CONFIG.api.headers
+    });
+
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
+
+    return await response.json();
+  }
+
+  async getReleaseExecutionLogs(stageExecutionId: number): Promise<{ logs: string }> {
+    if (!CONFIG.app.useRealAPI) {
+      console.log(`Getting logs for stage execution ${stageExecutionId} (dummy mode)`);
+      return { logs: 'Dummy logs - no real data available in dummy mode' };
+    }
+
+    const url = `${CONFIG.api.baseUrl}/stage-executions/${stageExecutionId}/logs`;
     const response = await fetch(url, {
       method: 'GET',
       headers: CONFIG.api.headers

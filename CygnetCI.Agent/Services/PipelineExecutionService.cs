@@ -252,7 +252,7 @@ public class PipelineExecutionService : IPipelineExecutionService
             {
                 var results = await invokeTask;
 
-                // Stream output
+                // Stream standard output
                 foreach (var result in results)
                 {
                     if (result != null)
@@ -260,6 +260,62 @@ public class PipelineExecutionService : IPipelineExecutionService
                         var output = result.ToString();
                         _logger.LogInformation("[Pipeline {PickupId}] {Output}", pickup.PickupId, output);
                         await _apiClient.StreamPipelineLogAsync(pickup.PickupId, output, "info", step.Name, cancellationToken);
+                    }
+                }
+
+                // Stream Information stream (Write-Host, Write-Information)
+                if (powerShell.Streams.Information.Count > 0)
+                {
+                    foreach (var info in powerShell.Streams.Information)
+                    {
+                        var infoMessage = info.MessageData?.ToString();
+                        if (!string.IsNullOrEmpty(infoMessage))
+                        {
+                            _logger.LogInformation("[Pipeline {PickupId}] {Output}", pickup.PickupId, infoMessage);
+                            await _apiClient.StreamPipelineLogAsync(pickup.PickupId, infoMessage, "info", step.Name, cancellationToken);
+                        }
+                    }
+                }
+
+                // Stream Verbose stream
+                if (powerShell.Streams.Verbose.Count > 0)
+                {
+                    foreach (var verbose in powerShell.Streams.Verbose)
+                    {
+                        var verboseMessage = verbose.Message;
+                        if (!string.IsNullOrEmpty(verboseMessage))
+                        {
+                            _logger.LogInformation("[Pipeline {PickupId}] VERBOSE: {Output}", pickup.PickupId, verboseMessage);
+                            await _apiClient.StreamPipelineLogAsync(pickup.PickupId, $"VERBOSE: {verboseMessage}", "debug", step.Name, cancellationToken);
+                        }
+                    }
+                }
+
+                // Stream Warning stream
+                if (powerShell.Streams.Warning.Count > 0)
+                {
+                    foreach (var warning in powerShell.Streams.Warning)
+                    {
+                        var warningMessage = warning.Message;
+                        if (!string.IsNullOrEmpty(warningMessage))
+                        {
+                            _logger.LogWarning("[Pipeline {PickupId}] {Warning}", pickup.PickupId, warningMessage);
+                            await _apiClient.StreamPipelineLogAsync(pickup.PickupId, $"WARNING: {warningMessage}", "warning", step.Name, cancellationToken);
+                        }
+                    }
+                }
+
+                // Stream Debug stream
+                if (powerShell.Streams.Debug.Count > 0)
+                {
+                    foreach (var debug in powerShell.Streams.Debug)
+                    {
+                        var debugMessage = debug.Message;
+                        if (!string.IsNullOrEmpty(debugMessage))
+                        {
+                            _logger.LogDebug("[Pipeline {PickupId}] DEBUG: {Output}", pickup.PickupId, debugMessage);
+                            await _apiClient.StreamPipelineLogAsync(pickup.PickupId, $"DEBUG: {debugMessage}", "debug", step.Name, cancellationToken);
+                        }
                     }
                 }
 

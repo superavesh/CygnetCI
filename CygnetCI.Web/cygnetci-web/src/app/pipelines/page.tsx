@@ -5,6 +5,7 @@
 import React, { useState } from 'react';
 import { Play, Plus, Settings, Eye, Sliders, RefreshCw, History } from 'lucide-react';
 import { useData } from '@/lib/hooks/useData';
+import { useCustomer } from '@/lib/contexts/CustomerContext';
 import { PipelineFilter, filterPipelines } from '@/components/tables/PipelineFilter';
 import { CreatePipelineModal, PipelineFormData } from '@/components/pipelines/CreatePipelineModal';
 import { EditPipelineModal } from '@/components/pipelines/EditPipelineModal';
@@ -15,7 +16,8 @@ import { apiService } from '@/lib/api/apiService';
 import { CONFIG } from '@/lib/config';
 
 export default function PipelinesPage() {
-  const { pipelines, agents, refetch } = useData();
+  const { selectedCustomer } = useCustomer();
+  const { pipelines, agents, refetch } = useData(selectedCustomer?.id);
   const [filterQuery, setFilterQuery] = useState('');
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
@@ -166,6 +168,7 @@ export default function PipelinesPage() {
             <h2 className="text-2xl font-bold text-gray-800">Pipelines</h2>
             <p className="text-sm text-gray-600 mt-1">
               {filteredPipelines.length} of {pipelines.length} pipelines
+              {selectedCustomer && ` • Filtering for ${selectedCustomer.display_name}`}
             </p>
           </div>
           <div className="flex gap-3">
@@ -238,12 +241,12 @@ export default function PipelinesPage() {
                           <div className="flex flex-col space-y-1">
                             {hasSteps && (
                               <span className="px-2 py-1 bg-blue-100 text-blue-800 text-xs rounded-full inline-block">
-                                {pipeline.steps.length} steps
+                                {pipeline.steps?.length || 0} steps
                               </span>
                             )}
                             {hasParameters && (
                               <span className="px-2 py-1 bg-purple-100 text-purple-800 text-xs rounded-full inline-block">
-                                {pipeline.parameters.length} params
+                                {pipeline.parameters?.length || 0} params
                               </span>
                             )}
                             {!hasSteps && !hasParameters && (

@@ -11,11 +11,13 @@ import uvicorn
 import os
 import hashlib
 import shutil
+import bcrypt
 
 # Import database, models, and config
 from database import get_db, engine
 import models
 from config import app_config
+import customer_api
 
 # Create tables
 models.Base.metadata.create_all(bind=engine)
@@ -78,6 +80,15 @@ class ResourceDataPoint(BaseModel):
     cpu: int
     memory: int
     disk: int
+
+class LoginRequest(BaseModel):
+    username: str
+    password: str
+
+class LoginResponse(BaseModel):
+    access_token: str
+    token_type: str = "bearer"
+    user: Dict[str, Any]
 
 class AgentCreate(BaseModel):
     name: str
@@ -346,6 +357,10 @@ tags_metadata = [
     # UI / FRONTEND ENDPOINTS
     # ==============================================
     {
+        "name": "🔐 Authentication",
+        "description": "**[FOR UI]** User authentication and session management",
+    },
+    {
         "name": "🌐 UI - System",
         "description": "**[FOR UI]** System information and health check endpoints",
     },
@@ -424,6 +439,9 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+# Include customer API router
+app.include_router(customer_api.router)
+
 # ==============================================
 # ENDPOINTS
 # ==============================================
@@ -435,6 +453,66 @@ def root():
         "version": "1.0.0",
         "docs": "/docs"
     }
+
+# ==================== AUTHENTICATION ====================
+
+@app.post("/auth/login", response_model=LoginResponse, tags=["🔐 Authentication"])
+def login(credentials: LoginRequest, db: Session = Depends(get_db)):
+    """
+    Authenticate user with username and password
+    Returns access token and user information
+    """
+    # Find user by username
+    user = db.query(models.User).filter(models.User.username == credentials.username).first()
+
+    if not user:
+        raise HTTPException(status_code=401, detail="Invalid username or password")
+
+    # Verify password - support both bcrypt and SHA256 for backward compatibility
+    password_valid = False
+
+    # Check if password hash starts with $2b$ (bcrypt format)
+    if user.password_hash.startswith('$2b$') or user.password_hash.startswith('$2a$'):
+        # Use bcrypt verification
+        password_valid = bcrypt.checkpw(
+            credentials.password.encode('utf-8'),
+            user.password_hash.encode('utf-8')
+        )
+    else:
+        # Fallback to SHA256 for legacy passwords
+        hashed_password = hashlib.sha256(credentials.password.encode()).hexdigest()
+        password_valid = user.password_hash == hashed_password
+
+    if not password_valid:
+        raise HTTPException(status_code=401, detail="Invalid username or password")
+
+    # Check if user is active
+    if not user.is_active:
+        raise HTTPException(status_code=403, detail="User account is disabled")
+
+    # Update last login timestamp
+    user.last_login = datetime.now()
+    db.commit()
+
+    # Generate access token (simple token for now - should use JWT in production)
+    access_token = hashlib.sha256(f"{user.username}{datetime.now().isoformat()}".encode()).hexdigest()
+
+    # Return user data (without password)
+    user_data = {
+        "id": user.id,
+        "username": user.username,
+        "email": user.email,
+        "full_name": user.full_name,
+        "is_active": user.is_active,
+        "is_superuser": user.is_superuser,
+        "created_at": user.created_at.isoformat() if user.created_at else None,
+        "last_login": user.last_login.isoformat() if user.last_login else None
+    }
+
+    return LoginResponse(
+        access_token=access_token,
+        user=user_data
+    )
 
 # ==================== DASHBOARD ====================
 
@@ -2913,6 +2991,534 @@ def add_pipeline_pickup_log(pickup_id: int, log_data: dict, db: Session = Depend
     db.commit()
 
     return {"success": True, "log_id": log_entry.id}
+
+# ==============================================
+# USER MANAGEMENT ENDPOINTS
+# ==============================================
+
+@app.get("/users", tags=["👥 Users"])
+def get_users(
+    customer_id: Optional[int] = Query(None, description="Filter by customer"),
+    db: Session = Depends(get_db)
+):
+    """Get all users, optionally filtered by customer"""
+    query = db.query(models.User)
+
+    if customer_id:
+        # Get users assigned to this customer
+        query = query.join(models.UserCustomer).filter(models.UserCustomer.customer_id == customer_id)
+
+    users = query.all()
+
+    # Convert to dict and remove password
+    result = []
+    for user in users:
+        user_dict = {
+            "id": user.id,
+            "username": user.username,
+            "email": user.email,
+            "full_name": user.full_name,
+            "is_active": user.is_active,
+            "is_superuser": user.is_superuser,
+            "created_at": user.created_at.isoformat() if user.created_at else None,
+            "updated_at": user.updated_at.isoformat() if user.updated_at else None,
+            "last_login": user.last_login.isoformat() if user.last_login else None
+        }
+        result.append(user_dict)
+
+    return result
+
+@app.post("/users", tags=["👥 Users"])
+def create_user(
+    username: str = Form(...),
+    email: str = Form(...),
+    full_name: str = Form(...),
+    password: str = Form(...),
+    is_superuser: bool = Form(False),
+    db: Session = Depends(get_db)
+):
+    """Create a new user"""
+    # Check if username or email already exists
+    existing = db.query(models.User).filter(
+        (models.User.username == username) | (models.User.email == email)
+    ).first()
+
+    if existing:
+        raise HTTPException(status_code=400, detail="Username or email already exists")
+
+    # Hash password (simple hash for now - should use proper password hashing in production)
+    import hashlib
+    hashed_password = hashlib.sha256(password.encode()).hexdigest()
+
+    new_user = models.User(
+        username=username,
+        email=email,
+        full_name=full_name,
+        password_hash=hashed_password,
+        is_active=True,
+        is_superuser=is_superuser
+    )
+
+    db.add(new_user)
+    db.commit()
+    db.refresh(new_user)
+
+    return {
+        "id": new_user.id,
+        "username": new_user.username,
+        "email": new_user.email,
+        "full_name": new_user.full_name,
+        "is_active": new_user.is_active,
+        "is_superuser": new_user.is_superuser
+    }
+
+@app.put("/users/{user_id}", tags=["👥 Users"])
+def update_user(
+    user_id: int,
+    email: Optional[str] = Form(None),
+    full_name: Optional[str] = Form(None),
+    is_active: Optional[bool] = Form(None),
+    is_superuser: Optional[bool] = Form(None),
+    db: Session = Depends(get_db)
+):
+    """Update user details"""
+    user = db.query(models.User).filter(models.User.id == user_id).first()
+
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+
+    if email:
+        user.email = email
+    if full_name:
+        user.full_name = full_name
+    if is_active is not None:
+        user.is_active = is_active
+    if is_superuser is not None:
+        user.is_superuser = is_superuser
+
+    db.commit()
+    db.refresh(user)
+
+    return {
+        "id": user.id,
+        "username": user.username,
+        "email": user.email,
+        "full_name": user.full_name,
+        "is_active": user.is_active,
+        "is_superuser": user.is_superuser
+    }
+
+@app.delete("/users/{user_id}", tags=["👥 Users"])
+def delete_user(user_id: int, db: Session = Depends(get_db)):
+    """Delete a user"""
+    user = db.query(models.User).filter(models.User.id == user_id).first()
+
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+
+    db.delete(user)
+    db.commit()
+
+    return {"success": True, "message": "User deleted"}
+
+
+# ==============================================
+# ROLES & PERMISSIONS ENDPOINTS
+# ==============================================
+
+@app.get("/roles", tags=["🛡️ Roles"])
+def get_roles(db: Session = Depends(get_db)):
+    """Get all roles"""
+    roles = db.query(models.Role).all()
+    return [{
+        "id": role.id,
+        "name": role.name,
+        "description": role.description,
+        "permissions": role.permissions,
+        "is_system": role.is_system,
+        "created_at": role.created_at,
+        "updated_at": role.updated_at
+    } for role in roles]
+
+
+@app.get("/roles/{role_id}", tags=["🛡️ Roles"])
+def get_role(role_id: int, db: Session = Depends(get_db)):
+    """Get a specific role"""
+    role = db.query(models.Role).filter(models.Role.id == role_id).first()
+
+    if not role:
+        raise HTTPException(status_code=404, detail="Role not found")
+
+    return {
+        "id": role.id,
+        "name": role.name,
+        "description": role.description,
+        "permissions": role.permissions,
+        "is_system": role.is_system,
+        "created_at": role.created_at,
+        "updated_at": role.updated_at
+    }
+
+@app.delete("/roles/{role_id}", tags=["🛡️ Roles"])
+def delete_role(role_id: int, db: Session = Depends(get_db)):
+    """Delete a role (only custom roles, not system roles)"""
+    role = db.query(models.Role).filter(models.Role.id == role_id).first()
+
+    if not role:
+        raise HTTPException(status_code=404, detail="Role not found")
+
+    if role.is_system:
+        raise HTTPException(status_code=403, detail="Cannot delete system roles")
+
+    db.delete(role)
+    db.commit()
+
+    return {"message": f"Role '{role.name}' deleted successfully"}
+
+
+# ==============================================
+# AUDIT LOGS ENDPOINTS
+# ==============================================
+
+@app.get("/audit-logs", tags=["📋 Audit Logs"])
+def get_audit_logs(
+    limit: int = Query(100, description="Maximum number of logs to return"),
+    offset: int = Query(0, description="Number of logs to skip"),
+    user_id: Optional[int] = Query(None, description="Filter by user ID"),
+    resource_type: Optional[str] = Query(None, description="Filter by resource type"),
+    db: Session = Depends(get_db)
+):
+    """Get audit logs with pagination and filters"""
+    query = db.query(models.AuditLog)
+
+    if user_id:
+        query = query.filter(models.AuditLog.user_id == user_id)
+
+    if resource_type:
+        query = query.filter(models.AuditLog.resource_type == resource_type)
+
+    logs = query.order_by(models.AuditLog.created_at.desc()).offset(offset).limit(limit).all()
+
+    return [{
+        "id": log.id,
+        "user_id": log.user_id,
+        "action": log.action,
+        "resource_type": log.resource_type,
+        "resource_id": log.resource_id,
+        "details": log.details,
+        "ip_address": log.ip_address,
+        "user_agent": log.user_agent,
+        "created_at": log.created_at
+    } for log in logs]
+
+
+# ==============================================
+# ROLLBACK SCRIPT MANAGEMENT ENDPOINTS
+# ==============================================
+
+@app.post("/rollback/upload", tags=["📜 Rollback Scripts"])
+async def upload_rollback_script(
+    file: UploadFile = File(...),
+    description: Optional[str] = Form(None),
+    uploaded_by: Optional[str] = Form(None),
+    db: Session = Depends(get_db)
+):
+    """Upload a SQL rollback/migration script for analysis"""
+    import os
+    from pathlib import Path
+
+    # Validate file extension
+    if not file.filename.endswith('.sql'):
+        raise HTTPException(status_code=400, detail="Only .sql files are allowed")
+
+    # Create rollback scripts folder if it doesn't exist
+    rollback_folder = Path("../NFSShared/rollback")
+    rollback_folder.mkdir(parents=True, exist_ok=True)
+
+    # Save file
+    file_path = rollback_folder / file.filename
+    content = await file.read()
+    file_size = len(content)
+
+    with open(file_path, "wb") as f:
+        f.write(content)
+
+    # Create database record
+    script = models.RollbackScript(
+        filename=file.filename,
+        file_path=str(file_path),
+        description=description,
+        uploaded_by=uploaded_by,
+        file_size=file_size,
+        analysis_status='pending'
+    )
+
+    db.add(script)
+    db.commit()
+    db.refresh(script)
+
+    return {
+        "id": script.id,
+        "filename": script.filename,
+        "file_size": script.file_size,
+        "uploaded_at": script.uploaded_at,
+        "analysis_status": script.analysis_status
+    }
+
+
+@app.get("/rollback/scripts", tags=["📜 Rollback Scripts"])
+def get_rollback_scripts(db: Session = Depends(get_db)):
+    """Get all uploaded rollback scripts"""
+    scripts = db.query(models.RollbackScript).order_by(models.RollbackScript.uploaded_at.desc()).all()
+
+    result = []
+    for script in scripts:
+        result.append({
+            "id": script.id,
+            "script_name": script.filename,  # Frontend expects script_name
+            "filename": script.filename,  # Keep for backward compatibility
+            "description": script.description,
+            "uploaded_by": script.uploaded_by,
+            "uploaded_at": script.uploaded_at,
+            "created_at": script.uploaded_at,  # Frontend expects created_at
+            "updated_at": script.analysis_completed_at or script.uploaded_at,  # Frontend expects updated_at
+            "file_size": script.file_size,
+            "file_size_bytes": script.file_size,  # Frontend expects file_size_bytes
+            "analysis_status": script.analysis_status,
+            "analysis_started_at": script.analysis_started_at,
+            "analysis_completed_at": script.analysis_completed_at,
+            "error_message": script.error_message,
+            "object_count": len(script.database_objects)
+        })
+
+    return result
+
+
+@app.get("/rollback/{script_id}", tags=["📜 Rollback Scripts"])
+def get_rollback_script_details(script_id: int, db: Session = Depends(get_db)):
+    """Get detailed information about a specific script including identified objects"""
+    script = db.query(models.RollbackScript).filter(models.RollbackScript.id == script_id).first()
+
+    if not script:
+        raise HTTPException(status_code=404, detail="Script not found")
+
+    # Group objects by database and type
+    objects_by_db = {}
+    for obj in script.database_objects:
+        db_name = obj.database_name or "default"
+        if db_name not in objects_by_db:
+            objects_by_db[db_name] = {
+                "tables": [],
+                "stored_procedures": [],
+                "functions": [],
+                "views": [],
+                "triggers": [],
+                "indexes": [],
+                "user_types": [],
+                "table_types": []
+            }
+
+        if obj.object_type == "table":
+            objects_by_db[db_name]["tables"].append(obj.object_name)
+        elif obj.object_type == "stored_procedure":
+            objects_by_db[db_name]["stored_procedures"].append(obj.object_name)
+        elif obj.object_type == "function":
+            objects_by_db[db_name]["functions"].append(obj.object_name)
+        elif obj.object_type == "view":
+            objects_by_db[db_name]["views"].append(obj.object_name)
+        elif obj.object_type == "trigger":
+            objects_by_db[db_name]["triggers"].append(obj.object_name)
+        elif obj.object_type == "index":
+            objects_by_db[db_name]["indexes"].append(obj.object_name)
+        elif obj.object_type == "user_type":
+            objects_by_db[db_name]["user_types"].append(obj.object_name)
+        elif obj.object_type == "table_type":
+            objects_by_db[db_name]["table_types"].append(obj.object_name)
+
+    return {
+        "id": script.id,
+        "filename": script.filename,
+        "description": script.description,
+        "uploaded_by": script.uploaded_by,
+        "uploaded_at": script.uploaded_at,
+        "file_size": script.file_size,
+        "analysis_status": script.analysis_status,
+        "analysis_started_at": script.analysis_started_at,
+        "analysis_completed_at": script.analysis_completed_at,
+        "error_message": script.error_message,
+        "database_objects": objects_by_db
+    }
+
+
+@app.post("/rollback/{script_id}/analyze", tags=["📜 Rollback Scripts"])
+async def analyze_rollback_script(script_id: int, db: Session = Depends(get_db)):
+    """Analyze a script using Claude AI to identify database objects"""
+    from claude_service import ClaudeAIService
+    from datetime import datetime
+
+    script = db.query(models.RollbackScript).filter(models.RollbackScript.id == script_id).first()
+
+    if not script:
+        raise HTTPException(status_code=404, detail="Script not found")
+
+    # Update status to analyzing
+    script.analysis_status = 'analyzing'
+    script.analysis_started_at = datetime.utcnow()
+    db.commit()
+
+    try:
+        # Read script content
+        with open(script.file_path, 'r', encoding='utf-8') as f:
+            script_content = f.read()
+
+        # Analyze with Claude AI
+        claude_service = ClaudeAIService()
+        analysis_result = await claude_service.analyze_database_script(script_content)
+
+        # Clear existing objects
+        db.query(models.RollbackDatabaseObject).filter(
+            models.RollbackDatabaseObject.script_id == script_id
+        ).delete()
+
+        # Store identified objects
+        if "DbDetails" in analysis_result:
+            for db_detail in analysis_result["DbDetails"]:
+                db_name = db_detail.get("DbName", "")
+
+                # Tables
+                for table_name in db_detail.get("TableNames", []):
+                    obj = models.RollbackDatabaseObject(
+                        script_id=script_id,
+                        database_name=db_name,
+                        object_type="table",
+                        object_name=table_name
+                    )
+                    db.add(obj)
+
+                # Stored Procedures
+                for sp_name in db_detail.get("SpNames", []):
+                    obj = models.RollbackDatabaseObject(
+                        script_id=script_id,
+                        database_name=db_name,
+                        object_type="stored_procedure",
+                        object_name=sp_name
+                    )
+                    db.add(obj)
+
+                # Functions
+                for func_name in db_detail.get("FunctionNames", []):
+                    obj = models.RollbackDatabaseObject(
+                        script_id=script_id,
+                        database_name=db_name,
+                        object_type="function",
+                        object_name=func_name
+                    )
+                    db.add(obj)
+
+                # Views
+                for view_name in db_detail.get("Views", []):
+                    obj = models.RollbackDatabaseObject(
+                        script_id=script_id,
+                        database_name=db_name,
+                        object_type="view",
+                        object_name=view_name
+                    )
+                    db.add(obj)
+
+                # Triggers
+                for trigger_name in db_detail.get("Triggers", []):
+                    obj = models.RollbackDatabaseObject(
+                        script_id=script_id,
+                        database_name=db_name,
+                        object_type="trigger",
+                        object_name=trigger_name
+                    )
+                    db.add(obj)
+
+                # Indexes
+                for index_name in db_detail.get("Indexes", []):
+                    obj = models.RollbackDatabaseObject(
+                        script_id=script_id,
+                        database_name=db_name,
+                        object_type="index",
+                        object_name=index_name
+                    )
+                    db.add(obj)
+
+                # User Types
+                for user_type in db_detail.get("UserTypes", []):
+                    obj = models.RollbackDatabaseObject(
+                        script_id=script_id,
+                        database_name=db_name,
+                        object_type="user_type",
+                        object_name=user_type
+                    )
+                    db.add(obj)
+
+                # Table Types
+                for table_type in db_detail.get("TableTypes", []):
+                    obj = models.RollbackDatabaseObject(
+                        script_id=script_id,
+                        database_name=db_name,
+                        object_type="table_type",
+                        object_name=table_type
+                    )
+                    db.add(obj)
+
+        # Update script status
+        script.analysis_status = 'completed'
+        script.analysis_completed_at = datetime.utcnow()
+        script.error_message = None
+        db.commit()
+
+        return {"success": True, "message": "Analysis completed", "objects_found": len(script.database_objects)}
+
+    except Exception as e:
+        script.analysis_status = 'failed'
+        script.analysis_completed_at = datetime.utcnow()
+        script.error_message = str(e)
+        db.commit()
+        raise HTTPException(status_code=500, detail=f"Analysis failed: {str(e)}")
+
+
+@app.get("/rollback/{script_id}/download", tags=["📜 Rollback Scripts"])
+def download_rollback_script(script_id: int, db: Session = Depends(get_db)):
+    """Download the original SQL script file"""
+    from fastapi.responses import FileResponse
+
+    script = db.query(models.RollbackScript).filter(models.RollbackScript.id == script_id).first()
+
+    if not script:
+        raise HTTPException(status_code=404, detail="Script not found")
+
+    if not os.path.exists(script.file_path):
+        raise HTTPException(status_code=404, detail="Script file not found on disk")
+
+    return FileResponse(
+        path=script.file_path,
+        filename=script.filename,
+        media_type='application/sql'
+    )
+
+
+@app.delete("/rollback/{script_id}", tags=["📜 Rollback Scripts"])
+def delete_rollback_script(script_id: int, db: Session = Depends(get_db)):
+    """Delete a rollback script and its file"""
+    script = db.query(models.RollbackScript).filter(models.RollbackScript.id == script_id).first()
+
+    if not script:
+        raise HTTPException(status_code=404, detail="Script not found")
+
+    # Delete file
+    if os.path.exists(script.file_path):
+        os.remove(script.file_path)
+
+    # Delete database record (cascade will delete related objects)
+    db.delete(script)
+    db.commit()
+
+    return {"success": True, "message": "Script deleted"}
+
 
 # ==============================================
 # RUN SERVER

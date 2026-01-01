@@ -15,7 +15,7 @@ Base = declarative_base()
 
 class Agent(Base):
     __tablename__ = "agents"
-    
+
     id = Column(Integer, primary_key=True, index=True)
     name = Column(String(255), nullable=False)
     uuid = Column(String(255), unique=True, nullable=False)
@@ -26,6 +26,7 @@ class Agent(Base):
     jobs = Column(Integer, default=0)
     cpu = Column(Integer, default=0)
     memory = Column(Integer, default=0)
+    customer_id = Column(Integer, ForeignKey("customers.id", ondelete="CASCADE"), index=True)
     created_at = Column(TIMESTAMP, server_default=func.now())
     updated_at = Column(TIMESTAMP, server_default=func.now(), onupdate=func.now())
     
@@ -135,7 +136,7 @@ class AgentWebsitePing(Base):
 
 class Pipeline(Base):
     __tablename__ = "pipelines"
-    
+
     id = Column(Integer, primary_key=True, index=True)
     name = Column(String(255), nullable=False)
     description = Column(Text)
@@ -145,6 +146,7 @@ class Pipeline(Base):
     last_run = Column(TIMESTAMP)
     duration = Column(String(50))
     agent_id = Column(Integer, ForeignKey("agents.id", ondelete="SET NULL"))
+    customer_id = Column(Integer, ForeignKey("customers.id", ondelete="CASCADE"), index=True)
     created_at = Column(TIMESTAMP, server_default=func.now())
     updated_at = Column(TIMESTAMP, server_default=func.now(), onupdate=func.now())
     
@@ -296,7 +298,7 @@ class Task(Base):
 
 class Service(Base):
     __tablename__ = "services"
-    
+
     id = Column(String(255), primary_key=True)
     name = Column(String(255), nullable=False)
     type = Column(String(50), nullable=False)
@@ -306,6 +308,7 @@ class Service(Base):
     last_check = Column(TIMESTAMP)
     response_time = Column(String(50))
     uptime = Column(Numeric(5, 2))
+    customer_id = Column(Integer, ForeignKey("customers.id", ondelete="CASCADE"), index=True)
     created_at = Column(TIMESTAMP, server_default=func.now())
     updated_at = Column(TIMESTAMP, server_default=func.now(), onupdate=func.now())
     
@@ -391,6 +394,7 @@ class Release(Base):
     version = Column(String(100))
     status = Column(String(50), default="active")
     created_by = Column(String(255))
+    customer_id = Column(Integer, ForeignKey("customers.id", ondelete="CASCADE"), index=True)
     created_at = Column(TIMESTAMP, server_default=func.now())
     updated_at = Column(TIMESTAMP, server_default=func.now(), onupdate=func.now())
 
@@ -687,3 +691,144 @@ class TransferFilePickup(Base):
         CheckConstraint("file_type IN ('script', 'artifact')", name="check_pickup_file_type"),
         CheckConstraint("status IN ('pending', 'downloaded', 'failed')", name="check_pickup_status"),
     )
+
+
+# ===================================================
+# CUSTOMER/TENANT MODELS
+# ===================================================
+
+class Customer(Base):
+    __tablename__ = "customers"
+
+    id = Column(Integer, primary_key=True, index=True)
+    name = Column(String(255), unique=True, nullable=False, index=True)  # Unique identifier (slug/code)
+    display_name = Column(String(255), nullable=False)  # Display name for UI
+    description = Column(Text)
+    contact_email = Column(String(255))
+    contact_phone = Column(String(50))
+    address = Column(Text)
+    is_active = Column(Boolean, default=True, nullable=False)
+    logo_url = Column(String(500))
+    settings = Column(JSONB)  # For customer-specific configuration
+    created_at = Column(TIMESTAMP, server_default=func.now(), nullable=False)
+    updated_at = Column(TIMESTAMP, server_default=func.now(), onupdate=func.now(), nullable=False)
+
+    # Relationships to other entities (cascade delete customer data when customer is deleted)
+    user_customers = relationship("UserCustomer", back_populates="customer", cascade="all, delete-orphan")
+
+
+class User(Base):
+    __tablename__ = "users"
+
+    id = Column(Integer, primary_key=True, index=True)
+    username = Column(String(255), unique=True, nullable=False, index=True)
+    email = Column(String(255), unique=True, nullable=False, index=True)
+    full_name = Column(String(255))
+    password_hash = Column(String(255), nullable=False)  # Matches existing DB column name
+    is_active = Column(Boolean, default=True, nullable=False)
+    is_superuser = Column(Boolean, default=False, nullable=False)
+    created_at = Column(TIMESTAMP, server_default=func.now(), nullable=False)
+    updated_at = Column(TIMESTAMP, server_default=func.now(), onupdate=func.now(), nullable=False)
+    last_login = Column(TIMESTAMP)
+    created_by = Column(Integer)  # Matches existing DB column
+
+    # Relationships
+    user_customers = relationship("UserCustomer", back_populates="user", cascade="all, delete-orphan")
+
+
+class UserCustomer(Base):
+    """
+    Many-to-many relationship between users and customers
+    Allows users to be assigned to multiple customers/tenants
+    """
+    __tablename__ = "user_customers"
+
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True)
+    customer_id = Column(Integer, ForeignKey("customers.id", ondelete="CASCADE"), nullable=False, index=True)
+    is_default = Column(Boolean, default=False, nullable=False)  # Default customer for this user
+    assigned_at = Column(TIMESTAMP, server_default=func.now(), nullable=False)
+
+    # Relationships
+    user = relationship("User", back_populates="user_customers")
+    customer = relationship("Customer", back_populates="user_customers")
+
+
+# ==================== RBAC MODELS ====================
+
+class Role(Base):
+    """
+    Roles for Role-Based Access Control (RBAC)
+    Each role has a set of permissions for different resources
+    """
+    __tablename__ = "roles"
+
+    id = Column(Integer, primary_key=True, index=True)
+    name = Column(String(255), unique=True, nullable=False, index=True)
+    description = Column(Text)
+    permissions = Column(JSONB, nullable=False)  # {"resource": ["action1", "action2"]}
+    is_system = Column(Boolean, default=False, nullable=False)
+    created_at = Column(TIMESTAMP, server_default=func.now(), nullable=False)
+    updated_at = Column(TIMESTAMP, server_default=func.now(), onupdate=func.now(), nullable=False)
+
+
+class AuditLog(Base):
+    """
+    Audit trail for tracking user actions and system changes
+    """
+    __tablename__ = "audit_logs"
+
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, ForeignKey("users.id"), index=True)
+    action = Column(String(100), nullable=False, index=True)
+    resource_type = Column(String(100), nullable=False, index=True)
+    resource_id = Column(String(100))
+    details = Column(JSONB)
+    ip_address = Column(String(50))
+    user_agent = Column(String(500))
+    created_at = Column(TIMESTAMP, server_default=func.now(), nullable=False, index=True)
+    created_by = Column(Integer)
+
+    # Relationship
+    user = relationship("User")
+
+
+# ==================== ROLLBACK MANAGEMENT MODELS ====================
+
+class RollbackScript(Base):
+    """
+    Stores uploaded rollback/migration scripts for analysis
+    """
+    __tablename__ = "rollback_scripts"
+
+    id = Column(Integer, primary_key=True, index=True)
+    filename = Column(String(500), nullable=False)
+    file_path = Column(String(1000), nullable=False)
+    description = Column(Text)
+    uploaded_by = Column(String(255))
+    uploaded_at = Column(TIMESTAMP, server_default=func.now(), nullable=False)
+    file_size = Column(BigInteger)  # File size in bytes
+    analysis_status = Column(String(50), default='pending', nullable=False)  # pending, analyzing, completed, failed
+    analysis_started_at = Column(TIMESTAMP)
+    analysis_completed_at = Column(TIMESTAMP)
+    error_message = Column(Text)  # Store any error that occurred during analysis
+
+    # Relationships
+    database_objects = relationship("RollbackDatabaseObject", back_populates="script", cascade="all, delete-orphan")
+
+
+class RollbackDatabaseObject(Base):
+    """
+    Stores database objects identified from rollback scripts by Claude AI
+    """
+    __tablename__ = "rollback_database_objects"
+
+    id = Column(Integer, primary_key=True, index=True)
+    script_id = Column(Integer, ForeignKey("rollback_scripts.id", ondelete="CASCADE"), nullable=False, index=True)
+    database_name = Column(String(255))
+    object_type = Column(String(50), nullable=False, index=True)  # table, stored_procedure, function, view, trigger, index, user_type, table_type
+    object_name = Column(String(500), nullable=False, index=True)
+    created_at = Column(TIMESTAMP, server_default=func.now(), nullable=False)
+
+    # Relationships
+    script = relationship("RollbackScript", back_populates="database_objects")

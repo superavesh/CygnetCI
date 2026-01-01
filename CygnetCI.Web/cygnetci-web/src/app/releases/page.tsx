@@ -2,33 +2,32 @@
 
 'use client';
 
-import React, { useState, useEffect } from 'react';
-import { Rocket, Plus, Play, Edit, Trash2, Clock, CheckCircle, XCircle, AlertCircle, ArrowRight, RefreshCw, CheckSquare } from 'lucide-react';
+import React, { useState, useEffect, useCallback } from 'react';
+import { Rocket, Plus, Play, Edit, Trash2, Clock, CheckCircle, XCircle, AlertCircle, ArrowRight, RefreshCw, CheckSquare, History } from 'lucide-react';
 import { apiService } from '@/lib/api/apiService';
 import type { Release, Environment, ReleaseExecution } from '@/types';
 import { CreateReleaseModal } from '@/components/releases/CreateReleaseModal';
 import { DeployReleaseModal } from '@/components/releases/DeployReleaseModal';
+import { ReleaseExecutionHistoryModal } from '@/components/releases/ReleaseExecutionHistoryModal';
+import { useCustomer } from '@/lib/contexts/CustomerContext';
 
 export default function ReleasesPage() {
+  const { selectedCustomer } = useCustomer();
   const [releases, setReleases] = useState<Release[]>([]);
   const [environments, setEnvironments] = useState<Environment[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [showDeployModal, setShowDeployModal] = useState(false);
+  const [showHistoryModal, setShowHistoryModal] = useState(false);
   const [selectedRelease, setSelectedRelease] = useState<Release | null>(null);
   const [releaseExecutions, setReleaseExecutions] = useState<Record<number, ReleaseExecution[]>>({});
 
-  // Initial fetch on mount
-  useEffect(() => {
-    fetchData();
-  }, []); // eslint-disable-line react-hooks/exhaustive-deps
-
-  const fetchData = async () => {
+  const fetchData = useCallback(async () => {
     try {
       setLoading(true);
       const [releasesData, environmentsData] = await Promise.all([
-        apiService.getReleases(),
+        apiService.getReleases(selectedCustomer?.id),
         apiService.getEnvironments()
       ]);
       setReleases(releasesData);
@@ -55,11 +54,21 @@ export default function ReleasesPage() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [selectedCustomer?.id]); // Use only the ID, not the entire object
+
+  // Initial fetch on mount and when customer changes
+  useEffect(() => {
+    fetchData();
+  }, [fetchData]);
 
   const handleDeploy = (release: Release) => {
     setSelectedRelease(release);
     setShowDeployModal(true);
+  };
+
+  const handleViewHistory = (release: Release) => {
+    setSelectedRelease(release);
+    setShowHistoryModal(true);
   };
 
   const handleDelete = async (releaseId: number) => {
@@ -141,7 +150,10 @@ export default function ReleasesPage() {
             <Rocket className="h-8 w-8 text-blue-600" />
             Releases
           </h1>
-          <p className="text-gray-600 mt-1">Manage multi-environment deployments</p>
+          <p className="text-gray-600 mt-1">
+            Manage multi-environment deployments
+            {selectedCustomer && ` • Filtering for ${selectedCustomer.display_name}`}
+          </p>
         </div>
         <div className="flex gap-3">
           <button
@@ -210,6 +222,13 @@ export default function ReleasesPage() {
                       title="Deploy Release"
                     >
                       <Play className="h-4 w-4" />
+                    </button>
+                    <button
+                      onClick={() => handleViewHistory(release)}
+                      className="p-2 bg-blue-100 text-blue-700 rounded-lg hover:bg-blue-200 transition-colors"
+                      title="View Execution History"
+                    >
+                      <History className="h-4 w-4" />
                     </button>
                     <button
                       onClick={() => handleDelete(release.id)}
@@ -350,6 +369,18 @@ export default function ReleasesPage() {
             setSelectedRelease(null);
             fetchData();
           }}
+        />
+      )}
+
+      {showHistoryModal && selectedRelease && (
+        <ReleaseExecutionHistoryModal
+          isOpen={showHistoryModal}
+          onClose={() => {
+            setShowHistoryModal(false);
+            setSelectedRelease(null);
+          }}
+          releaseId={selectedRelease.id}
+          releaseName={selectedRelease.name}
         />
       )}
     </div>

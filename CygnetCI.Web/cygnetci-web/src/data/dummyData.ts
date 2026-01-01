@@ -76,10 +76,10 @@ export const DUMMY_DATA: DashboardData = {
       commit: "abc123f",
       agent_id: 1,
       steps: [
-        { name: "Install Dependencies", command: "npm install", order: 1 },
-        { name: "Run Tests", command: "npm test", order: 2 },
-        { name: "Build Application", command: "npm run build --env={{ENV}}", order: 3 },
-        { name: "Deploy to Server", command: "npm run deploy", order: 4 }
+        { name: "Install Dependencies", command: "npm install", order: 1, shellType: 'powershell' as const },
+        { name: "Run Tests", command: "npm test", order: 2, shellType: 'powershell' as const },
+        { name: "Build Application", command: "npm run build --env={{ENV}}", order: 3, shellType: 'powershell' as const },
+        { name: "Deploy to Server", command: "npm run deploy", order: 4, shellType: 'powershell' as const }
       ],
       parameters: [
         {
@@ -110,10 +110,10 @@ export const DUMMY_DATA: DashboardData = {
       commit: "def456g",
       agent_id: 2,
       steps: [
-        { name: "Setup Environment", command: "python -m venv venv", order: 1 },
-        { name: "Install Dependencies", command: "pip install -r requirements.txt", order: 2 },
-        { name: "Run Tests", command: "pytest", order: 3 },
-        { name: "Build Docker Image", command: "docker build -t api:{{VERSION}} .", order: 4 }
+        { name: "Setup Environment", command: "python -m venv venv", order: 1, shellType: 'powershell' as const },
+        { name: "Install Dependencies", command: "pip install -r requirements.txt", order: 2, shellType: 'powershell' as const },
+        { name: "Run Tests", command: "pytest", order: 3, shellType: 'powershell' as const },
+        { name: "Build Docker Image", command: "docker build -t api:{{VERSION}} .", order: 4, shellType: 'powershell' as const }
       ],
       parameters: [
         {
@@ -152,9 +152,9 @@ export const DUMMY_DATA: DashboardData = {
       commit: "ghi789h",
       agent_id: 1,
       steps: [
-        { name: "Backup Database", command: "pg_dump mydb > backup.sql", order: 1 },
-        { name: "Run Migrations", command: "alembic upgrade head", order: 2 },
-        { name: "Verify Schema", command: "alembic current", order: 3 }
+        { name: "Backup Database", command: "pg_dump mydb > backup.sql", order: 1, shellType: 'bash' as const },
+        { name: "Run Migrations", command: "alembic upgrade head", order: 2, shellType: 'bash' as const },
+        { name: "Verify Schema", command: "alembic current", order: 3, shellType: 'bash' as const }
       ],
       parameters: [
         {
@@ -185,9 +185,9 @@ export const DUMMY_DATA: DashboardData = {
       commit: "jkl012i",
       agent_id: null,
       steps: [
-        { name: "Setup React Native", command: "npx react-native init", order: 1 },
-        { name: "Install Dependencies", command: "npm install", order: 2 },
-        { name: "Build Android APK", command: "cd android && ./gradlew assembleRelease", order: 3 }
+        { name: "Setup React Native", command: "npx react-native init", order: 1, shellType: 'bash' as const },
+        { name: "Install Dependencies", command: "npm install", order: 2, shellType: 'bash' as const },
+        { name: "Build Android APK", command: "cd android && ./gradlew assembleRelease", order: 3, shellType: 'bash' as const }
       ],
       parameters: []
     }
