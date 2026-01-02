@@ -119,15 +119,15 @@ export default function ReleasesPage() {
   const getStatusColor = (status?: string) => {
     switch (status) {
       case 'succeeded':
-        return 'bg-green-100 text-green-800 border-green-200';
+        return 'bg-green-600 text-white border-green-200';
       case 'failed':
-        return 'bg-red-100 text-red-800 border-red-200';
+        return 'bg-red-600 text-white border-red-200';
       case 'in_progress':
-        return 'bg-blue-100 text-blue-800 border-blue-200';
+        return 'bg-blue-600 text-white border-blue-200';
       case 'pending':
-        return 'bg-yellow-100 text-yellow-800 border-yellow-200';
+        return 'bg-amber-600 text-white border-yellow-200';
       default:
-        return 'bg-gray-100 text-gray-800 border-gray-200';
+        return 'bg-gray-600 text-white border-gray-200';
     }
   };
 
@@ -159,7 +159,7 @@ export default function ReleasesPage() {
           <button
             onClick={fetchData}
             disabled={loading}
-            className="flex items-center gap-2 px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors disabled:opacity-50"
+            className="flex items-center gap-2 px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-200 transition-colors disabled:opacity-50"
           >
             <RefreshCw className={`h-5 w-5 ${loading ? 'animate-spin' : ''}`} />
             Refresh
@@ -218,21 +218,21 @@ export default function ReleasesPage() {
                   <div className="flex gap-2">
                     <button
                       onClick={() => handleDeploy(release)}
-                      className="p-2 bg-green-100 text-green-700 rounded-lg hover:bg-green-200 transition-colors"
+                      className="p-2 bg-green-600 text-white rounded-lg hover:bg-green-200 transition-colors"
                       title="Deploy Release"
                     >
                       <Play className="h-4 w-4" />
                     </button>
                     <button
                       onClick={() => handleViewHistory(release)}
-                      className="p-2 bg-blue-100 text-blue-700 rounded-lg hover:bg-blue-200 transition-colors"
+                      className="p-2 bg-blue-600 text-white rounded-lg hover:bg-blue-200 transition-colors"
                       title="View Execution History"
                     >
                       <History className="h-4 w-4" />
                     </button>
                     <button
                       onClick={() => handleDelete(release.id)}
-                      className="p-2 bg-red-100 text-red-700 rounded-lg hover:bg-red-200 transition-colors"
+                      className="p-2 bg-red-600 text-white rounded-lg hover:bg-red-200 transition-colors"
                       title="Delete Release"
                     >
                       <Trash2 className="h-4 w-4" />
@@ -255,7 +255,7 @@ export default function ReleasesPage() {
                                   {env?.name || `Env ${stage.environment_id}`}
                                 </span>
                                 {env?.requires_approval && (
-                                  <span className="text-xs bg-yellow-100 text-yellow-800 px-1.5 py-0.5 rounded">
+                                  <span className="text-xs bg-amber-600 text-white px-1.5 py-0.5 rounded">
                                     Approval
                                   </span>
                                 )}
@@ -335,7 +335,7 @@ export default function ReleasesPage() {
                   <span>Created {new Date(release.created_at).toLocaleDateString()}</span>
                   {release.created_by && <span>by {release.created_by}</span>}
                   <span className={`px-2 py-1 rounded ${
-                    release.status === 'active' ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'
+                    release.status === 'active' ? 'bg-green-600 text-white' : 'bg-gray-600 text-white'
                   }`}>
                     {release.status}
                   </span>

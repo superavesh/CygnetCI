@@ -206,7 +206,7 @@ export const AgentLogsModal: React.FC<AgentLogsModalProps> = ({ isOpen, agent, o
                 onClick={() => setAutoRefresh(!autoRefresh)}
                 className={`px-3 py-1 rounded-lg text-sm flex items-center space-x-2 transition-colors ${
                   autoRefresh 
-                    ? 'bg-green-100 text-green-700 border border-green-300' 
+                    ? 'bg-green-600 text-white border border-green-300' 
                     : 'bg-gray-100 text-gray-600 border border-gray-300'
                 }`}
               >

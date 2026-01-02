@@ -226,10 +226,10 @@ export default function PipelinesPage() {
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap">
                           <span className={`px-3 py-1 rounded-full text-xs font-medium ${
-                            pipeline.status === 'success' ? 'bg-green-500 text-white' :
-                            pipeline.status === 'failed' ? 'bg-red-500 text-white' :
-                            pipeline.status === 'running' ? 'bg-blue-500 text-white' :
-                            'bg-gray-500 text-white'
+                            pipeline.status === 'success' ? 'bg-green-600 text-white' :
+                            pipeline.status === 'failed' ? 'bg-red-600 text-white' :
+                            pipeline.status === 'running' ? 'bg-blue-600 text-white' :
+                            'bg-gray-600 text-white'
                           }`}>
                             {pipeline.status.charAt(0).toUpperCase() + pipeline.status.slice(1)}
                           </span>
@@ -240,12 +240,12 @@ export default function PipelinesPage() {
                         <td className="px-6 py-4 whitespace-nowrap">
                           <div className="flex flex-col space-y-1">
                             {hasSteps && (
-                              <span className="px-2 py-1 bg-blue-100 text-blue-800 text-xs rounded-full inline-block">
+                              <span className="px-2 py-1 bg-blue-600 text-white text-xs rounded-full inline-block">
                                 {pipeline.steps?.length || 0} steps
                               </span>
                             )}
                             {hasParameters && (
-                              <span className="px-2 py-1 bg-purple-100 text-purple-800 text-xs rounded-full inline-block">
+                              <span className="px-2 py-1 bg-purple-600 text-white text-xs rounded-full inline-block">
                                 {pipeline.parameters?.length || 0} params
                               </span>
                             )}
@@ -270,7 +270,7 @@ export default function PipelinesPage() {
                             {!hasParameters && pipeline.agent_id && (
                               <button
                                 onClick={() => handleQuickRun(pipeline)}
-                                className="text-green-600 hover:text-green-900 transition-colors"
+                                className="text-green-600 hover:text-blue-700 transition-colors"
                                 title="Quick Run (with default agent)"
                               >
                                 <Play className="h-4 w-4" />

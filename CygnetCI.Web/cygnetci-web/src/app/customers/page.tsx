@@ -315,8 +315,8 @@ export default function CustomersPage() {
                         <td className="px-6 py-4 whitespace-nowrap">
                           <span className={`px-3 py-1 rounded-full text-xs font-medium ${
                             customer.is_active
-                              ? 'bg-green-100 text-green-700'
-                              : 'bg-red-100 text-red-700'
+                              ? 'bg-green-600 text-white'
+                              : 'bg-red-600 text-white'
                           }`}>
                             {customer.is_active ? 'Active' : 'Inactive'}
                           </span>
@@ -349,13 +349,13 @@ export default function CustomersPage() {
                         <td className="px-6 py-4">
                           {stats ? (
                             <div className="flex flex-wrap gap-2">
-                              <span className="px-2 py-1 bg-blue-100 text-blue-800 text-xs rounded-full">
+                              <span className="px-2 py-1 bg-blue-600 text-white text-xs rounded-full">
                                 {stats.total_agents} Agents
                               </span>
-                              <span className="px-2 py-1 bg-green-100 text-green-800 text-xs rounded-full">
+                              <span className="px-2 py-1 bg-green-600 text-white text-xs rounded-full">
                                 {stats.total_pipelines} Pipelines
                               </span>
-                              <span className="px-2 py-1 bg-purple-100 text-purple-800 text-xs rounded-full">
+                              <span className="px-2 py-1 bg-purple-600 text-white text-xs rounded-full">
                                 {stats.total_releases} Releases
                               </span>
                             </div>
@@ -422,7 +422,7 @@ export default function CustomersPage() {
                     onClick={() => handlePageChange(page)}
                     className={`px-4 py-2 rounded-lg border transition-colors ${
                       currentPage === page
-                        ? 'bg-blue-500 text-white border-blue-500'
+                        ? 'bg-blue-600 text-white border-blue-500'
                         : 'border-gray-300 text-gray-700 hover:bg-gray-50'
                     }`}
                   >

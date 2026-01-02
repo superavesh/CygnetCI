@@ -108,7 +108,7 @@ export const PipelineFilter: React.FC<PipelineFilterProps> = ({
           {parseFilters(query).map((filter, index) => (
             <div
               key={index}
-              className="inline-flex items-center space-x-2 bg-blue-100 text-blue-800 px-3 py-1 rounded-full text-sm"
+              className="inline-flex items-center space-x-2 bg-blue-600 text-white px-3 py-1 rounded-full text-sm"
             >
               <span className="font-medium">{filter.column}</span>
               <span className="text-blue-600">{filter.operator === '=' ? '=' : '⊇'}</span>

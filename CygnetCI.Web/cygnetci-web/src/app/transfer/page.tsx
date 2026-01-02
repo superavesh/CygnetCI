@@ -211,10 +211,10 @@ export default function TransferPage() {
 
   const getStatusColor = (status: string) => {
     switch (status) {
-      case 'pending': return 'bg-yellow-100 text-yellow-800 border-yellow-200';
-      case 'downloaded': return 'bg-blue-100 text-blue-800 border-blue-200';
-      case 'failed': return 'bg-red-100 text-red-800 border-red-200';
-      default: return 'bg-gray-100 text-gray-800 border-gray-200';
+      case 'pending': return 'bg-amber-600 text-white border-yellow-200';
+      case 'downloaded': return 'bg-blue-600 text-white border-blue-200';
+      case 'failed': return 'bg-red-600 text-white border-red-200';
+      default: return 'bg-gray-600 text-white border-gray-200';
     }
   };
 
@@ -506,7 +506,7 @@ export default function TransferPage() {
           </div>
           <button
             onClick={fetchPickups}
-            className="flex items-center gap-2 px-3 py-1.5 text-sm bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors"
+            className="flex items-center gap-2 px-3 py-1.5 text-sm bg-gray-600 text-white rounded-lg hover:bg-gray-200 transition-colors"
           >
             <RefreshCw className="h-4 w-4" />
             Refresh
@@ -564,7 +564,7 @@ export default function TransferPage() {
           <h2 className="text-xl font-semibold text-gray-900">Uploaded Files</h2>
           <button
             onClick={fetchFiles}
-            className="flex items-center gap-2 px-3 py-1.5 text-sm bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors"
+            className="flex items-center gap-2 px-3 py-1.5 text-sm bg-gray-600 text-white rounded-lg hover:bg-gray-200 transition-colors"
           >
             <RefreshCw className="h-4 w-4" />
             Refresh

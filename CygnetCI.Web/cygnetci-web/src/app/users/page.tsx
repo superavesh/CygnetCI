@@ -139,14 +139,14 @@ export default function UsersPage() {
   );
 
   const getRoleDisplay = (user: User) => {
-    if (user.is_superuser) return { text: 'Superuser', color: 'bg-purple-100 text-purple-800 border border-purple-300' };
-    return { text: 'User', color: 'bg-blue-100 text-blue-800 border border-blue-300' };
+    if (user.is_superuser) return { text: 'Superuser', color: 'bg-purple-600 text-white border border-purple-300' };
+    return { text: 'User', color: 'bg-blue-600 text-white border border-blue-300' };
   };
 
   const getStatusDisplay = (isActive: boolean) => {
     return isActive
-      ? { text: 'Active', color: 'bg-green-100 text-green-800' }
-      : { text: 'Inactive', color: 'bg-gray-100 text-gray-800' };
+      ? { text: 'Active', color: 'bg-green-600 text-white' }
+      : { text: 'Inactive', color: 'bg-gray-600 text-white' };
   };
 
   if (loading) {
@@ -252,7 +252,7 @@ export default function UsersPage() {
                         <div className="flex space-x-2">
                           <button
                             onClick={() => handleUpdate(user.id, { is_active: !user.is_active })}
-                            className={`${user.is_active ? 'text-yellow-600 hover:text-yellow-900' : 'text-green-600 hover:text-green-900'} transition-colors`}
+                            className={`${user.is_active ? 'text-yellow-600 hover:text-yellow-900' : 'text-green-600 hover:text-blue-700'} transition-colors`}
                             title={user.is_active ? 'Deactivate' : 'Activate'}
                           >
                             {user.is_active ? <UserX className="h-4 w-4" /> : <UserCheck className="h-4 w-4" />}

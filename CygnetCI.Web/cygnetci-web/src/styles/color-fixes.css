@@ -126,3 +126,105 @@ button.hover\:text-\[blue-600\]:hover {
 .lucide-file-down {
   color: currentColor; /* inherit from button */
 }
+
+/* ============================================
+   STATUS BADGE COLOR FIXES
+   Forces ALL status badges to use white text
+   on bold colored backgrounds
+   ============================================ */
+
+/* Target all status badge spans - very specific selector to override Tailwind */
+span.px-3.py-1.rounded-full.text-xs.font-medium.bg-green-600,
+span.px-3.py-1.rounded-full.text-xs.font-medium.bg-green-500,
+span.px-2.py-1.rounded-full.text-xs.font-medium.bg-green-600,
+span.px-2.py-1.rounded-full.text-xs.font-medium.bg-green-500,
+span[class*="px-"][class*="py-"][class*="rounded"].bg-green-600,
+span[class*="px-"][class*="py-"][class*="rounded"].bg-green-500 {
+  background-color: #059669 !important; /* Green 600 */
+  color: white !important;
+}
+
+span.px-3.py-1.rounded-full.text-xs.font-medium.bg-red-600,
+span.px-3.py-1.rounded-full.text-xs.font-medium.bg-red-500,
+span.px-2.py-1.rounded-full.text-xs.font-medium.bg-red-600,
+span.px-2.py-1.rounded-full.text-xs.font-medium.bg-red-500,
+span[class*="px-"][class*="py-"][class*="rounded"].bg-red-600,
+span[class*="px-"][class*="py-"][class*="rounded"].bg-red-500 {
+  background-color: #dc2626 !important; /* Red 600 */
+  color: white !important;
+}
+
+span.px-3.py-1.rounded-full.text-xs.font-medium.bg-blue-600,
+span.px-3.py-1.rounded-full.text-xs.font-medium.bg-blue-500,
+span.px-2.py-1.rounded-full.text-xs.font-medium.bg-blue-600,
+span.px-2.py-1.rounded-full.text-xs.font-medium.bg-blue-500,
+span[class*="px-"][class*="py-"][class*="rounded"].bg-blue-600,
+span[class*="px-"][class*="py-"][class*="rounded"].bg-blue-500 {
+  background-color: #2563eb !important; /* Blue 600 */
+  color: white !important;
+}
+
+span.px-3.py-1.rounded-full.text-xs.font-medium.bg-amber-600,
+span.px-3.py-1.rounded-full.text-xs.font-medium.bg-amber-500,
+span.px-2.py-1.rounded-full.text-xs.font-medium.bg-amber-600,
+span.px-2.py-1.rounded-full.text-xs.font-medium.bg-amber-500,
+span[class*="px-"][class*="py-"][class*="rounded"].bg-amber-600,
+span[class*="px-"][class*="py-"][class*="rounded"].bg-amber-500,
+span[class*="px-"][class*="py-"][class*="rounded"].bg-yellow-600,
+span[class*="px-"][class*="py-"][class*="rounded"].bg-yellow-500 {
+  background-color: #d97706 !important; /* Amber 600 */
+  color: white !important;
+}
+
+span.px-3.py-1.rounded-full.text-xs.font-medium.bg-gray-600,
+span.px-3.py-1.rounded-full.text-xs.font-medium.bg-gray-500,
+span.px-2.py-1.rounded-full.text-xs.font-medium.bg-gray-600,
+span.px-2.py-1.rounded-full.text-xs.font-medium.bg-gray-500,
+span[class*="px-"][class*="py-"][class*="rounded"].bg-gray-600,
+span[class*="px-"][class*="py-"][class*="rounded"].bg-gray-500 {
+  background-color: #4b5563 !important; /* Gray 600 */
+  color: white !important;
+}
+
+/* Override any text-green-700, text-red-700, etc on status badges */
+span[class*="px-"][class*="py-"][class*="rounded"][class*="text-green"],
+span[class*="px-"][class*="py-"][class*="rounded"][class*="text-red"],
+span[class*="px-"][class*="py-"][class*="rounded"][class*="text-blue"],
+span[class*="px-"][class*="py-"][class*="rounded"][class*="text-amber"],
+span[class*="px-"][class*="py-"][class*="rounded"][class*="text-yellow"],
+span[class*="px-"][class*="py-"][class*="rounded"][class*="text-gray"] {
+  color: white !important;
+}
+
+/* Fix light background status badges */
+span.bg-green-100.text-green-700,
+span.bg-green-100.text-green-800 {
+  background-color: #059669 !important;
+  color: white !important;
+}
+
+span.bg-red-100.text-red-700,
+span.bg-red-100.text-red-800 {
+  background-color: #dc2626 !important;
+  color: white !important;
+}
+
+span.bg-blue-100.text-blue-700,
+span.bg-blue-100.text-blue-800 {
+  background-color: #2563eb !important;
+  color: white !important;
+}
+
+span.bg-amber-100.text-amber-700,
+span.bg-amber-100.text-amber-800,
+span.bg-yellow-100.text-yellow-700,
+span.bg-yellow-100.text-yellow-800 {
+  background-color: #d97706 !important;
+  color: white !important;
+}
+
+span.bg-gray-100.text-gray-700,
+span.bg-gray-100.text-gray-800 {
+  background-color: #4b5563 !important;
+  color: white !important;
+}

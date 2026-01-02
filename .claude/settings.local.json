@@ -29,7 +29,8 @@
       "Bash(xargs cat:*)",
       "Bash(git -C \"d:\\\\Avesh\\\\CygnetCI\\\\SourceCode\\\\CygnetCI\" show --stat 41e27d6)",
       "Bash(timeout /t 5)",
-      "Bash(cat:*)"
+      "Bash(cat:*)",
+      "Bash(powershell -ExecutionPolicy Bypass -File:*)"
     ],
     "deny": [],
     "ask": []

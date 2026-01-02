@@ -143,8 +143,8 @@ export const WebsitePingModal: React.FC<WebsitePingModalProps> = ({
                       <div className="flex items-center gap-2 ml-4">
                         <span className={`px-3 py-1 rounded-full text-xs font-medium ${
                           isHealthy
-                            ? 'bg-green-100 text-green-800'
-                            : 'bg-red-100 text-red-800'
+                            ? 'bg-green-600 text-white'
+                            : 'bg-red-600 text-white'
                         }`}>
                           {ping.status.toUpperCase()}
                         </span>

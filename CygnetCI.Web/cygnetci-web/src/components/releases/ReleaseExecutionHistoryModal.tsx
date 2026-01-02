@@ -6,6 +6,7 @@ import React, { useState, useEffect } from 'react';
 import { X, Clock, CheckCircle, XCircle, PlayCircle, History, Eye, ArrowRight } from 'lucide-react';
 import { apiService } from '@/lib/api/apiService';
 import { ReleaseStageLogsModal } from './ReleaseStageLogsModal';
+import { ReleaseExecution } from '@/types';
 
 interface ReleaseExecutionHistoryModalProps {
   isOpen: boolean;
@@ -14,35 +15,13 @@ interface ReleaseExecutionHistoryModalProps {
   releaseName: string;
 }
 
-interface StageExecution {
-  id: number;
-  environment_name: string;
-  status: string;
-  started_at: string | null;
-  completed_at: string | null;
-  duration: number | null;
-  approval_status?: string;
-  approved_by?: string;
-  order_index: number;
-}
-
-interface ReleaseExecutionRecord {
-  id: number;
-  release_number: string;
-  status: string;
-  started_at: string;
-  completed_at: string | null;
-  duration: number | null;
-  stages: StageExecution[];
-}
-
 export const ReleaseExecutionHistoryModal: React.FC<ReleaseExecutionHistoryModalProps> = ({
   isOpen,
   onClose,
   releaseId,
   releaseName
 }) => {
-  const [executions, setExecutions] = useState<ReleaseExecutionRecord[]>([]);
+  const [executions, setExecutions] = useState<ReleaseExecution[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [showLogsModal, setShowLogsModal] = useState(false);
@@ -91,16 +70,16 @@ export const ReleaseExecutionHistoryModal: React.FC<ReleaseExecutionHistoryModal
   const getStatusColor = (status: string) => {
     switch (status) {
       case 'succeeded':
-        return 'bg-green-100 text-green-800 border-green-200';
+        return 'bg-green-600 text-white border-green-200';
       case 'failed':
-        return 'bg-red-100 text-red-800 border-red-200';
+        return 'bg-red-600 text-white border-red-200';
       case 'in_progress':
-        return 'bg-blue-100 text-blue-800 border-blue-200';
+        return 'bg-blue-600 text-white border-blue-200';
       case 'pending':
       case 'awaiting_approval':
-        return 'bg-yellow-100 text-yellow-800 border-yellow-200';
+        return 'bg-amber-600 text-white border-yellow-200';
       default:
-        return 'bg-gray-100 text-gray-800 border-gray-200';
+        return 'bg-gray-600 text-white border-gray-200';
     }
   };
 
@@ -219,17 +198,19 @@ export const ReleaseExecutionHistoryModal: React.FC<ReleaseExecutionHistoryModal
                             {execution.status.replace('_', ' ').charAt(0).toUpperCase() + execution.status.slice(1)}
                           </span>
                           {index === 0 && (
-                            <span className="px-2 py-1 text-xs font-medium rounded-full bg-blue-100 text-blue-800 border border-blue-200">
+                            <span className="px-2 py-1 text-xs font-medium rounded-full bg-blue-600 text-white border border-blue-200">
                               Latest
                             </span>
                           )}
                         </div>
 
                         <div className="grid grid-cols-1 md:grid-cols-3 gap-3 text-sm mb-4">
-                          <div>
-                            <span className="text-gray-500">Started:</span>
-                            <p className="font-medium text-gray-900">{formatDate(execution.started_at)}</p>
-                          </div>
+                          {execution.started_at && (
+                            <div>
+                              <span className="text-gray-500">Started:</span>
+                              <p className="font-medium text-gray-900">{formatDate(execution.started_at)}</p>
+                            </div>
+                          )}
 
                           {execution.completed_at && (
                             <div>
@@ -240,7 +221,7 @@ export const ReleaseExecutionHistoryModal: React.FC<ReleaseExecutionHistoryModal
 
                           <div>
                             <span className="text-gray-500">Duration:</span>
-                            <p className="font-medium text-gray-900">{formatDuration(execution.duration)}</p>
+                            <p className="font-medium text-gray-900">{formatDuration(execution.duration_seconds || null)}</p>
                           </div>
                         </div>
 
@@ -249,17 +230,15 @@ export const ReleaseExecutionHistoryModal: React.FC<ReleaseExecutionHistoryModal
                           <div className="pt-3 border-t border-gray-200">
                             <span className="text-xs text-gray-500 font-medium mb-3 block">Deployment Pipeline ({execution.stages.length} stages):</span>
                             <div className="flex items-start gap-3 flex-wrap">
-                              {execution.stages
-                                .sort((a, b) => a.order_index - b.order_index)
-                                .map((stage, idx) => (
+                              {execution.stages.map((stage, idx) => (
                                   <React.Fragment key={stage.id}>
                                     <div className="flex flex-col gap-2">
                                       <div className={`flex items-center gap-2 px-3 py-2 rounded-md border ${getStatusColor(stage.status)}`}>
                                         {getStatusIcon(stage.status)}
                                         <div className="flex-1">
                                           <span className="text-xs font-medium block">{stage.environment_name}</span>
-                                          {stage.duration !== null && (
-                                            <span className="text-xs opacity-75">{formatDuration(stage.duration)}</span>
+                                          {stage.started_at && stage.completed_at && (
+                                            <span className="text-xs opacity-75">{formatDuration(Math.floor((new Date(stage.completed_at).getTime() - new Date(stage.started_at).getTime()) / 1000))}</span>
                                           )}
                                           {stage.approval_status === 'approved' && stage.approved_by && (
                                             <span className="text-xs opacity-75 block">✓ {stage.approved_by}</span>

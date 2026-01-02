@@ -158,8 +158,8 @@ export const WindowsServicesModal: React.FC<WindowsServicesModalProps> = ({
                         <div className="flex items-center gap-2 ml-4">
                           <span className={`px-3 py-1 rounded-full text-xs font-medium ${
                             isRunning
-                              ? 'bg-green-100 text-green-800'
-                              : 'bg-red-100 text-red-800'
+                              ? 'bg-green-600 text-white'
+                              : 'bg-red-600 text-white'
                           }`}>
                             {service.status}
                           </span>

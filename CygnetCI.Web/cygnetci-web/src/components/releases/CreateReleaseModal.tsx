@@ -224,7 +224,7 @@ export const CreateReleaseModal: React.FC<CreateReleaseModalProps> = ({ onClose,
               <button
                 type="button"
                 onClick={addStage}
-                className="flex items-center gap-2 px-3 py-1.5 bg-blue-100 text-blue-700 rounded-lg hover:bg-blue-200 transition-colors text-sm"
+                className="flex items-center gap-2 px-3 py-1.5 bg-blue-600 text-white rounded-lg hover:bg-blue-200 transition-colors text-sm"
               >
                 <Plus className="h-4 w-4" />
                 Add Stage

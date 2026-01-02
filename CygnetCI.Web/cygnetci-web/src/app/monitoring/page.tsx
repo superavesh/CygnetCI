@@ -90,13 +90,13 @@ export default function MonitoringPage() {
   const getStatusColor = (status: string) => {
     switch (status.toLowerCase()) {
       case 'online':
-        return 'bg-green-500';
+        return 'bg-green-600';
       case 'offline':
-        return 'bg-red-500';
+        return 'bg-gray-600';
       case 'busy':
-        return 'bg-yellow-500';
+        return 'bg-amber-600';
       default:
-        return 'bg-gray-500';
+        return 'bg-gray-600';
     }
   };
 
@@ -211,8 +211,8 @@ export default function MonitoringPage() {
                 <div className="flex items-center gap-3">
                   <span className={`px-3 py-1 rounded-full text-xs font-medium ${
                     agent.status === 'online'
-                      ? 'bg-green-100 text-green-800'
-                      : 'bg-red-100 text-red-800'
+                      ? 'bg-green-600 text-white'
+                      : 'bg-red-600 text-white'
                   }`}>
                     {agent.status.toUpperCase()}
                   </span>
