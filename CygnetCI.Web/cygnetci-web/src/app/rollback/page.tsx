@@ -294,11 +294,11 @@ export default function RollbackPage() {
   const getStatusIcon = (status: string) => {
     switch (status) {
       case 'completed':
-        return <CheckCircle className="h-5 w-5 text-[#FEB114]" />;
+        return <CheckCircle className="h-5 w-5 text-blue-500" />;
       case 'failed':
         return <XCircle className="h-5 w-5 text-red-600" />;
       case 'analyzing':
-        return <Loader className="h-5 w-5 text-[#FEB114] animate-spin" />;
+        return <Loader className="h-5 w-5 text-blue-500 animate-spin" />;
       default:
         return <Clock className="h-5 w-5 text-gray-400" />;
     }
@@ -311,7 +311,7 @@ export default function RollbackPage() {
       case 'failed':
         return 'bg-red-100 text-red-800';
       case 'analyzing':
-        return 'bg-blue-100 text-[#FEB114]';
+        return 'bg-blue-100 text-blue-500';
       default:
         return 'bg-gray-100 text-gray-800';
     }
@@ -329,8 +329,8 @@ export default function RollbackPage() {
       <div className="mb-6">
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-3xl font-bold text-[#081D2B] flex items-center gap-3">
-              <Database className="h-8 w-8 text-[#FEB114]" />
+            <h1 className="text-3xl font-bold text-white flex items-center gap-3">
+              <Database className="h-8 w-8 text-blue-500" />
               Database Rollback Scripts
             </h1>
             <p className="text-gray-600 mt-1">Upload and analyze SQL scripts with AI-powered object detection</p>
@@ -350,8 +350,8 @@ export default function RollbackPage() {
         {/* Upload Section */}
         <div className="xl:col-span-1">
           <div className="bg-white rounded-lg shadow-md border border-gray-200 p-6 h-full">
-            <h2 className="text-xl font-semibold text-[#081D2B] mb-4 flex items-center gap-2">
-              <Upload className="h-6 w-6 text-[#FEB114]" />
+            <h2 className="text-xl font-semibold text-white mb-4 flex items-center gap-2">
+              <Upload className="h-6 w-6 text-blue-500" />
               Upload New Script
             </h2>
             <div className="space-y-4">
@@ -377,7 +377,7 @@ export default function RollbackPage() {
                   onClick={handleBrowseClick}
                   className={`border-2 border-dashed rounded-lg p-6 text-center cursor-pointer transition-all ${
                     isDragging
-                      ? 'border-[#FEB114] bg-blue-50'
+                      ? 'border-blue-500 bg-blue-50'
                       : selectedFile
                       ? 'border-green-500 bg-green-50'
                       : 'border-gray-300 bg-gray-50 hover:border-blue-400 hover:bg-orange-50'
@@ -386,8 +386,8 @@ export default function RollbackPage() {
                   <div className="flex flex-col items-center">
                     {selectedFile ? (
                       <>
-                        <CheckCircle className="h-10 w-10 text-[#FEB114] mb-2" />
-                        <p className="text-sm font-semibold text-[#081D2B] mb-1 truncate w-full">
+                        <CheckCircle className="h-10 w-10 text-blue-500 mb-2" />
+                        <p className="text-sm font-semibold text-white mb-1 truncate w-full">
                           {selectedFile.name}
                         </p>
                         <p className="text-xs text-gray-600 mb-2">
@@ -400,7 +400,7 @@ export default function RollbackPage() {
                     ) : (
                       <>
                         <Upload className="h-10 w-10 text-gray-400 mb-2" />
-                        <p className="text-sm font-semibold text-[#081D2B] mb-1">
+                        <p className="text-sm font-semibold text-white mb-1">
                           Drop SQL file here
                         </p>
                         <p className="text-xs text-gray-600 mb-1">
@@ -423,7 +423,7 @@ export default function RollbackPage() {
                   value={description}
                   onChange={(e) => setDescription(e.target.value)}
                   placeholder="Enter script description"
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#FEB114] focus:border-transparent text-sm"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
                 />
               </div>
               <div>
@@ -435,13 +435,13 @@ export default function RollbackPage() {
                   value={uploadedBy}
                   onChange={(e) => setUploadedBy(e.target.value)}
                   placeholder="Your name"
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#FEB114] focus:border-transparent text-sm"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
                 />
               </div>
               <button
                 onClick={handleUpload}
                 disabled={!selectedFile || uploading}
-                className="w-full px-4 py-2.5 bg-gradient-to-r from-[#FEB114] to-[#E59D00] hover:from-[#E59D00] hover:to-[#FEB114] text-[#081D2B] font-semibold rounded-lg shadow-md hover:shadow-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 text-sm font-medium"
+                className="w-full px-4 py-2.5 bg-gradient-to-r from-blue-500 to-blue-600 hover:from-[blue-600] hover:to-[blue-500] text-white font-semibold rounded-lg shadow-md hover:shadow-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 text-sm font-medium"
               >
                 {uploading ? (
                   <>
@@ -463,15 +463,15 @@ export default function RollbackPage() {
         <div className="xl:col-span-2">
           <div className="bg-white rounded-lg shadow-md border border-gray-200 h-full flex flex-col">
             <div className="px-6 py-4 border-b border-gray-200 flex-shrink-0">
-              <h2 className="text-xl font-semibold text-[#081D2B] flex items-center gap-2">
-                <FileText className="h-6 w-6 text-[#FEB114]" />
+              <h2 className="text-xl font-semibold text-white flex items-center gap-2">
+                <FileText className="h-6 w-6 text-blue-500" />
                 Uploaded Scripts ({scripts.length})
               </h2>
             </div>
 
             {loading ? (
               <div className="flex items-center justify-center py-12">
-                <Loader className="h-8 w-8 animate-spin text-[#FEB114]" />
+                <Loader className="h-8 w-8 animate-spin text-blue-500" />
               </div>
             ) : scripts.length === 0 ? (
               <div className="text-center py-12">
@@ -514,7 +514,7 @@ export default function RollbackPage() {
                       <div className="flex items-center">
                         <FileText className="h-5 w-5 text-gray-400 mr-3" />
                         <div>
-                          <div className="text-sm font-medium text-[#081D2B]">{script.script_name}</div>
+                          <div className="text-sm font-medium text-white">{script.script_name}</div>
                           {script.description && (
                             <div className="text-sm text-gray-500">{script.description}</div>
                           )}
@@ -546,7 +546,7 @@ export default function RollbackPage() {
                         <button
                           onClick={() => handleAnalyze(script.id)}
                           disabled={analyzing === script.id}
-                          className="text-[#FEB114] hover:text-[#E59D00] disabled:opacity-50"
+                          className="text-blue-500 hover:text-[blue-600] disabled:opacity-50"
                           title={script.analysis_status === 'failed' ? 'Retry Analysis' : 'Analyze with AI'}
                         >
                           {analyzing === script.id ? (
@@ -561,7 +561,7 @@ export default function RollbackPage() {
                       {script.analysis_status === 'completed' && (
                         <button
                           onClick={() => handleViewDetails(script.id)}
-                          className="text-[#FEB114] hover:text-green-900"
+                          className="text-blue-500 hover:text-green-900"
                           title="View Details"
                         >
                           View Details
@@ -569,7 +569,7 @@ export default function RollbackPage() {
                       )}
                       <button
                         onClick={() => handleDownload(script.id)}
-                        className="text-gray-600 hover:text-[#081D2B]"
+                        className="text-gray-600 hover:text-white"
                         title="Download"
                       >
                         <Download className="h-4 w-4 inline" />
@@ -597,7 +597,7 @@ export default function RollbackPage() {
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-lg shadow-2xl w-full max-w-4xl max-h-[90vh] flex flex-col">
             <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200">
-              <h2 className="text-xl font-semibold text-[#081D2B]">{selectedScript.script_name}</h2>
+              <h2 className="text-xl font-semibold text-white">{selectedScript.script_name}</h2>
               <button
                 onClick={() => setShowDetails(false)}
                 className="text-gray-400 hover:text-gray-600"
@@ -611,27 +611,27 @@ export default function RollbackPage() {
               <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                 <div>
                   <p className="text-sm text-gray-600">File Size</p>
-                  <p className="text-lg font-semibold text-[#081D2B]">{formatFileSize(selectedScript.file_size_bytes)}</p>
+                  <p className="text-lg font-semibold text-white">{formatFileSize(selectedScript.file_size_bytes)}</p>
                 </div>
                 <div>
                   <p className="text-sm text-gray-600">Uploaded By</p>
-                  <p className="text-lg font-semibold text-[#081D2B]">{selectedScript.uploaded_by || '-'}</p>
+                  <p className="text-lg font-semibold text-white">{selectedScript.uploaded_by || '-'}</p>
                 </div>
                 <div>
                   <p className="text-sm text-gray-600">Status</p>
-                  <p className={`text-lg font-semibold ${selectedScript.analysis_status === 'completed' ? 'text-[#FEB114]' : 'text-[#081D2B]'}`}>
+                  <p className={`text-lg font-semibold ${selectedScript.analysis_status === 'completed' ? 'text-blue-500' : 'text-white'}`}>
                     {selectedScript.analysis_status}
                   </p>
                 </div>
                 <div>
                   <p className="text-sm text-gray-600">Total Objects</p>
-                  <p className="text-lg font-semibold text-[#081D2B]">{selectedScript.object_count}</p>
+                  <p className="text-lg font-semibold text-white">{selectedScript.object_count}</p>
                 </div>
               </div>
 
               {/* Database Objects */}
               <div>
-                <h3 className="text-lg font-semibold text-[#081D2B] mb-4">Identified Database Objects</h3>
+                <h3 className="text-lg font-semibold text-white mb-4">Identified Database Objects</h3>
                 {Object.keys(selectedScript.database_objects).length === 0 ? (
                   <p className="text-gray-600">No objects identified</p>
                 ) : (
@@ -732,7 +732,7 @@ export default function RollbackPage() {
               <div className="flex flex-col sm:flex-row gap-3">
                 <button
                   onClick={handleDownloadResultsJSON}
-                  className="px-6 py-2 bg-gradient-to-r from-[#FEB114] to-[#E59D00] hover:from-[#E59D00] hover:to-[#FEB114] text-[#081D2B] font-semibold rounded-lg shadow-md hover:shadow-lg transition-colors flex items-center justify-center gap-2"
+                  className="px-6 py-2 bg-gradient-to-r from-blue-500 to-blue-600 hover:from-[blue-600] hover:to-[blue-500] text-white font-semibold rounded-lg shadow-md hover:shadow-lg transition-colors flex items-center justify-center gap-2"
                   title="Download analysis results as JSON"
                 >
                   <FileDown className="h-4 w-4" />
@@ -767,7 +767,7 @@ export default function RollbackPage() {
                 <AlertCircle className="h-6 w-6 text-red-600" />
               </div>
               <div>
-                <h2 className="text-xl font-semibold text-[#081D2B]">Confirm Delete</h2>
+                <h2 className="text-xl font-semibold text-white">Confirm Delete</h2>
                 <p className="text-sm text-gray-600">This action cannot be undone</p>
               </div>
             </div>
@@ -776,7 +776,7 @@ export default function RollbackPage() {
               <p className="text-gray-700 mb-2">
                 Are you sure you want to delete this script?
               </p>
-              <p className="text-sm font-medium text-[#081D2B] bg-gray-50 px-3 py-2 rounded border border-gray-200">
+              <p className="text-sm font-medium text-white bg-gray-50 px-3 py-2 rounded border border-gray-200">
                 {deleteConfirmation.scriptName}
               </p>
             </div>
@@ -806,24 +806,24 @@ export default function RollbackPage() {
           <div className={`rounded-lg shadow-lg px-6 py-4 flex items-center gap-3 min-w-[300px] max-w-md ${
             toast.type === 'success' ? 'bg-green-50 border-l-4 border-green-500' :
             toast.type === 'error' ? 'bg-red-50 border-l-4 border-red-500' :
-            'bg-blue-50 border-l-4 border-[#FEB114]'
+            'bg-blue-50 border-l-4 border-blue-500'
           }`}>
-            {toast.type === 'success' && <CheckCircle className="h-5 w-5 text-[#FEB114] flex-shrink-0" />}
+            {toast.type === 'success' && <CheckCircle className="h-5 w-5 text-blue-500 flex-shrink-0" />}
             {toast.type === 'error' && <XCircle className="h-5 w-5 text-red-600 flex-shrink-0" />}
-            {toast.type === 'info' && <AlertCircle className="h-5 w-5 text-[#FEB114] flex-shrink-0" />}
+            {toast.type === 'info' && <AlertCircle className="h-5 w-5 text-blue-500 flex-shrink-0" />}
             <p className={`text-sm font-medium ${
               toast.type === 'success' ? 'text-green-800' :
               toast.type === 'error' ? 'text-red-800' :
-              'text-[#FEB114]'
+              'text-blue-500'
             }`}>
               {toast.message}
             </p>
             <button
               onClick={() => setToast(null)}
               className={`ml-auto flex-shrink-0 ${
-                toast.type === 'success' ? 'text-[#FEB114] hover:text-green-800' :
+                toast.type === 'success' ? 'text-blue-500 hover:text-green-800' :
                 toast.type === 'error' ? 'text-red-600 hover:text-red-800' :
-                'text-[#FEB114] hover:text-[#FEB114]'
+                'text-blue-500 hover:text-blue-500'
               }`}
             >
               <XCircle className="h-4 w-4" />

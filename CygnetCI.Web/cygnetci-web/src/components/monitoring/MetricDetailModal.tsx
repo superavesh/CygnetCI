@@ -178,7 +178,7 @@ export const MetricDetailModal: React.FC<MetricDetailModalProps> = ({
                       setUseCustomRange(false);
                     }
                   }}
-                  className="px-3 py-1.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-[#FEB114] focus:border-transparent text-gray-900 bg-white"
+                  className="px-3 py-1.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-[blue-500] focus:border-transparent text-gray-900 bg-white"
                 >
                   <option value={1}>Last Hour</option>
                   <option value={6}>Last 6 Hours</option>
@@ -200,7 +200,7 @@ export const MetricDetailModal: React.FC<MetricDetailModalProps> = ({
                         const time = startDate.split('T')[1] || '00:00';
                         setStartDate(`${e.target.value}T${time}`);
                       }}
-                      className="px-3 py-1.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-[#FEB114] focus:border-transparent text-gray-900 bg-white"
+                      className="px-3 py-1.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-[blue-500] focus:border-transparent text-gray-900 bg-white"
                     />
                     <input
                       type="time"
@@ -209,7 +209,7 @@ export const MetricDetailModal: React.FC<MetricDetailModalProps> = ({
                         const date = startDate.split('T')[0] || new Date().toISOString().split('T')[0];
                         setStartDate(`${date}T${e.target.value}`);
                       }}
-                      className="px-3 py-1.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-[#FEB114] focus:border-transparent text-gray-900 bg-white"
+                      className="px-3 py-1.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-[blue-500] focus:border-transparent text-gray-900 bg-white"
                     />
                   </div>
                   <span className="text-gray-600 font-medium">to</span>
@@ -221,7 +221,7 @@ export const MetricDetailModal: React.FC<MetricDetailModalProps> = ({
                         const time = endDate.split('T')[1] || '23:59';
                         setEndDate(`${e.target.value}T${time}`);
                       }}
-                      className="px-3 py-1.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-[#FEB114] focus:border-transparent text-gray-900 bg-white"
+                      className="px-3 py-1.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-[blue-500] focus:border-transparent text-gray-900 bg-white"
                     />
                     <input
                       type="time"
@@ -230,7 +230,7 @@ export const MetricDetailModal: React.FC<MetricDetailModalProps> = ({
                         const date = endDate.split('T')[0] || new Date().toISOString().split('T')[0];
                         setEndDate(`${date}T${e.target.value}`);
                       }}
-                      className="px-3 py-1.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-[#FEB114] focus:border-transparent text-gray-900 bg-white"
+                      className="px-3 py-1.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-[blue-500] focus:border-transparent text-gray-900 bg-white"
                     />
                   </div>
                 </div>
@@ -249,7 +249,7 @@ export const MetricDetailModal: React.FC<MetricDetailModalProps> = ({
               )}
               <button
                 onClick={fetchHistory}
-                className="px-3 py-1.5 bg-[#FEB114] hover:bg-[#E59D00] text-gray-800 rounded-lg transition-colors flex items-center gap-2"
+                className="px-3 py-1.5 bg-blue-500 hover:bg-blue-600 text-gray-800 rounded-lg transition-colors flex items-center gap-2"
               >
                 <RefreshCw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
                 Refresh
@@ -397,7 +397,7 @@ export const MetricDetailModal: React.FC<MetricDetailModalProps> = ({
                             type="checkbox"
                             checked={selectedRows.size === history.length && history.length > 0}
                             onChange={toggleSelectAll}
-                            className="rounded border-gray-300 text-[#FEB114] focus:ring-[#FEB114]"
+                            className="rounded border-gray-300 text-blue-500 focus:ring-[blue-500]"
                           />
                         </th>
                         <th className="px-4 py-2 text-left text-gray-700">Timestamp</th>
@@ -421,7 +421,7 @@ export const MetricDetailModal: React.FC<MetricDetailModalProps> = ({
                                 type="checkbox"
                                 checked={selectedRows.has(reversedIndex)}
                                 onChange={() => toggleRowSelection(reversedIndex)}
-                                className="rounded border-gray-300 text-[#FEB114] focus:ring-[#FEB114]"
+                                className="rounded border-gray-300 text-blue-500 focus:ring-[blue-500]"
                               />
                             </td>
                             <td className="px-4 py-2 text-gray-900">

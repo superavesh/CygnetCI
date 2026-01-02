@@ -4,12 +4,12 @@
 
 import React, { useState, useEffect, useRef } from 'react';
 import Image from 'next/image';
-import { RefreshCw, ChevronDown, User } from 'lucide-react';
+import { RefreshCw, User } from 'lucide-react';
 import { CONFIG } from '@/lib/config';
 import CustomerSelector from '@/components/CustomerSelector';
 
 interface HeaderProps {
-  onRefresh: () => void;
+  onRefresh?: () => void;
 }
 
 interface CurrentUser {
@@ -26,15 +26,11 @@ export const Header: React.FC<HeaderProps> = ({ onRefresh }) => {
   const userMenuRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    // Fetch current user from session/auth endpoint
     const fetchCurrentUser = async () => {
       try {
-        // For now, use a mock current user - this should be replaced with actual auth
-        // In production, you'd call an endpoint like /auth/me or /current-user
         const response = await fetch(`${CONFIG.api.baseUrl}/users`);
         if (response.ok) {
           const users = await response.json();
-          // Use the first superuser as current user (temporary solution)
           const user = users.find((u: CurrentUser) => u.is_superuser) || users[0];
           setCurrentUser(user);
         }
@@ -46,7 +42,6 @@ export const Header: React.FC<HeaderProps> = ({ onRefresh }) => {
     fetchCurrentUser();
   }, []);
 
-  // Close dropdown when clicking outside
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       if (userMenuRef.current && !userMenuRef.current.contains(event.target as Node)) {
@@ -73,18 +68,15 @@ export const Header: React.FC<HeaderProps> = ({ onRefresh }) => {
   };
 
   const handleLogout = () => {
-    // In production, this would call a logout endpoint and clear session
     if (confirm('Are you sure you want to logout?')) {
-      // Clear any stored auth data
       localStorage.clear();
       sessionStorage.clear();
-      // Redirect to login page
       window.location.href = '/login';
     }
   };
 
   return (
-    <header className="bg-[#ebebeb] shadow-lg border-b border-gray-300 fixed top-0 left-0 right-0 z-50">
+    <header className="bg-white shadow-md border-b border-gray-200 fixed top-0 left-0 right-0 z-50">
       <div className="px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between items-center h-16">
           <div className="flex items-center space-x-4">
@@ -107,28 +99,30 @@ export const Header: React.FC<HeaderProps> = ({ onRefresh }) => {
 
           <div className="flex items-center space-x-4">
             <CustomerSelector />
-            <button
-              onClick={onRefresh}
-              className="p-2 bg-white hover:bg-[#FEB114] rounded-lg transition-colors border border-gray-300 shadow-sm"
-              title="Refresh Data"
-            >
-              <RefreshCw className="h-4 w-4 text-gray-700" />
-            </button>
+            {onRefresh && (
+              <button
+                onClick={onRefresh}
+                className="p-2 bg-white hover:bg-gray-100 rounded-lg transition-colors border border-gray-200 shadow-sm"
+                title="Refresh Data"
+              >
+                <RefreshCw className="h-4 w-4 text-blue-500" />
+              </button>
+            )}
 
             {/* User Menu */}
             <div className="relative" ref={userMenuRef}>
               <button
                 onClick={() => setShowUserMenu(!showUserMenu)}
-                className="p-1 bg-white rounded-full border border-gray-300 shadow-sm hover:border-[#FEB114] transition-colors"
+                className="p-1 bg-white rounded-full border border-gray-200 shadow-sm hover:border-blue-400 transition-colors"
                 title={currentUser?.full_name || 'User Menu'}
               >
-                <div className="h-9 w-9 bg-gradient-to-r from-[#FEB114] to-[#E59D00] rounded-full flex items-center justify-center">
+                <div className="h-9 w-9 bg-gradient-to-br from-blue-500 to-blue-600 rounded-full flex items-center justify-center">
                   {currentUser ? (
-                    <span className="text-sm font-bold text-gray-800">
+                    <span className="text-sm font-bold text-white">
                       {getUserInitials(currentUser.full_name)}
                     </span>
                   ) : (
-                    <User className="h-5 w-5 text-gray-800" />
+                    <User className="h-5 w-5 text-white" />
                   )}
                 </div>
               </button>
@@ -139,9 +133,9 @@ export const Header: React.FC<HeaderProps> = ({ onRefresh }) => {
                   {/* User Info Section */}
                   <div className="px-4 py-3 border-b border-gray-200">
                     <div className="flex items-center space-x-3">
-                      <div className="h-12 w-12 bg-gradient-to-r from-[#FEB114] to-[#E59D00] rounded-full flex items-center justify-center">
+                      <div className="h-12 w-12 bg-gradient-to-br from-blue-500 to-blue-600 rounded-full flex items-center justify-center">
                         {currentUser && (
-                          <span className="text-lg font-bold text-gray-800">
+                          <span className="text-lg font-bold text-white">
                             {getUserInitials(currentUser.full_name)}
                           </span>
                         )}
@@ -151,7 +145,7 @@ export const Header: React.FC<HeaderProps> = ({ onRefresh }) => {
                           {currentUser?.full_name || 'Loading...'}
                         </p>
                         <p className="text-xs text-gray-600">{currentUser?.email}</p>
-                        <p className="text-xs text-gray-500 mt-1">
+                        <p className="text-xs text-blue-600 mt-1 font-medium">
                           {currentUser?.is_superuser ? '👑 Administrator' : '👤 User'}
                         </p>
                       </div>
@@ -163,11 +157,10 @@ export const Header: React.FC<HeaderProps> = ({ onRefresh }) => {
                     <button
                       onClick={() => {
                         setShowUserMenu(false);
-                        // Navigate to profile page when implemented
                       }}
-                      className="w-full px-4 py-2 text-left text-sm text-gray-700 hover:bg-gray-100 transition-colors flex items-center space-x-2"
+                      className="w-full px-4 py-2 text-left text-sm text-gray-700 hover:bg-gray-50 transition-colors flex items-center space-x-2"
                     >
-                      <User className="h-4 w-4" />
+                      <User className="h-4 w-4 text-blue-500" />
                       <span>View Profile</span>
                     </button>
                     <button

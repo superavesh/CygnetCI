@@ -1,0 +1,128 @@
+/* ============================================
+   CygnetCI Global Color Fixes
+   Automatically fixes incorrect colors without
+   modifying individual page files
+   ============================================ */
+
+/* Fix all headings that are white (should be gray-900) */
+h1.text-white:not(.modal-header *):not(button *),
+h2.text-white:not(.modal-header *):not(button *),
+h3.text-white:not(.modal-header *):not(button *) {
+  color: #111827 !important; /* gray-900 */
+}
+
+/* Fix all body text that is white (should be gray-900) */
+div.text-white:not(.modal-header *):not(button *):not(.badge),
+p.text-white:not(button *):not(.badge),
+span.text-white:not(button *):not(.badge) {
+  color: #111827 !important; /* gray-900 */
+}
+
+/* Fix Download icon hover states that have wrong colors */
+button .lucide-download:hover {
+  color: #4b5563 !important; /* gray-600 */
+}
+
+/* Fix Database/Server icons to be gray instead of blue */
+.lucide-database {
+  color: #4b5563 !important; /* gray-600 */
+}
+
+/* Fix Upload icons in headers to be gray */
+h2 .lucide-upload,
+h1 .lucide-upload {
+  color: #4b5563 !important; /* gray-600 */
+}
+
+/* Fix FileText icons in headers to be gray */
+h2 .lucide-file-text {
+  color: #4b5563 !important; /* gray-600 */
+}
+
+/* Fix all hover states that have wrong text-white */
+button:hover:not(.bg-blue-500):not(.bg-green-600):not(.bg-red-600) {
+  color: inherit !important;
+}
+
+/* Fix drag and drop zone hover background */
+.hover\:bg-orange-50:hover {
+  background-color: #eff6ff !important; /* blue-50 instead of orange */
+}
+
+/* Fix button gradients that use bracket syntax */
+.hover\:from-\[blue-600\]:hover {
+  --tw-gradient-from: #2563eb !important;
+}
+
+.hover\:to-\[blue-500\]:hover {
+  --tw-gradient-to: #3b82f6 !important;
+}
+
+/* Fix View Details button hover (should be blue, not green) */
+button.hover\:text-green-900:hover {
+  color: #1d4ed8 !important; /* blue-700 */
+}
+
+/* Fix Download button hover (should stay gray) */
+button .lucide-download {
+  color: #6b7280 !important; /* gray-500 */
+}
+
+/* Fix incorrect blue color on success icons */
+.lucide-check-circle.text-blue-500 {
+  color: #10b981 !important; /* green-600 */
+}
+
+/* Fix completed status to show green, not blue */
+/* Note: Cannot use :has-text in CSS, handled by component logic */
+
+/* Fix Close button in modal (dark background) */
+button.bg-\[\#0F2A3D\] {
+  background-color: #6b7280 !important; /* gray-500 */
+}
+
+button.bg-\[\#0F2A3D\]:hover {
+  background-color: #4b5563 !important; /* gray-600 */
+}
+
+/* Fix Analyze button hover */
+button.hover\:text-\[blue-600\]:hover {
+  color: #2563eb !important;
+}
+
+/* Fix all icons that should be context-appropriate */
+.lucide-check-circle {
+  color: #10b981 !important; /* green for success */
+}
+
+.lucide-x-circle {
+  color: #ef4444 !important; /* red for error/cancel */
+}
+
+.lucide-loader {
+  color: #3b82f6 !important; /* blue for loading */
+}
+
+.lucide-clock {
+  color: #9ca3af !important; /* gray for pending */
+}
+
+.lucide-alert-circle {
+  color: #f59e0b !important; /* amber for warnings */
+}
+
+.lucide-trash-2 {
+  color: #ef4444 !important; /* red for delete */
+}
+
+.lucide-refresh-cw {
+  color: #6b7280 !important; /* gray for refresh */
+}
+
+.lucide-download {
+  color: #6b7280 !important; /* gray for download */
+}
+
+.lucide-file-down {
+  color: currentColor; /* inherit from button */
+}

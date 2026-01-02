@@ -30,13 +30,13 @@ export default function CustomerSelector() {
 
   if (isLoading) {
     return (
-      <div className="animate-pulse bg-[#0F2A3D] h-10 w-56 rounded-lg"></div>
+      <div className="animate-pulse bg-gray-200 h-10 w-56 rounded-lg"></div>
     );
   }
 
   if (customers.length === 0) {
     return (
-      <div className="text-sm text-gray-300">
+      <div className="text-sm text-gray-500">
         No customers available
       </div>
     );
@@ -46,18 +46,18 @@ export default function CustomerSelector() {
     <div className="relative customer-dropdown">
       <button
         onClick={() => setIsOpen(!isOpen)}
-        className="flex items-center gap-2 px-4 py-2 bg-white border border-gray-300 rounded-lg hover:bg-[#FEB114] hover:text-[#081D2B] hover:border-[#FEB114] transition-colors min-w-[200px] shadow-sm"
+        className="flex items-center gap-2 px-4 py-2 bg-white border border-gray-300 rounded-lg hover:bg-blue-50 hover:border-blue-400 transition-colors min-w-[200px] shadow-sm"
       >
-        <div className="p-1 bg-gradient-to-r from-[#FEB114] to-[#E59D00] rounded">
-          <Building2 className="w-4 h-4 text-[#081D2B]" />
+        <div className="p-1 bg-gradient-to-br from-blue-500 to-blue-600 rounded">
+          <Building2 className="w-4 h-4 text-white" />
         </div>
         <div className="flex-1 text-left">
           <div className="text-xs text-gray-500">Customer</div>
-          <div className="text-sm font-medium text-[#081D2B] truncate">
+          <div className="text-sm font-medium text-gray-800 truncate">
             {selectedCustomer?.display_name || 'Select Customer'}
           </div>
         </div>
-        <ChevronDown className={`w-4 h-4 text-[#081D2B] transition-transform ${isOpen ? 'rotate-180' : ''}`} />
+        <ChevronDown className={`w-4 h-4 text-gray-600 transition-transform ${isOpen ? 'rotate-180' : ''}`} />
       </button>
 
       {isOpen && (
@@ -69,7 +69,7 @@ export default function CustomerSelector() {
           ></div>
 
           {/* Dropdown */}
-          <div className="absolute right-0 mt-2 w-80 bg-white border border-gray-100 rounded-xl shadow-lg z-50 overflow-hidden">
+          <div className="absolute right-0 mt-2 w-80 bg-white border border-gray-200 rounded-xl shadow-lg z-50 overflow-hidden">
             <div className="p-3">
               <div className="px-1 py-2 text-xs font-semibold text-gray-500 uppercase tracking-wider">
                 Select Customer
@@ -83,7 +83,7 @@ export default function CustomerSelector() {
                   placeholder="Search customers..."
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#FEB114] text-sm text-[#081D2B] bg-white"
+                  className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm text-gray-800 bg-white"
                   onClick={(e) => e.stopPropagation()}
                 />
               </div>
@@ -105,8 +105,8 @@ export default function CustomerSelector() {
                       }}
                       className={`w-full text-left px-3 py-2.5 rounded-lg transition-colors ${
                         selectedCustomer?.id === customer.id
-                          ? 'bg-[#FEB114] text-[#081D2B]'
-                          : 'hover:bg-gray-50 text-[#081D2B]'
+                          ? 'bg-blue-50 text-blue-700 border border-blue-200'
+                          : 'hover:bg-gray-50 text-gray-800'
                       }`}
                     >
                       <div className="flex items-center justify-between">
@@ -114,7 +114,7 @@ export default function CustomerSelector() {
                           {customer.display_name}
                         </div>
                         {selectedCustomer?.id === customer.id && (
-                          <Check className="w-4 h-4 text-[#081D2B] flex-shrink-0 ml-2" />
+                          <Check className="w-4 h-4 text-blue-600 flex-shrink-0 ml-2" />
                         )}
                       </div>
                     </button>
@@ -126,7 +126,7 @@ export default function CustomerSelector() {
             <div className="border-t border-gray-100 p-2">
               <a
                 href="/customers"
-                className="block w-full text-center px-3 py-2 text-sm font-medium text-[#FEB114] hover:bg-[#FEB114] hover:text-[#081D2B] rounded-lg transition-colors"
+                className="block w-full text-center px-3 py-2 text-sm font-medium text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
                 onClick={() => {
                   setIsOpen(false);
                   setSearchQuery('');

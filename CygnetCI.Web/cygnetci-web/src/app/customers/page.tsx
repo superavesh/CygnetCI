@@ -231,7 +231,7 @@ export default function CustomersPage() {
     return (
       <div className="flex items-center justify-center min-h-[400px]">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#FEB114] mx-auto"></div>
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500 mx-auto"></div>
           <p className="mt-4 text-gray-600">Loading customers...</p>
         </div>
       </div>
@@ -250,7 +250,7 @@ export default function CustomersPage() {
         </div>
         <button
           onClick={() => setShowCreateModal(true)}
-          className="bg-gradient-to-r from-[#FEB114] to-[#E59D00] hover:from-[#E59D00] hover:to-[#FEB114] text-[#081D2B] font-semibold px-4 py-2 rounded-lg flex items-center space-x-2 transition-all shadow-md hover:shadow-lg"
+          className="bg-blue-500 hover:bg-blue-600 text-white font-semibold px-4 py-2 rounded-lg flex items-center space-x-2 transition-all shadow-md hover:shadow-lg"
         >
           <Plus className="h-4 w-4" />
           <span>Add Customer</span>
@@ -265,7 +265,7 @@ export default function CustomersPage() {
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.target.value)}
           placeholder="Search customers by name, email, phone..."
-          className="w-full pl-10 pr-10 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#FEB114] focus:border-transparent outline-none transition-all text-[#081D2B] placeholder-gray-400"
+          className="w-full pl-10 pr-10 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all text-gray-900 placeholder-gray-400"
         />
         {searchQuery && (
           <button
@@ -281,7 +281,7 @@ export default function CustomersPage() {
       {/* Customer Table */}
       {filteredCustomers.length > 0 ? (
         <>
-          <div className="bg-white rounded-xl shadow-lg border border-gray-200 hover:border-[#FEB114] transition-all overflow-hidden">
+          <div className="bg-white rounded-xl shadow-lg border border-gray-200 hover:border-blue-400 transition-all overflow-hidden">
             <div className="overflow-x-auto">
               <table className="w-full">
                 <thead className="bg-gray-50 border-b border-gray-200">
@@ -300,11 +300,11 @@ export default function CustomersPage() {
                       <tr key={customer.id} className="hover:bg-gray-50 transition-colors">
                         <td className="px-6 py-4">
                           <div className="flex items-center">
-                            <div className="p-2 bg-gradient-to-r from-[#081D2B] to-[#FEB114] rounded-lg mr-3">
+                            <div className="p-2 bg-gradient-to-br from-blue-500 to-blue-600 rounded-lg mr-3">
                               <Building2 className="h-5 w-5 text-white" />
                             </div>
                             <div>
-                              <div className="text-sm font-medium text-[#081D2B]">{customer.display_name}</div>
+                              <div className="text-sm font-medium text-gray-900">{customer.display_name}</div>
                               <div className="text-xs text-gray-500">{customer.name}</div>
                               {customer.description && (
                                 <div className="text-xs text-gray-500 mt-1 max-w-xs truncate">{customer.description}</div>
@@ -349,7 +349,7 @@ export default function CustomersPage() {
                         <td className="px-6 py-4">
                           {stats ? (
                             <div className="flex flex-wrap gap-2">
-                              <span className="px-2 py-1 bg-blue-100 text-[#FEB114] text-xs rounded-full">
+                              <span className="px-2 py-1 bg-blue-100 text-blue-800 text-xs rounded-full">
                                 {stats.total_agents} Agents
                               </span>
                               <span className="px-2 py-1 bg-green-100 text-green-800 text-xs rounded-full">
@@ -367,14 +367,14 @@ export default function CustomersPage() {
                           <div className="flex space-x-2">
                             <button
                               onClick={() => openEditModal(customer)}
-                              className="text-[#FEB114] hover:text-[#E59D00] transition-colors"
+                              className="text-blue-500 hover:text-blue-600 transition-colors"
                               title="Edit Customer"
                             >
                               <Edit2 className="h-4 w-4" />
                             </button>
                             <button
                               onClick={() => handleToggleActive(customer)}
-                              className="text-gray-600 hover:text-[#081D2B] transition-colors"
+                              className="text-gray-600 hover:text-gray-900 transition-colors"
                               title={customer.is_active ? 'Deactivate' : 'Activate'}
                             >
                               <Power className="h-4 w-4" />
@@ -422,7 +422,7 @@ export default function CustomersPage() {
                     onClick={() => handlePageChange(page)}
                     className={`px-4 py-2 rounded-lg border transition-colors ${
                       currentPage === page
-                        ? 'bg-blue-500 text-white border-[#FEB114]'
+                        ? 'bg-blue-500 text-white border-blue-500'
                         : 'border-gray-300 text-gray-700 hover:bg-gray-50'
                     }`}
                   >
@@ -450,7 +450,7 @@ export default function CustomersPage() {
                     setItemsPerPage(Number(e.target.value));
                     setCurrentPage(1);
                   }}
-                  className="px-3 py-1 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#FEB114] focus:border-transparent text-[#081D2B]"
+                  className="px-3 py-1 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-gray-900"
                 >
                   <option value={5}>5</option>
                   <option value={10}>10</option>
@@ -463,7 +463,7 @@ export default function CustomersPage() {
           )}
         </>
       ) : (
-        <div className="bg-white rounded-xl shadow-lg border border-gray-200 hover:border-[#FEB114] transition-all p-12 text-center">
+        <div className="bg-white rounded-xl shadow-lg border border-gray-200 hover:border-blue-400 transition-all p-12 text-center">
           <Building2 className="h-16 w-16 text-gray-400 mx-auto mb-4" />
           <h3 className="text-lg font-semibold text-gray-800 mb-2">
             {searchQuery ? 'No customers found' : 'No Customers Found'}
@@ -474,7 +474,7 @@ export default function CustomersPage() {
           {!searchQuery && (
             <button
               onClick={() => setShowCreateModal(true)}
-              className="bg-gradient-to-r from-[#FEB114] to-[#E59D00] hover:from-[#E59D00] hover:to-[#FEB114] text-[#081D2B] font-semibold px-6 py-2 rounded-lg transition-colors"
+              className="bg-blue-500 hover:bg-blue-600 text-white font-semibold px-6 py-2 rounded-lg transition-colors"
             >
               Create First Customer
             </button>
@@ -502,7 +502,7 @@ export default function CustomersPage() {
                     value={formData.name}
                     onChange={(e) => setFormData({ ...formData, name: e.target.value })}
                     placeholder="e.g., acme-corp"
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#FEB114] text-[#081D2B] bg-white"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-900 bg-white"
                     required
                   />
                   <p className="text-xs text-gray-500 mt-1">Lowercase, no spaces (unique identifier)</p>
@@ -517,7 +517,7 @@ export default function CustomersPage() {
                     value={formData.display_name}
                     onChange={(e) => setFormData({ ...formData, display_name: e.target.value })}
                     placeholder="e.g., Acme Corporation"
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#FEB114] text-[#081D2B] bg-white"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-900 bg-white"
                     required
                   />
                 </div>
@@ -530,7 +530,7 @@ export default function CustomersPage() {
                   onChange={(e) => setFormData({ ...formData, description: e.target.value })}
                   placeholder="Brief description of the customer"
                   rows={3}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#FEB114] text-[#081D2B] bg-white"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-900 bg-white"
                 />
               </div>
 
@@ -542,7 +542,7 @@ export default function CustomersPage() {
                     value={formData.contact_email}
                     onChange={(e) => setFormData({ ...formData, contact_email: e.target.value })}
                     placeholder="contact@example.com"
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#FEB114] text-[#081D2B] bg-white"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-900 bg-white"
                   />
                 </div>
 
@@ -553,7 +553,7 @@ export default function CustomersPage() {
                     value={formData.contact_phone}
                     onChange={(e) => setFormData({ ...formData, contact_phone: e.target.value })}
                     placeholder="+1 234 567 8900"
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#FEB114] text-[#081D2B] bg-white"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-900 bg-white"
                   />
                 </div>
               </div>
@@ -565,7 +565,7 @@ export default function CustomersPage() {
                   onChange={(e) => setFormData({ ...formData, address: e.target.value })}
                   placeholder="Physical address"
                   rows={2}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#FEB114] text-[#081D2B] bg-white"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-900 bg-white"
                 />
               </div>
             </div>
@@ -576,14 +576,14 @@ export default function CustomersPage() {
                   setShowCreateModal(false);
                   setFormData({ name: '', display_name: '', description: '', contact_email: '', contact_phone: '', address: '' });
                 }}
-                className="px-4 py-2 text-[#081D2B] bg-white border border-gray-300 hover:bg-gray-100 rounded-lg transition-colors"
+                className="px-4 py-2 text-gray-700 bg-white border border-gray-300 hover:bg-gray-100 rounded-lg transition-colors"
               >
                 Cancel
               </button>
               <button
                 onClick={handleCreate}
                 disabled={!formData.name || !formData.display_name}
-                className="px-4 py-2 bg-gradient-to-r from-[#FEB114] to-[#E59D00] hover:from-[#E59D00] hover:to-[#FEB114] text-[#081D2B] font-semibold rounded-lg disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-md hover:shadow-lg"
+                className="px-4 py-2 bg-blue-500 hover:bg-blue-600 text-white font-semibold rounded-lg disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-md hover:shadow-lg"
               >
                 Create Customer
               </button>
@@ -608,7 +608,7 @@ export default function CustomersPage() {
                   type="text"
                   value={formData.display_name}
                   onChange={(e) => setFormData({ ...formData, display_name: e.target.value })}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#FEB114] text-[#081D2B] bg-white"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-900 bg-white"
                 />
               </div>
 
@@ -618,7 +618,7 @@ export default function CustomersPage() {
                   value={formData.description}
                   onChange={(e) => setFormData({ ...formData, description: e.target.value })}
                   rows={3}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#FEB114] text-[#081D2B] bg-white"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-900 bg-white"
                 />
               </div>
 
@@ -629,7 +629,7 @@ export default function CustomersPage() {
                     type="email"
                     value={formData.contact_email}
                     onChange={(e) => setFormData({ ...formData, contact_email: e.target.value })}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#FEB114] text-[#081D2B] bg-white"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-900 bg-white"
                   />
                 </div>
 
@@ -639,7 +639,7 @@ export default function CustomersPage() {
                     type="tel"
                     value={formData.contact_phone}
                     onChange={(e) => setFormData({ ...formData, contact_phone: e.target.value })}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#FEB114] text-[#081D2B] bg-white"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-900 bg-white"
                   />
                 </div>
               </div>
@@ -650,7 +650,7 @@ export default function CustomersPage() {
                   value={formData.address}
                   onChange={(e) => setFormData({ ...formData, address: e.target.value })}
                   rows={2}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#FEB114] text-[#081D2B] bg-white"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-900 bg-white"
                 />
               </div>
             </div>
@@ -661,13 +661,13 @@ export default function CustomersPage() {
                   setShowEditModal(false);
                   setSelectedCustomer(null);
                 }}
-                className="px-4 py-2 text-[#081D2B] bg-white border border-gray-300 hover:bg-gray-100 rounded-lg transition-colors"
+                className="px-4 py-2 text-gray-700 bg-white border border-gray-300 hover:bg-gray-100 rounded-lg transition-colors"
               >
                 Cancel
               </button>
               <button
                 onClick={handleUpdate}
-                className="px-4 py-2 bg-gradient-to-r from-[#FEB114] to-[#E59D00] hover:from-[#E59D00] hover:to-[#FEB114] text-[#081D2B] font-semibold rounded-lg transition-all shadow-md hover:shadow-lg"
+                className="px-4 py-2 bg-blue-500 hover:bg-blue-600 text-white font-semibold rounded-lg transition-all shadow-md hover:shadow-lg"
               >
                 Update Customer
               </button>

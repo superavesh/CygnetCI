@@ -42,18 +42,18 @@ export const Navigation: React.FC = () => {
   };
 
   return (
-    <nav className={`fixed left-0 top-16 h-[calc(100vh-4rem)] bg-[#ebebeb] shadow-lg border-r border-gray-300 transition-all duration-300 z-30 ${
+    <nav className={`fixed left-0 top-16 h-[calc(100vh-4rem)] bg-white shadow-lg border-r border-gray-200 transition-all duration-300 z-30 ${
       isCollapsed ? 'w-16' : 'w-64'
     }`}>
       {/* Toggle Button */}
       <button
         onClick={toggleSidebar}
-        className="absolute -right-3 top-6 bg-white border border-gray-400 rounded-full p-1 shadow-md hover:bg-[#FEB114] transition-colors"
+        className="absolute -right-3 top-6 bg-white border border-gray-300 rounded-full p-1 shadow-md hover:bg-blue-50 hover:border-blue-400 transition-colors"
       >
         {isCollapsed ? (
-          <ChevronRight className="w-4 h-4 text-gray-800" />
+          <ChevronRight className="w-4 h-4 text-gray-600" />
         ) : (
-          <ChevronLeft className="w-4 h-4 text-gray-800" />
+          <ChevronLeft className="w-4 h-4 text-gray-600" />
         )}
       </button>
 
@@ -65,15 +65,15 @@ export const Navigation: React.FC = () => {
             <Link
               key={item.id}
               href={item.href}
-              className={`flex items-center ${isCollapsed ? 'justify-center' : 'space-x-3'} px-4 py-3 mx-2 rounded-lg font-medium text-sm transition-all ${
+              className={`flex items-center ${isCollapsed ? 'justify-center' : 'space-x-3'} px-4 py-3 mx-2 rounded-lg font-medium text-sm transition-all border-l-4 ${
                 isActive
-                  ? 'bg-[#FEB114] text-gray-800 border-l-4 border-[#FEB114]'
-                  : 'text-gray-700 hover:bg-gray-300 hover:text-gray-900 border-l-4 border-transparent'
+                  ? 'bg-blue-50 text-blue-600 border-blue-500'
+                  : 'text-gray-700 hover:bg-gray-50 hover:text-gray-900 border-transparent'
               }`}
               title={isCollapsed ? item.name : undefined}
             >
-              <item.icon className={`${isCollapsed ? 'w-6 h-6' : 'w-5 h-5'} flex-shrink-0`} />
-              {!isCollapsed && <span className="truncate">{item.name}</span>}
+              <item.icon className={`${isCollapsed ? 'w-6 h-6' : 'w-5 h-5'} flex-shrink-0 ${isActive ? 'text-blue-600' : 'text-gray-700'}`} />
+              {!isCollapsed && <span className={`truncate ${isActive ? 'text-blue-600' : 'text-gray-700'}`}>{item.name}</span>}
             </Link>
           );
         })}

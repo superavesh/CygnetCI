@@ -1,0 +1,241 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* ============================================
+   CygnetCI Global Theme Overrides
+   Clean Blue-Green-White Theme
+   ============================================ */
+
+@layer components {
+  /* ==================== ICON COLORS (Like Transfer Page) ==================== */
+
+  /* Primary icons should be blue-600 */
+  .lucide-upload,
+  .lucide-send,
+  .lucide-file-text,
+  .lucide-package {
+    @apply text-blue-600;
+  }
+
+  /* Success/Active icons should be green-600 */
+  .lucide-check-circle,
+  .lucide-check,
+  .lucide-play-circle {
+    @apply text-green-600;
+  }
+
+  /* Error icons should be red-600 */
+  .lucide-x-circle,
+  .lucide-alert-circle,
+  .lucide-trash-2 {
+    @apply text-red-600;
+  }
+
+  /* Warning icons should be amber-600 */
+  .lucide-alert-triangle,
+  .lucide-clock {
+    @apply text-amber-600;
+  }
+
+  /* Info icons should be blue-500 */
+  .lucide-info,
+  .lucide-help-circle {
+    @apply text-blue-500;
+  }
+
+  /* Neutral/Secondary icons should be gray-500 */
+  .lucide-refresh-cw,
+  .lucide-search,
+  .lucide-filter,
+  .lucide-more-horizontal,
+  .lucide-more-vertical,
+  .lucide-settings,
+  .lucide-edit-2,
+  .lucide-download,
+  .lucide-history {
+    @apply text-gray-500;
+  }
+
+  /* Database/Server icons should be gray-700 */
+  .lucide-database,
+  .lucide-server,
+  .lucide-hard-drive {
+    @apply text-gray-700;
+  }
+
+  /* ==================== PAGE HEADERS ==================== */
+
+  /* All page h1 headings should be gray-900, not white or blue */
+  main h1 {
+    @apply text-gray-900 !important;
+  }
+
+  main h2 {
+    @apply text-gray-800 !important;
+  }
+
+  main h3 {
+    @apply text-gray-800 !important;
+  }
+
+  /* Paragraphs and descriptions should be gray-600 */
+  main p {
+    @apply text-gray-600;
+  }
+
+  /* ==================== BUTTONS ==================== */
+
+  /* Primary buttons should be blue */
+  button[type="submit"],
+  button.btn-primary {
+    @apply bg-blue-500 hover:bg-blue-600 text-white !important;
+  }
+
+  /* Secondary/Cancel buttons should be gray */
+  button.btn-secondary,
+  button:has(> span:text("Cancel")) {
+    @apply bg-white text-gray-700 border border-gray-300 hover:bg-gray-100 !important;
+  }
+
+  /* ==================== FORM INPUTS ==================== */
+
+  /* All inputs should have blue focus ring and gray text */
+  input[type="text"],
+  input[type="email"],
+  input[type="password"],
+  input[type="number"],
+  input[type="tel"],
+  input[type="url"],
+  input[type="search"],
+  textarea,
+  select {
+    @apply text-gray-900 focus:ring-blue-500 focus:border-blue-500 !important;
+  }
+
+  /* Radio buttons and checkboxes should be blue */
+  input[type="radio"],
+  input[type="checkbox"] {
+    @apply text-blue-600 focus:ring-blue-500 !important;
+  }
+
+  /* ==================== BADGES & PILLS ==================== */
+
+  /* Status badges */
+  .badge-active,
+  .badge-online,
+  .badge-success {
+    @apply bg-green-100 text-green-800 !important;
+  }
+
+  .badge-inactive,
+  .badge-offline {
+    @apply bg-gray-100 text-gray-800 !important;
+  }
+
+  .badge-pending,
+  .badge-warning {
+    @apply bg-amber-100 text-amber-800 !important;
+  }
+
+  .badge-error,
+  .badge-failed {
+    @apply bg-red-100 text-red-800 !important;
+  }
+
+  .badge-info,
+  .badge-running {
+    @apply bg-blue-100 text-blue-800 !important;
+  }
+
+  /* ==================== CARDS ==================== */
+
+  /* Card titles should be gray-900 */
+  .card h2,
+  .card h3,
+  .card h4 {
+    @apply text-gray-900 !important;
+  }
+
+  /* Card descriptions should be gray-600 */
+  .card p {
+    @apply text-gray-600 !important;
+  }
+
+  /* ==================== TABLES ==================== */
+
+  /* Table headers should be gray-500 */
+  thead th {
+    @apply text-gray-500 !important;
+  }
+
+  /* Table body text should be gray-900 for primary, gray-600 for secondary */
+  tbody td {
+    @apply text-gray-900;
+  }
+
+  tbody td small,
+  tbody td .text-xs,
+  tbody td .text-sm {
+    @apply text-gray-600 !important;
+  }
+
+  /* ==================== LINKS ==================== */
+
+  /* Links should be blue */
+  a {
+    @apply text-blue-600 hover:text-blue-700;
+  }
+
+  /* Navigation links handled separately */
+  nav a {
+    @apply text-gray-700;
+  }
+
+  nav a.active {
+    @apply text-blue-600 bg-blue-50;
+  }
+
+  /* ==================== MODAL HEADERS ==================== */
+
+  /* Modal headers should have blue gradients */
+  .modal-header {
+    @apply bg-gradient-to-br from-blue-500 to-blue-600 text-white !important;
+  }
+
+  /* ==================== GRADIENT BACKGROUNDS ==================== */
+
+  /* Icon containers with gradients should be blue */
+  .icon-gradient {
+    @apply bg-gradient-to-br from-blue-500 to-blue-600 !important;
+  }
+
+  /* ==================== LOADING SPINNERS ==================== */
+
+  /* All loading spinners should be blue */
+  .animate-spin {
+    @apply border-blue-500 !important;
+  }
+}
+
+/* ==================== UTILITY OVERRIDES ==================== */
+
+@layer utilities {
+  /* Override any text-white on main content */
+  main .text-white:not(.btn):not(button):not(.badge):not(.modal-header) {
+    @apply text-gray-900 !important;
+  }
+
+  /* Override text-blue on body text (but not on buttons, links, badges) */
+  main p.text-blue-600,
+  main span.text-blue-600:not(.badge):not(button > span) {
+    @apply text-gray-600 !important;
+  }
+
+  /* Ensure all headings in main have proper gray color */
+  main h1,
+  main h2,
+  main h3 {
+    color: #1f2937 !important; /* gray-800 */
+  }
+}
