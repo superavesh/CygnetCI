@@ -517,42 +517,65 @@ def login(credentials: LoginRequest, db: Session = Depends(get_db)):
 # ==================== DASHBOARD ====================
 
 @app.get("/data", tags=["🌐 UI - Dashboard"])
-def get_dashboard_data(db: Session = Depends(get_db)):
-    """Get all dashboard data"""
-    
+def get_dashboard_data(customer_id: int = None, db: Session = Depends(get_db)):
+    """Get all dashboard data with optional customer filtering"""
+
     # Get agents
-    agents = db.query(models.Agent).all()
+    agents_query = db.query(models.Agent)
+    if customer_id is not None:
+        agents_query = agents_query.filter(models.Agent.customer_id == customer_id)
+    agents = agents_query.all()
     agents_data = [format_agent(agent) for agent in agents]
-    
+
     # Get pipelines
-    pipelines = db.query(models.Pipeline).order_by(models.Pipeline.last_run.desc()).all()
+    pipelines_query = db.query(models.Pipeline).order_by(models.Pipeline.last_run.desc())
+    if customer_id is not None:
+        pipelines_query = pipelines_query.filter(models.Pipeline.customer_id == customer_id)
+    pipelines = pipelines_query.all()
     pipelines_data = [format_pipeline(pipeline) for pipeline in pipelines]
-    
+
     # Get tasks
-    tasks = db.query(models.Task).order_by(models.Task.created_at.desc()).limit(10).all()
+    tasks_query = db.query(models.Task)
+    if customer_id is not None:
+        # Filter tasks by customer through pipeline relationship
+        tasks_query = tasks_query.join(models.Pipeline).filter(models.Pipeline.customer_id == customer_id)
+    tasks = tasks_query.order_by(models.Task.created_at.desc()).limit(10).all()
     tasks_data = [format_task(task) for task in tasks]
-    
+
     # Calculate stats
-    active_agents = db.query(models.Agent).filter(models.Agent.status == "online").count()
-    running_pipelines = db.query(models.Pipeline).filter(models.Pipeline.status == "running").count()
-    
-    total_pipelines = db.query(models.Pipeline).count()
-    successful_pipelines = db.query(models.Pipeline).filter(models.Pipeline.status == "success").count()
+    active_agents_query = db.query(models.Agent).filter(models.Agent.status == "online")
+    running_pipelines_query = db.query(models.Pipeline).filter(models.Pipeline.status == "running")
+    total_pipelines_query = db.query(models.Pipeline)
+    successful_pipelines_query = db.query(models.Pipeline).filter(models.Pipeline.status == "success")
+
+    if customer_id is not None:
+        active_agents_query = active_agents_query.filter(models.Agent.customer_id == customer_id)
+        running_pipelines_query = running_pipelines_query.filter(models.Pipeline.customer_id == customer_id)
+        total_pipelines_query = total_pipelines_query.filter(models.Pipeline.customer_id == customer_id)
+        successful_pipelines_query = successful_pipelines_query.filter(models.Pipeline.customer_id == customer_id)
+
+    active_agents = active_agents_query.count()
+    running_pipelines = running_pipelines_query.count()
+    total_pipelines = total_pipelines_query.count()
+    successful_pipelines = successful_pipelines_query.count()
     success_rate = round((successful_pipelines / total_pipelines * 100) if total_pipelines > 0 else 0, 2)
-    
+
     # Get services
-    services = db.query(models.Service).all()
+    services_query = db.query(models.Service)
+    if customer_id is not None:
+        services_query = services_query.filter(models.Service.customer_id == customer_id)
+    services = services_query.all()
     services_by_category = {
         "todo": {"title": "To Monitor", "services": []},
         "monitoring": {"title": "Monitoring", "services": []},
         "issues": {"title": "Issues", "services": []},
         "healthy": {"title": "Healthy", "services": []}
     }
-    
+
     for service in services:
         formatted_service = format_service(service)
         services_by_category[service.category]["services"].append(formatted_service)
-    
+
     return {
         "agents": agents_data,
         "pipelines": pipelines_data,
@@ -672,9 +695,12 @@ def get_agent_logs(
 # ==================== MONITORING ====================
 
 @app.get("/monitoring/agents/metrics", tags=["🌐 UI - Monitoring"])
-def get_agents_metrics(db: Session = Depends(get_db)):
+def get_agents_metrics(customer_id: int = None, db: Session = Depends(get_db)):
     """Get current metrics for all agents"""
-    agents = db.query(models.Agent).all()
+    query = db.query(models.Agent)
+    if customer_id is not None:
+        query = query.filter(models.Agent.customer_id == customer_id)
+    agents = query.all()
 
     result = []
     for agent in agents:

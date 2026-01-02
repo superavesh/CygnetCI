@@ -7,6 +7,7 @@ import {
   Monitor, Activity, Cpu, HardDrive, Server, Settings,
   RefreshCw, Globe, ChevronRight
 } from 'lucide-react';
+import { useCustomer } from '@/lib/contexts/CustomerContext';
 import { MetricDetailModal } from '@/components/monitoring/MetricDetailModal';
 import { WindowsServicesModal } from '@/components/monitoring/WindowsServicesModal';
 import { DriveInfoModal } from '@/components/monitoring/DriveInfoModal';
@@ -28,6 +29,7 @@ interface AgentMetrics {
 type ModalType = 'cpu' | 'memory' | 'disk' | 'services' | 'drives' | 'ping' | null;
 
 export default function MonitoringPage() {
+  const { selectedCustomer } = useCustomer();
   const [agents, setAgents] = useState<AgentMetrics[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -41,7 +43,10 @@ export default function MonitoringPage() {
     if (showLoading) setLoading(true);
     setRefreshing(true);
     try {
-      const response = await fetch('http://127.0.0.1:8000/monitoring/agents/metrics');
+      const url = selectedCustomer
+        ? `http://127.0.0.1:8000/monitoring/agents/metrics?customer_id=${selectedCustomer.id}`
+        : 'http://127.0.0.1:8000/monitoring/agents/metrics';
+      const response = await fetch(url);
       if (response.ok) {
         const data = await response.json();
         setAgents(data);
@@ -74,7 +79,7 @@ export default function MonitoringPage() {
     }, 10000);
 
     return () => clearInterval(interval);
-  }, []);
+  }, [selectedCustomer]);
 
   const getMetricColor = (value: number) => {
     if (value >= 80) return { bg: 'bg-red-500', text: 'text-red-600', border: 'border-red-300' };

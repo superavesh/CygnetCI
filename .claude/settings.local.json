@@ -27,7 +27,8 @@
       "Bash(git -C \"d:\\\\Avesh\\\\CygnetCI\\\\SourceCode\\\\CygnetCI\" diff 41e27d6 --name-only)",
       "Bash(git -C \"d:\\\\Avesh\\\\CygnetCI\\\\SourceCode\\\\CygnetCI\" show 41e27d6:CygnetCI.Web/cygnetci-web/src/components/monitoring/MetricDetailModal.tsx)",
       "Bash(xargs cat:*)",
-      "Bash(git -C \"d:\\\\Avesh\\\\CygnetCI\\\\SourceCode\\\\CygnetCI\" show --stat 41e27d6)"
+      "Bash(git -C \"d:\\\\Avesh\\\\CygnetCI\\\\SourceCode\\\\CygnetCI\" show --stat 41e27d6)",
+      "Bash(timeout /t 5)"
     ],
     "deny": [],
     "ask": []

@@ -20,7 +20,7 @@ class ApiService {
     return await response.json();
   }
 
-  async getAllData(): Promise<DashboardData> {
+  async getAllData(customerId?: number): Promise<DashboardData> {
     if (!CONFIG.app.useRealAPI) {
       // Simulate API delay
       await new Promise(resolve => setTimeout(resolve, 500));
@@ -28,7 +28,10 @@ class ApiService {
     }
 
     try {
-      return await this.fetchData(CONFIG.api.endpoints.allData);
+      const endpoint = customerId !== undefined
+        ? `${CONFIG.api.endpoints.allData}?customer_id=${customerId}`
+        : CONFIG.api.endpoints.allData;
+      return await this.fetchData(endpoint);
     } catch (error) {
       console.error('Error fetching data:', error);
       throw error;
