@@ -352,13 +352,21 @@ class ApiService {
     pipeline_id?: number;
     version?: string;
     customer_id?: number;
-    stages: Array<{
+    stages?: Array<{
       environment_id: number;
       order_index: number;
       pipeline_id?: number;
       pre_deployment_approval: boolean;
       post_deployment_approval: boolean;
       auto_deploy: boolean;
+    }>;
+    pipelines?: Array<{
+      pipeline_id: number;
+      order_index: number;
+      execution_mode: 'sequential' | 'parallel';
+      depends_on?: number;
+      position_x: number;
+      position_y: number;
     }>;
   }) {
     if (!CONFIG.app.useRealAPI) {

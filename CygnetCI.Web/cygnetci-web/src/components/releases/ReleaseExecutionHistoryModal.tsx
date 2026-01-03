@@ -3,9 +3,10 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { X, Clock, CheckCircle, XCircle, PlayCircle, History, Eye, ArrowRight } from 'lucide-react';
+import { X, Clock, CheckCircle, XCircle, PlayCircle, History, Eye, ArrowRight, Terminal } from 'lucide-react';
 import { apiService } from '@/lib/api/apiService';
 import { ReleaseStageLogsModal } from './ReleaseStageLogsModal';
+import { ReleaseExecutionViewModal } from './ReleaseExecutionViewModal';
 import { ReleaseExecution } from '@/types';
 
 interface ReleaseExecutionHistoryModalProps {
@@ -25,7 +26,9 @@ export const ReleaseExecutionHistoryModal: React.FC<ReleaseExecutionHistoryModal
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [showLogsModal, setShowLogsModal] = useState(false);
+  const [showExecutionViewModal, setShowExecutionViewModal] = useState(false);
   const [selectedStage, setSelectedStage] = useState<{ id: number; name: string } | null>(null);
+  const [selectedExecutionId, setSelectedExecutionId] = useState<number | null>(null);
 
   useEffect(() => {
     if (!isOpen) return;
@@ -274,6 +277,21 @@ export const ReleaseExecutionHistoryModal: React.FC<ReleaseExecutionHistoryModal
                             <span className="text-xs text-gray-500 font-medium">No stages found for this execution</span>
                           </div>
                         )}
+
+                        {/* View Logs Button */}
+                        <div className="pt-4 border-t border-gray-300 mt-4">
+                          <button
+                            onClick={() => {
+                              setSelectedExecutionId(execution.id);
+                              setShowExecutionViewModal(true);
+                            }}
+                            className="w-full px-4 py-2.5 bg-gradient-to-r from-purple-600 to-blue-600 text-white rounded-lg hover:from-purple-700 hover:to-blue-700 transition-all shadow-md flex items-center justify-center gap-2 font-medium text-sm"
+                            title="View Execution Logs"
+                          >
+                            <Terminal className="h-4 w-4" />
+                            <span>View Complete Execution Logs</span>
+                          </button>
+                        </div>
                       </div>
                     </div>
                   </div>
@@ -307,6 +325,20 @@ export const ReleaseExecutionHistoryModal: React.FC<ReleaseExecutionHistoryModal
           stageExecutionId={selectedStage.id}
           stageName={selectedStage.name}
           releaseName={releaseName}
+        />
+      )}
+
+      {/* Release Execution View Modal */}
+      {showExecutionViewModal && selectedExecutionId && (
+        <ReleaseExecutionViewModal
+          isOpen={showExecutionViewModal}
+          onClose={() => {
+            setShowExecutionViewModal(false);
+            setSelectedExecutionId(null);
+          }}
+          releaseId={releaseId}
+          releaseName={releaseName}
+          executionId={selectedExecutionId}
         />
       )}
     </div>

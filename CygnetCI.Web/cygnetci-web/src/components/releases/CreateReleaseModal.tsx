@@ -22,13 +22,24 @@ interface ReleaseStageForm {
   auto_deploy: boolean;
 }
 
+interface ReleasePipelineForm {
+  pipeline_id: number;
+  order_index: number;
+  execution_mode: 'sequential' | 'parallel';
+  depends_on?: number;
+  position_x: number;
+  position_y: number;
+}
+
 export const CreateReleaseModal: React.FC<CreateReleaseModalProps> = ({ onClose, onSuccess }) => {
   const { selectedCustomer } = useCustomer();
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
   const [version, setVersion] = useState('');
   const [pipelineId, setPipelineId] = useState<number | undefined>(undefined);
+  const [releaseType, setReleaseType] = useState<'pipeline' | 'stage'>('pipeline');
   const [stages, setStages] = useState<ReleaseStageForm[]>([]);
+  const [releasePipelines, setReleasePipelines] = useState<ReleasePipelineForm[]>([]);
   const [environments, setEnvironments] = useState<Environment[]>([]);
   const [pipelines, setPipelines] = useState<Pipeline[]>([]);
   const [loading, setLoading] = useState(false);
@@ -93,6 +104,49 @@ export const CreateReleaseModal: React.FC<CreateReleaseModalProps> = ({ onClose,
     setStages(updated);
   };
 
+  // Pipeline management functions
+  const addPipeline = () => {
+    const newOrderIndex = releasePipelines.length > 0 ? Math.max(...releasePipelines.map(p => p.order_index)) + 1 : 0;
+    setReleasePipelines([...releasePipelines, {
+      pipeline_id: pipelines[0]?.id || 1,
+      order_index: newOrderIndex,
+      execution_mode: 'sequential',
+      position_x: 50 + (newOrderIndex * 220),
+      position_y: 100
+    }]);
+  };
+
+  const removePipeline = (index: number) => {
+    setReleasePipelines(releasePipelines.filter((_, i) => i !== index));
+  };
+
+  const updatePipeline = (index: number, field: keyof ReleasePipelineForm, value: any) => {
+    const updated = [...releasePipelines];
+    updated[index] = { ...updated[index], [field]: value };
+    setReleasePipelines(updated);
+  };
+
+  const movePipeline = (index: number, direction: 'up' | 'down') => {
+    if (
+      (direction === 'up' && index === 0) ||
+      (direction === 'down' && index === releasePipelines.length - 1)
+    ) {
+      return;
+    }
+
+    const newIndex = direction === 'up' ? index - 1 : index + 1;
+    const updated = [...releasePipelines];
+    [updated[index], updated[newIndex]] = [updated[newIndex], updated[index]];
+
+    // Update order_index and positions
+    updated.forEach((pipeline, idx) => {
+      pipeline.order_index = idx;
+      pipeline.position_x = 50 + (idx * 220);
+    });
+
+    setReleasePipelines(updated);
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
@@ -101,7 +155,12 @@ export const CreateReleaseModal: React.FC<CreateReleaseModalProps> = ({ onClose,
       return;
     }
 
-    if (stages.length === 0) {
+    if (releaseType === 'pipeline' && releasePipelines.length === 0) {
+      setError('At least one pipeline is required');
+      return;
+    }
+
+    if (releaseType === 'stage' && stages.length === 0) {
       setError('At least one stage is required');
       return;
     }
@@ -116,7 +175,8 @@ export const CreateReleaseModal: React.FC<CreateReleaseModalProps> = ({ onClose,
         version: version.trim() || undefined,
         pipeline_id: pipelineId,
         customer_id: selectedCustomer?.id,
-        stages: stages
+        stages: releaseType === 'stage' ? stages : [],
+        pipelines: releaseType === 'pipeline' ? releasePipelines : []
       });
 
       onSuccess();
@@ -149,6 +209,35 @@ export const CreateReleaseModal: React.FC<CreateReleaseModalProps> = ({ onClose,
               {error}
             </div>
           )}
+
+          {/* Release Type Selection */}
+          <div className="space-y-4">
+            <h3 className="text-lg font-semibold text-gray-900">Release Type</h3>
+            <div className="flex gap-4">
+              <label className="flex items-center gap-2 cursor-pointer">
+                <input
+                  type="radio"
+                  name="releaseType"
+                  value="pipeline"
+                  checked={releaseType === 'pipeline'}
+                  onChange={(e) => setReleaseType(e.target.value as 'pipeline' | 'stage')}
+                  className="text-blue-600 focus:ring-blue-500"
+                />
+                <span className="text-sm font-medium text-gray-700">Pipeline-Based (Recommended)</span>
+              </label>
+              <label className="flex items-center gap-2 cursor-pointer">
+                <input
+                  type="radio"
+                  name="releaseType"
+                  value="stage"
+                  checked={releaseType === 'stage'}
+                  onChange={(e) => setReleaseType(e.target.value as 'pipeline' | 'stage')}
+                  className="text-blue-600 focus:ring-blue-500"
+                />
+                <span className="text-sm font-medium text-gray-700">Environment-Based (Legacy)</span>
+              </label>
+            </div>
+          </div>
 
           {/* Basic Information */}
           <div className="space-y-4">
@@ -215,21 +304,118 @@ export const CreateReleaseModal: React.FC<CreateReleaseModalProps> = ({ onClose,
             </div>
           </div>
 
-          {/* Stages */}
-          <div className="space-y-4">
-            <div className="flex justify-between items-center">
-              <h3 className="text-lg font-semibold text-gray-900">
-                Deployment Stages <span className="text-red-500">*</span>
-              </h3>
-              <button
-                type="button"
-                onClick={addStage}
-                className="flex items-center gap-2 px-3 py-1.5 bg-blue-600 text-white rounded-lg hover:bg-blue-200 transition-colors text-sm"
-              >
-                <Plus className="h-4 w-4" />
-                Add Stage
-              </button>
+          {/* Pipelines or Stages based on release type */}
+          {releaseType === 'pipeline' ? (
+            <div className="space-y-4">
+              <div className="flex justify-between items-center">
+                <h3 className="text-lg font-semibold text-gray-900">
+                  Pipelines <span className="text-red-500">*</span>
+                </h3>
+                <button
+                  type="button"
+                  onClick={addPipeline}
+                  className="flex items-center gap-2 px-3 py-1.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm"
+                >
+                  <Plus className="h-4 w-4" />
+                  Add Pipeline
+                </button>
+              </div>
+
+              {releasePipelines.length === 0 ? (
+                <div className="p-4 bg-gray-50 border border-gray-200 rounded-lg text-center text-gray-600">
+                  No pipelines added. Click "Add Pipeline" to add pipelines to this release.
+                </div>
+              ) : (
+                <div className="space-y-3">
+                  {releasePipelines.map((rp, index) => (
+                    <div key={index} className="p-4 bg-gray-50 border border-gray-200 rounded-lg space-y-3">
+                      <div className="flex items-start justify-between">
+                        <div className="flex-1 grid grid-cols-2 gap-4">
+                          <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-1">
+                              Pipeline
+                            </label>
+                            <select
+                              value={rp.pipeline_id}
+                              onChange={(e) => updatePipeline(index, 'pipeline_id', Number(e.target.value))}
+                              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm text-gray-900 bg-white"
+                            >
+                              {pipelines.map(pipeline => (
+                                <option key={pipeline.id} value={pipeline.id}>
+                                  {pipeline.name}
+                                </option>
+                              ))}
+                            </select>
+                          </div>
+
+                          <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-1">
+                              Execution Mode
+                            </label>
+                            <select
+                              value={rp.execution_mode}
+                              onChange={(e) => updatePipeline(index, 'execution_mode', e.target.value)}
+                              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm text-gray-900 bg-white"
+                            >
+                              <option value="sequential">Sequential (→)</option>
+                              <option value="parallel">Parallel (||)</option>
+                            </select>
+                          </div>
+                        </div>
+
+                        <div className="flex items-center gap-1 ml-2">
+                          <button
+                            type="button"
+                            onClick={() => movePipeline(index, 'up')}
+                            disabled={index === 0}
+                            className="p-1 hover:bg-gray-200 rounded disabled:opacity-50 disabled:cursor-not-allowed"
+                            title="Move up"
+                          >
+                            <ChevronUp className="h-4 w-4" />
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => movePipeline(index, 'down')}
+                            disabled={index === releasePipelines.length - 1}
+                            className="p-1 hover:bg-gray-200 rounded disabled:opacity-50 disabled:cursor-not-allowed"
+                            title="Move down"
+                          >
+                            <ChevronDown className="h-4 w-4" />
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => removePipeline(index)}
+                            className="p-1 hover:bg-red-100 text-red-600 rounded"
+                            title="Remove pipeline"
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </button>
+                        </div>
+                      </div>
+
+                      <div className="text-xs text-gray-500">
+                        Order: #{rp.order_index + 1} • Position: ({rp.position_x}, {rp.position_y})
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
+          ) : (
+            <div className="space-y-4">
+              <div className="flex justify-between items-center">
+                <h3 className="text-lg font-semibold text-gray-900">
+                  Deployment Stages <span className="text-red-500">*</span>
+                </h3>
+                <button
+                  type="button"
+                  onClick={addStage}
+                  className="flex items-center gap-2 px-3 py-1.5 bg-blue-600 text-white rounded-lg hover:bg-blue-200 transition-colors text-sm"
+                >
+                  <Plus className="h-4 w-4" />
+                  Add Stage
+                </button>
+              </div>
 
             {stages.length === 0 ? (
               <div className="p-4 bg-gray-50 border border-gray-200 rounded-lg text-center text-gray-600">
@@ -352,7 +538,8 @@ export const CreateReleaseModal: React.FC<CreateReleaseModalProps> = ({ onClose,
                 })}
               </div>
             )}
-          </div>
+            </div>
+          )}
         </form>
 
         {/* Footer */}

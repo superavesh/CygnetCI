@@ -1447,12 +1447,22 @@ class ReleaseStageData(BaseModel):
     post_deployment_approval: bool = False
     auto_deploy: bool = False
 
+class ReleasePipelineData(BaseModel):
+    pipeline_id: int
+    order_index: int
+    execution_mode: str = "sequential"  # 'sequential' or 'parallel'
+    depends_on: Optional[int] = None
+    position_x: int = 0
+    position_y: int = 0
+
 class ReleaseCreate(BaseModel):
     name: str
     description: Optional[str] = None
     pipeline_id: Optional[int] = None
     version: Optional[str] = None
+    customer_id: Optional[int] = None
     stages: List[ReleaseStageData] = []
+    pipelines: List[ReleasePipelineData] = []
 
 class ReleaseUpdate(BaseModel):
     name: Optional[str] = None
@@ -1556,7 +1566,7 @@ def update_environment(environment_id: int, environment: EnvironmentUpdate, db: 
 
 @app.get("/releases", tags=["🌐 UI - Releases"])
 def get_releases(db: Session = Depends(get_db)):
-    """Get all releases with their stages"""
+    """Get all releases with their stages and pipelines"""
     releases = db.query(models.Release).order_by(models.Release.created_at.desc()).all()
 
     result = []
@@ -1565,6 +1575,12 @@ def get_releases(db: Session = Depends(get_db)):
         stages = db.query(models.ReleaseStage)\
             .filter(models.ReleaseStage.release_id == release.id)\
             .order_by(models.ReleaseStage.order_index)\
+            .all()
+
+        # Get pipelines for this release
+        release_pipelines = db.query(models.ReleasePipeline)\
+            .filter(models.ReleasePipeline.release_id == release.id)\
+            .order_by(models.ReleasePipeline.order_index)\
             .all()
 
         # Get latest execution
@@ -1594,6 +1610,24 @@ def get_releases(db: Session = Depends(get_db)):
                 }
                 for stage in stages
             ],
+            "pipelines": [
+                {
+                    "id": rp.id,
+                    "release_id": rp.release_id,
+                    "pipeline_id": rp.pipeline_id,
+                    "pipeline": {
+                        "id": rp.pipeline.id,
+                        "name": rp.pipeline.name
+                    } if rp.pipeline else None,
+                    "order_index": rp.order_index,
+                    "execution_mode": rp.execution_mode,
+                    "depends_on": rp.depends_on,
+                    "position_x": rp.position_x,
+                    "position_y": rp.position_y,
+                    "created_at": rp.created_at.isoformat()
+                }
+                for rp in release_pipelines
+            ],
             "latest_execution": {
                 "id": latest_execution.id,
                 "release_number": latest_execution.release_number,
@@ -1607,18 +1641,19 @@ def get_releases(db: Session = Depends(get_db)):
 
 @app.post("/releases", status_code=201, tags=["🌐 UI - Releases"])
 def create_release(release: ReleaseCreate, db: Session = Depends(get_db)):
-    """Create a new release definition"""
+    """Create a new release definition with stages and/or pipelines"""
     db_release = models.Release(
         name=release.name,
         description=release.description,
         pipeline_id=release.pipeline_id,
         version=release.version,
+        customer_id=release.customer_id,
         status="active"
     )
     db.add(db_release)
     db.flush()
 
-    # Create stages
+    # Create stages (for backward compatibility)
     for stage_data in release.stages:
         db_stage = models.ReleaseStage(
             release_id=db_release.id,
@@ -1630,6 +1665,19 @@ def create_release(release: ReleaseCreate, db: Session = Depends(get_db)):
             auto_deploy=stage_data.auto_deploy
         )
         db.add(db_stage)
+
+    # Create release pipelines (new pipeline-based approach)
+    for pipeline_data in release.pipelines:
+        db_release_pipeline = models.ReleasePipeline(
+            release_id=db_release.id,
+            pipeline_id=pipeline_data.pipeline_id,
+            order_index=pipeline_data.order_index,
+            execution_mode=pipeline_data.execution_mode,
+            depends_on=pipeline_data.depends_on,
+            position_x=pipeline_data.position_x,
+            position_y=pipeline_data.position_y
+        )
+        db.add(db_release_pipeline)
 
     db.commit()
     db.refresh(db_release)
@@ -1717,13 +1765,112 @@ def delete_release(release_id: int, db: Session = Depends(get_db)):
 
     return {"success": True, "message": "Release deleted successfully"}
 
+def deploy_release_pipelines(release_id: int, release, release_pipelines, request: DeployReleaseRequest, db: Session):
+    """Deploy a release using the pipeline-based approach"""
+    if not request.agent_id:
+        raise HTTPException(status_code=400, detail="Agent ID is required for pipeline-based releases")
+
+    agent = db.query(models.Agent).filter(models.Agent.id == request.agent_id).first()
+    if not agent:
+        raise HTTPException(status_code=404, detail="Agent not found")
+
+    # Generate release number
+    execution_count = db.query(models.ReleaseExecution)\
+        .filter(models.ReleaseExecution.release_id == release_id)\
+        .count()
+    release_number = f"Release-{execution_count + 1}"
+
+    # Create release execution
+    release_execution = models.ReleaseExecution(
+        release_id=release_id,
+        release_number=release_number,
+        triggered_by=request.triggered_by,
+        status="in_progress",
+        artifact_version=request.artifact_version,
+        started_at=datetime.now()
+    )
+    db.add(release_execution)
+    db.flush()
+
+    # Store parameters
+    if request.parameters:
+        for param_name, param_value in request.parameters.items():
+            exec_param = models.ReleaseExecutionParameter(
+                release_execution_id=release_execution.id,
+                parameter_name=param_name,
+                parameter_value=str(param_value)
+            )
+            db.add(exec_param)
+
+    # Create pipeline executions and pickups for each pipeline in the release
+    for rp in release_pipelines:
+        pipeline = db.query(models.Pipeline).filter(models.Pipeline.id == rp.pipeline_id).first()
+        if not pipeline:
+            continue
+
+        # Create a pipeline execution for this pipeline
+        pipeline_execution = models.PipelineExecution(
+            pipeline_id=pipeline.id,
+            agent_id=agent.id,
+            agent_name=agent.name,
+            status="running",
+            commit=pipeline.branch or "main",
+            triggered_by=request.triggered_by,
+            started_at=datetime.now()
+        )
+        db.add(pipeline_execution)
+        db.flush()
+
+        # Store pipeline parameters if any
+        if request.parameters:
+            for param_name, param_value in request.parameters.items():
+                param = models.PipelineExecutionParameter(
+                    pipeline_execution_id=pipeline_execution.id,
+                    parameter_name=param_name,
+                    parameter_value=str(param_value)
+                )
+                db.add(param)
+
+        # Create a pickup entry for this pipeline execution
+        pickup_entry = models.PipelinePickup(
+            pipeline_execution_id=pipeline_execution.id,
+            pipeline_id=pipeline.id,
+            pipeline_name=pipeline.name,
+            agent_id=agent.id,
+            agent_uuid=agent.uuid,
+            agent_name=agent.name,
+            status="pending",
+            priority=rp.order_index
+        )
+        db.add(pickup_entry)
+
+    db.commit()
+
+    return {
+        "success": True,
+        "release_execution_id": release_execution.id,
+        "release_number": release_number,
+        "message": f"Release '{release.name}' deployment started with {len(release_pipelines)} pipeline(s)"
+    }
+
 @app.post("/releases/{release_id}/deploy", tags=["🌐 UI - Release Execution"])
 def deploy_release(release_id: int, request: DeployReleaseRequest, db: Session = Depends(get_db)):
-    """Trigger a release deployment across all environments"""
+    """Trigger a release deployment - supports both stage-based and pipeline-based releases"""
     release = db.query(models.Release).filter(models.Release.id == release_id).first()
     if not release:
         raise HTTPException(status_code=404, detail="Release not found")
 
+    # Check if this is a pipeline-based release
+    release_pipelines = db.query(models.ReleasePipeline)\
+        .filter(models.ReleasePipeline.release_id == release_id)\
+        .order_by(models.ReleasePipeline.order_index)\
+        .all()
+
+    # If pipelines exist, use pipeline-based deployment
+    if release_pipelines:
+        return deploy_release_pipelines(release_id, release, release_pipelines, request, db)
+
+    # Otherwise, use legacy stage-based deployment
     # Get all stages for this release
     stages = db.query(models.ReleaseStage)\
         .filter(models.ReleaseStage.release_id == release_id)\
@@ -1731,7 +1878,7 @@ def deploy_release(release_id: int, request: DeployReleaseRequest, db: Session =
         .all()
 
     if not stages:
-        raise HTTPException(status_code=400, detail="Release has no stages configured")
+        raise HTTPException(status_code=400, detail="Release has no stages or pipelines configured")
 
     # Generate release number
     execution_count = db.query(models.ReleaseExecution)\
@@ -1869,6 +2016,175 @@ def get_release_executions(release_id: int, limit: int = 10, db: Session = Depen
         })
 
     return result
+
+@app.get("/release-executions/{execution_id}", tags=["🌐 UI - Releases"])
+def get_release_execution(execution_id: int, db: Session = Depends(get_db)):
+    """Get a single release execution by ID"""
+    execution = db.query(models.ReleaseExecution).filter(models.ReleaseExecution.id == execution_id).first()
+    if not execution:
+        raise HTTPException(status_code=404, detail="Release execution not found")
+
+    # Get stage executions
+    stage_executions = db.query(models.StageExecution)\
+        .filter(models.StageExecution.release_execution_id == execution.id)\
+        .order_by(models.StageExecution.created_at)\
+        .all()
+
+    # Get parameters
+    parameters = db.query(models.ReleaseExecutionParameter)\
+        .filter(models.ReleaseExecutionParameter.release_execution_id == execution.id)\
+        .all()
+
+    return {
+        "id": execution.id,
+        "release_id": execution.release_id,
+        "release_number": execution.release_number,
+        "triggered_by": execution.triggered_by,
+        "status": execution.status,
+        "artifact_version": execution.artifact_version,
+        "started_at": execution.started_at.isoformat() if execution.started_at else None,
+        "completed_at": execution.completed_at.isoformat() if execution.completed_at else None,
+        "duration_seconds": execution.duration_seconds,
+        "parameters": {p.parameter_name: p.parameter_value for p in parameters},
+        "stages": [
+            {
+                "id": stage.id,
+                "environment_name": stage.environment_name,
+                "status": stage.status,
+                "approval_status": stage.approval_status,
+                "approved_by": stage.approved_by,
+                "started_at": stage.started_at.isoformat() if stage.started_at else None,
+                "completed_at": stage.completed_at.isoformat() if stage.completed_at else None
+            }
+            for stage in stage_executions
+        ]
+    }
+
+@app.get("/release-executions/{execution_id}/logs", tags=["🌐 UI - Releases"])
+def get_release_execution_logs(execution_id: int, db: Session = Depends(get_db)):
+    """Get all pipeline execution logs for a release execution"""
+    # First, verify the release execution exists
+    release_execution = db.query(models.ReleaseExecution).filter(models.ReleaseExecution.id == execution_id).first()
+    if not release_execution:
+        raise HTTPException(status_code=404, detail="Release execution not found")
+
+    # Get all pipeline executions created for this release
+    # We need to find pipeline executions that were created as part of this release deployment
+    # For now, we'll get pipeline executions based on the triggered_by and timestamp
+
+    # Get all pipeline executions that match the release execution's triggered_by and were started around the same time
+    time_window_start = release_execution.started_at
+    time_window_end = release_execution.completed_at if release_execution.completed_at else datetime.now()
+
+    pipeline_executions = db.query(models.PipelineExecution)\
+        .filter(models.PipelineExecution.triggered_by == release_execution.triggered_by)\
+        .filter(models.PipelineExecution.started_at >= time_window_start)\
+        .filter(models.PipelineExecution.started_at <= time_window_end)\
+        .all()
+
+    # Collect all logs from all pipeline executions
+    all_logs = []
+    for pipe_exec in pipeline_executions:
+        logs = db.query(models.PipelineExecutionLog)\
+            .filter(models.PipelineExecutionLog.pipeline_execution_id == pipe_exec.id)\
+            .order_by(models.PipelineExecutionLog.timestamp)\
+            .all()
+
+        # Get pipeline name
+        pipeline = db.query(models.Pipeline).filter(models.Pipeline.id == pipe_exec.pipeline_id).first()
+        pipeline_name = pipeline.name if pipeline else f"Pipeline {pipe_exec.pipeline_id}"
+
+        for log in logs:
+            all_logs.append({
+                "id": log.id,
+                "pipeline_execution_id": pipe_exec.id,
+                "pipeline_name": pipeline_name,
+                "timestamp": log.timestamp.isoformat(),
+                "log_level": log.log_level,
+                "message": log.message,
+                "step_name": log.step_name,
+                "step_index": log.step_index,
+                "source": log.source
+            })
+
+    # Sort all logs by timestamp
+    all_logs.sort(key=lambda x: x["timestamp"])
+
+    return all_logs
+
+@app.post("/release-executions/{execution_id}/update-status", tags=["🌐 UI - Releases"])
+def update_release_execution_status(execution_id: int, db: Session = Depends(get_db)):
+    """Manually update release execution status based on pipeline completions"""
+    release_execution = db.query(models.ReleaseExecution).filter(models.ReleaseExecution.id == execution_id).first()
+    if not release_execution:
+        raise HTTPException(status_code=404, detail="Release execution not found")
+
+    # Get all pipeline executions for this release
+    time_window_start = release_execution.started_at
+    time_window_end = release_execution.completed_at if release_execution.completed_at else datetime.now() + timedelta(hours=1)
+
+    pipeline_executions = db.query(models.PipelineExecution)\
+        .filter(models.PipelineExecution.triggered_by == release_execution.triggered_by)\
+        .filter(models.PipelineExecution.started_at >= time_window_start)\
+        .filter(models.PipelineExecution.started_at <= time_window_end)\
+        .all()
+
+    # Get the release to see how many pipelines it should have
+    release = db.query(models.Release).filter(models.Release.id == release_execution.release_id).first()
+    if not release:
+        raise HTTPException(status_code=404, detail="Release not found")
+
+    release_pipelines = db.query(models.ReleasePipeline)\
+        .filter(models.ReleasePipeline.release_id == release.id)\
+        .all()
+
+    # Check if we have the expected number of pipeline executions
+    if len(pipeline_executions) >= len(release_pipelines):
+        # Check if all pipeline executions are complete
+        all_complete = all(
+            pe.status in ['success', 'failed', 'cancelled']
+            for pe in pipeline_executions
+        )
+
+        if all_complete:
+            # Determine overall status
+            any_failed = any(pe.status == 'failed' for pe in pipeline_executions)
+
+            release_execution.status = "failed" if any_failed else "succeeded"
+            release_execution.completed_at = datetime.now()
+
+            # Calculate duration
+            if release_execution.started_at:
+                duration = release_execution.completed_at - release_execution.started_at
+                release_execution.duration_seconds = int(duration.total_seconds())
+
+            db.commit()
+
+            return {
+                "success": True,
+                "status": release_execution.status,
+                "message": f"Release execution status updated to {release_execution.status}",
+                "pipeline_count": len(pipeline_executions),
+                "expected_count": len(release_pipelines)
+            }
+        else:
+            incomplete = [pe for pe in pipeline_executions if pe.status not in ['success', 'failed', 'cancelled']]
+            return {
+                "success": False,
+                "status": release_execution.status,
+                "message": "Not all pipelines are complete",
+                "pipeline_count": len(pipeline_executions),
+                "expected_count": len(release_pipelines),
+                "incomplete_count": len(incomplete)
+            }
+    else:
+        return {
+            "success": False,
+            "status": release_execution.status,
+            "message": "Not enough pipeline executions found",
+            "pipeline_count": len(pipeline_executions),
+            "expected_count": len(release_pipelines)
+        }
 
 @app.post("/stage-executions/{stage_execution_id}/approve", tags=["🌐 UI - Release Execution"])
 def approve_stage(stage_execution_id: int, request: ApprovalRequest, db: Session = Depends(get_db)):
@@ -2990,6 +3306,52 @@ def complete_pipeline_pickup(pickup_id: int, completion_data: dict, db: Session 
 
     if pipeline:
         pipeline.status = "success" if success else "failed"
+
+    # Check if this pipeline execution is part of a release execution
+    # We need to find the release execution by matching triggered_by and timestamp
+    if pipeline_execution:
+        # Find release executions that match this pipeline execution's triggered_by
+        potential_releases = db.query(models.ReleaseExecution)\
+            .filter(models.ReleaseExecution.triggered_by == pipeline_execution.triggered_by)\
+            .filter(models.ReleaseExecution.started_at <= pipeline_execution.started_at)\
+            .all()
+
+        for release_execution in potential_releases:
+            # Get all pipeline executions for this release (same triggered_by, within time window)
+            time_window_end = release_execution.completed_at if release_execution.completed_at else datetime.now() + timedelta(hours=1)
+
+            all_pipeline_executions = db.query(models.PipelineExecution)\
+                .filter(models.PipelineExecution.triggered_by == release_execution.triggered_by)\
+                .filter(models.PipelineExecution.started_at >= release_execution.started_at)\
+                .filter(models.PipelineExecution.started_at <= time_window_end)\
+                .all()
+
+            # Get the release to see how many pipelines it should have
+            release = db.query(models.Release).filter(models.Release.id == release_execution.release_id).first()
+            if release:
+                release_pipelines = db.query(models.ReleasePipeline)\
+                    .filter(models.ReleasePipeline.release_id == release.id)\
+                    .all()
+
+                # Check if we have the expected number of pipeline executions
+                if len(all_pipeline_executions) >= len(release_pipelines):
+                    # Check if all pipeline executions are complete
+                    all_complete = all(
+                        pe.status in ['success', 'failed', 'cancelled']
+                        for pe in all_pipeline_executions
+                    )
+
+                    if all_complete:
+                        # Determine overall status
+                        any_failed = any(pe.status == 'failed' for pe in all_pipeline_executions)
+
+                        release_execution.status = "failed" if any_failed else "succeeded"
+                        release_execution.completed_at = datetime.now()
+
+                        # Calculate duration
+                        if release_execution.started_at:
+                            duration = release_execution.completed_at - release_execution.started_at
+                            release_execution.duration_seconds = int(duration.total_seconds())
 
     db.commit()
 

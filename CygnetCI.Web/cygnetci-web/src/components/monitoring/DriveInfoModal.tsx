@@ -75,7 +75,7 @@ export const DriveInfoModal: React.FC<DriveInfoModalProps> = ({
           <div className="flex items-center justify-end">
             <button
               onClick={fetchDrives}
-              className="px-3 py-1.5 bg-blue-500 hover:bg-blue-600 text-gray-800 rounded-lg transition-colors flex items-center gap-2"
+              className="px-3 py-1.5 bg-blue-500 hover:bg-blue-600 text-white rounded-lg transition-colors flex items-center gap-2"
               disabled={loading}
             >
               <RefreshCw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} />

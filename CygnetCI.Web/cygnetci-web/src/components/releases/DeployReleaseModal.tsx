@@ -10,7 +10,7 @@ import type { Release, Environment, Pipeline, Agent } from '@/types';
 interface DeployReleaseModalProps {
   release: Release;
   onClose: () => void;
-  onSuccess: () => void;
+  onSuccess: (executionId: number) => void;
 }
 
 export const DeployReleaseModal: React.FC<DeployReleaseModalProps> = ({ release, onClose, onSuccess }) => {
@@ -82,14 +82,19 @@ export const DeployReleaseModal: React.FC<DeployReleaseModalProps> = ({ release,
       setLoading(true);
       setError(null);
 
-      await apiService.deployRelease(release.id, {
+      const result = await apiService.deployRelease(release.id, {
         triggered_by: triggeredBy.trim(),
         artifact_version: artifactVersion.trim() || undefined,
         parameters: Object.keys(parameters).length > 0 ? parameters : undefined,
         agent_id: selectedAgentId
       });
 
-      onSuccess();
+      // Pass the execution ID to the parent component
+      if (result && result.release_execution_id) {
+        onSuccess(result.release_execution_id);
+      } else {
+        onSuccess(0);
+      }
     } catch (err) {
       setError('Failed to deploy release');
       console.error(err);
@@ -128,44 +133,88 @@ export const DeployReleaseModal: React.FC<DeployReleaseModalProps> = ({ release,
             </div>
           )}
 
-          {/* Stages Preview */}
+          {/* Pipelines or Stages Preview */}
           <div className="space-y-3">
-            <h3 className="text-sm font-semibold text-gray-700 uppercase">Deployment Stages</h3>
-            <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-              <div className="flex items-center gap-2 flex-wrap">
-                {release.stages
-                  .sort((a, b) => a.order_index - b.order_index)
-                  .map((stage, idx) => {
-                    const env = environments.find(e => e.id === stage.environment_id);
-                    const requiresApproval = stage.pre_deployment_approval || stage.post_deployment_approval || env?.requires_approval;
-
-                    return (
-                      <React.Fragment key={stage.id}>
-                        <div className="flex flex-col items-center">
-                          <div className={`px-4 py-2 rounded-lg border-2 ${
-                            requiresApproval
-                              ? 'bg-yellow-50 border-yellow-400'
-                              : 'bg-green-50 border-green-400'
-                          }`}>
-                            <div className="flex items-center gap-2">
-                              {requiresApproval && <Lock className="h-4 w-4 text-yellow-600" />}
-                              <span className="text-sm font-medium text-gray-900">
-                                {env?.name || `Environment ${stage.environment_id}`}
-                              </span>
+            {release.pipelines && release.pipelines.length > 0 ? (
+              <>
+                <h3 className="text-sm font-semibold text-gray-700 uppercase">Pipelines to Execute</h3>
+                <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                  <div className="flex items-center gap-2 flex-wrap">
+                    {release.pipelines
+                      .sort((a, b) => a.order_index - b.order_index)
+                      .map((rp, idx) => {
+                        return (
+                          <React.Fragment key={rp.id}>
+                            <div className="flex flex-col items-center">
+                              <div className={`px-4 py-2 rounded-lg border-2 ${
+                                rp.execution_mode === 'parallel'
+                                  ? 'bg-purple-50 border-purple-400'
+                                  : 'bg-blue-50 border-blue-400'
+                              }`}>
+                                <div className="flex items-center gap-2">
+                                  <span className="text-sm font-medium text-gray-900">
+                                    {rp.pipeline?.name || `Pipeline ${rp.pipeline_id}`}
+                                  </span>
+                                  <span className={`text-xs px-1.5 py-0.5 rounded ${
+                                    rp.execution_mode === 'parallel'
+                                      ? 'bg-purple-600 text-white'
+                                      : 'bg-blue-600 text-white'
+                                  }`}>
+                                    {rp.execution_mode === 'parallel' ? '||' : '→'}
+                                  </span>
+                                </div>
+                              </div>
+                              <span className="text-xs text-gray-600 mt-1">#{rp.order_index + 1}</span>
                             </div>
-                          </div>
-                          {requiresApproval && (
-                            <span className="text-xs text-yellow-700 mt-1">Approval Required</span>
-                          )}
-                        </div>
-                        {idx < release.stages.length - 1 && (
-                          <ArrowRight className="h-5 w-5 text-gray-400" />
-                        )}
-                      </React.Fragment>
-                    );
-                  })}
-              </div>
-            </div>
+                            {idx < release.pipelines.length - 1 && (
+                              <ArrowRight className="h-5 w-5 text-gray-400" />
+                            )}
+                          </React.Fragment>
+                        );
+                      })}
+                  </div>
+                </div>
+              </>
+            ) : (
+              <>
+                <h3 className="text-sm font-semibold text-gray-700 uppercase">Deployment Stages</h3>
+                <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                  <div className="flex items-center gap-2 flex-wrap">
+                    {release.stages
+                      .sort((a, b) => a.order_index - b.order_index)
+                      .map((stage, idx) => {
+                        const env = environments.find(e => e.id === stage.environment_id);
+                        const requiresApproval = stage.pre_deployment_approval || stage.post_deployment_approval || env?.requires_approval;
+
+                        return (
+                          <React.Fragment key={stage.id}>
+                            <div className="flex flex-col items-center">
+                              <div className={`px-4 py-2 rounded-lg border-2 ${
+                                requiresApproval
+                                  ? 'bg-yellow-50 border-yellow-400'
+                                  : 'bg-green-50 border-green-400'
+                              }`}>
+                                <div className="flex items-center gap-2">
+                                  {requiresApproval && <Lock className="h-4 w-4 text-yellow-600" />}
+                                  <span className="text-sm font-medium text-gray-900">
+                                    {env?.name || `Environment ${stage.environment_id}`}
+                                  </span>
+                                </div>
+                              </div>
+                              {requiresApproval && (
+                                <span className="text-xs text-yellow-700 mt-1">Approval Required</span>
+                              )}
+                            </div>
+                            {idx < release.stages.length - 1 && (
+                              <ArrowRight className="h-5 w-5 text-gray-400" />
+                            )}
+                          </React.Fragment>
+                        );
+                      })}
+                  </div>
+                </div>
+              </>
+            )}
           </div>
 
           {/* Pipeline Parameters */}
@@ -295,10 +344,17 @@ export const DeployReleaseModal: React.FC<DeployReleaseModalProps> = ({ release,
               <CheckCircle className="h-5 w-5 text-blue-600 mt-0.5 flex-shrink-0" />
               <div className="text-sm text-blue-900">
                 <p className="font-medium mb-1">Ready to deploy</p>
-                <p>
-                  This release will deploy through {release.stages.length} stage(s).
-                  Stages requiring approval will pause for manual approval.
-                </p>
+                {release.pipelines && release.pipelines.length > 0 ? (
+                  <p>
+                    This release will execute {release.pipelines.length} pipeline(s) on the selected agent.
+                    Pipelines will run in {release.pipelines.some(p => p.execution_mode === 'parallel') ? 'sequential and parallel' : 'sequential'} order as configured.
+                  </p>
+                ) : (
+                  <p>
+                    This release will deploy through {release.stages.length} stage(s).
+                    Stages requiring approval will pause for manual approval.
+                  </p>
+                )}
               </div>
             </div>
           </div>
