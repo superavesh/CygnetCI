@@ -2,9 +2,10 @@
 
 'use client';
 
-import React, { useState } from 'react';
+import React from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
+import { useSidebar } from '@/lib/contexts/SidebarContext';
 import {
   BarChart3,
   GitBranch,
@@ -35,11 +36,7 @@ const navItems = [
 
 export const Navigation: React.FC = () => {
   const pathname = usePathname();
-  const [isCollapsed, setIsCollapsed] = useState(false);
-
-  const toggleSidebar = () => {
-    setIsCollapsed(!isCollapsed);
-  };
+  const { isCollapsed, toggleSidebar } = useSidebar();
 
   return (
     <nav className={`fixed left-0 top-16 h-[calc(100vh-4rem)] bg-white shadow-lg border-r border-gray-200 transition-all duration-300 z-30 ${
@@ -48,12 +45,17 @@ export const Navigation: React.FC = () => {
       {/* Toggle Button */}
       <button
         onClick={toggleSidebar}
-        className="absolute -right-3 top-6 bg-white border border-gray-300 rounded-full p-1 shadow-md hover:bg-blue-50 hover:border-blue-400 transition-colors"
+        className="absolute -right-3 top-6 rounded-full p-1.5 shadow-lg hover:shadow-xl transition-all"
+        style={{
+          background: 'linear-gradient(135deg, #1a365d, #2d4a73)',
+          border: '2px solid white'
+        }}
+        title={isCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
       >
         {isCollapsed ? (
-          <ChevronRight className="w-4 h-4 text-gray-600" />
+          <ChevronRight className="w-5 h-5 text-white" />
         ) : (
-          <ChevronLeft className="w-4 h-4 text-gray-600" />
+          <ChevronLeft className="w-5 h-5 text-white" />
         )}
       </button>
 
@@ -67,13 +69,14 @@ export const Navigation: React.FC = () => {
               href={item.href}
               className={`flex items-center ${isCollapsed ? 'justify-center' : 'space-x-3'} px-4 py-3 mx-2 rounded-lg font-medium text-sm transition-all border-l-4 ${
                 isActive
-                  ? 'bg-blue-50 text-blue-600 border-blue-500'
-                  : 'text-gray-700 hover:bg-gray-50 hover:text-gray-900 border-transparent'
+                  ? 'bg-gray-100 border-blue-500'
+                  : 'hover:bg-gray-50 border-transparent'
               }`}
+              style={isActive ? { color: '#1a365d' } : { color: '#4b5563' }}
               title={isCollapsed ? item.name : undefined}
             >
-              <item.icon className={`${isCollapsed ? 'w-6 h-6' : 'w-5 h-5'} flex-shrink-0 ${isActive ? 'text-blue-600' : 'text-gray-700'}`} />
-              {!isCollapsed && <span className={`truncate ${isActive ? 'text-blue-600' : 'text-gray-700'}`}>{item.name}</span>}
+              <item.icon className={`${isCollapsed ? 'w-6 h-6' : 'w-5 h-5'} flex-shrink-0`} style={isActive ? { color: '#1a365d' } : { color: '#4b5563' }} />
+              {!isCollapsed && <span className={`truncate`} style={isActive ? { color: '#1a365d' } : { color: '#4b5563' }}>{item.name}</span>}
             </Link>
           );
         })}

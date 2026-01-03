@@ -128,6 +128,22 @@ export interface ReleaseStage {
   auto_deploy: boolean;
 }
 
+export interface ReleasePipeline {
+  id: number;
+  release_id: number;
+  pipeline_id: number;
+  pipeline?: {
+    id: number;
+    name: string;
+  };
+  order_index: number;
+  execution_mode: 'sequential' | 'parallel';
+  depends_on?: number;
+  position_x: number;
+  position_y: number;
+  created_at: string;
+}
+
 export interface Release {
   id: number;
   name: string;
@@ -138,6 +154,7 @@ export interface Release {
   created_by?: string;
   created_at: string;
   stages: ReleaseStage[];
+  pipelines?: ReleasePipeline[];
   latest_execution?: ReleaseExecutionSummary;
 }
 

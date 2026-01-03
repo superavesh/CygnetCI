@@ -259,18 +259,17 @@ export default function PipelinesPage() {
                             {/* Always show Run with Parameters button */}
                             <button
                               onClick={() => handleRunClick(pipeline)}
-                              className="text-purple-600 hover:text-purple-900 transition-colors flex items-center space-x-1"
+                              className="text-purple-600 hover:text-purple-700 transition-colors"
                               title="Run with Parameters"
                             >
                               <Sliders className="h-4 w-4" />
-                              <span className="text-xs">Run</span>
                             </button>
 
                             {/* Show Quick Run only if pipeline has default agent and no parameters */}
                             {!hasParameters && pipeline.agent_id && (
                               <button
                                 onClick={() => handleQuickRun(pipeline)}
-                                className="text-green-600 hover:text-blue-700 transition-colors"
+                                className="text-green-600 hover:text-green-700 transition-colors"
                                 title="Quick Run (with default agent)"
                               >
                                 <Play className="h-4 w-4" />
@@ -279,14 +278,14 @@ export default function PipelinesPage() {
 
                             <button
                               onClick={() => handleViewExecution(pipeline)}
-                              className="text-blue-600 hover:text-blue-900 transition-colors"
+                              className="text-blue-600 hover:text-blue-700 transition-colors"
                               title="Execution History"
                             >
                               <History className="h-4 w-4" />
                             </button>
-                            <button 
+                            <button
                               onClick={() => handleEditClick(pipeline)}
-                              className="text-gray-600 hover:text-gray-900 transition-colors"
+                              className="text-gray-600 hover:text-gray-700 transition-colors"
                               title="Edit Pipeline"
                             >
                               <Settings className="h-4 w-4" />

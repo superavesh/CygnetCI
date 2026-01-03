@@ -251,7 +251,11 @@ export const ReleaseExecutionHistoryModal: React.FC<ReleaseExecutionHistoryModal
                                           setSelectedStage({ id: stage.id, name: stage.environment_name });
                                           setShowLogsModal(true);
                                         }}
-                                        className="px-3 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-md transition-colors border border-blue-700 shadow-md flex items-center justify-center gap-2 font-medium text-xs"
+                                        className="px-3 py-2 text-white rounded-md transition-colors shadow-md flex items-center justify-center gap-2 font-medium text-xs"
+                                        style={{
+                                          background: 'linear-gradient(135deg, #1a365d, #2d4a73)',
+                                          border: '1px solid #1a365d'
+                                        }}
                                         title="View Pipeline Logs"
                                       >
                                         <Eye className="h-4 w-4" />

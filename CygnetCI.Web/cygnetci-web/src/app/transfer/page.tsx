@@ -506,7 +506,7 @@ export default function TransferPage() {
           </div>
           <button
             onClick={fetchPickups}
-            className="flex items-center gap-2 px-3 py-1.5 text-sm bg-gray-600 text-white rounded-lg hover:bg-gray-200 transition-colors"
+            className="flex items-center gap-2 px-3 py-1.5 text-sm bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-all"
           >
             <RefreshCw className="h-4 w-4" />
             Refresh
@@ -564,7 +564,7 @@ export default function TransferPage() {
           <h2 className="text-xl font-semibold text-gray-900">Uploaded Files</h2>
           <button
             onClick={fetchFiles}
-            className="flex items-center gap-2 px-3 py-1.5 text-sm bg-gray-600 text-white rounded-lg hover:bg-gray-200 transition-colors"
+            className="flex items-center gap-2 px-3 py-1.5 text-sm bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-all"
           >
             <RefreshCw className="h-4 w-4" />
             Refresh
@@ -610,14 +610,14 @@ export default function TransferPage() {
                             setSelectedHistoryFile(file);
                             setShowHistoryModal(true);
                           }}
-                          className="p-1 text-blue-600 hover:bg-blue-50 rounded"
+                          className="text-blue-600 hover:text-blue-700 transition-colors"
                           title="View transfer history"
                         >
                           <History className="h-4 w-4" />
                         </button>
                         <button
                           onClick={() => handleDeleteFile(file.id)}
-                          className="p-1 text-red-600 hover:bg-red-50 rounded"
+                          className="text-red-600 hover:text-red-700 transition-colors"
                           title="Delete file"
                         >
                           <Trash2 className="h-4 w-4" />

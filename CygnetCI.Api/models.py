@@ -401,6 +401,7 @@ class Release(Base):
     # Relationships
     pipeline = relationship("Pipeline")
     stages = relationship("ReleaseStage", back_populates="release", cascade="all, delete-orphan")
+    pipelines = relationship("ReleasePipeline", back_populates="release", cascade="all, delete-orphan")
     executions = relationship("ReleaseExecution", back_populates="release", cascade="all, delete-orphan")
 
     __table_args__ = (
@@ -428,6 +429,28 @@ class ReleaseStage(Base):
     pipeline = relationship("Pipeline")
     agent = relationship("Agent")
     stage_executions = relationship("StageExecution", back_populates="release_stage")
+
+
+class ReleasePipeline(Base):
+    __tablename__ = "release_pipelines"
+
+    id = Column(Integer, primary_key=True, index=True)
+    release_id = Column(Integer, ForeignKey("releases.id", ondelete="CASCADE"), nullable=False)
+    pipeline_id = Column(Integer, ForeignKey("pipelines.id", ondelete="CASCADE"), nullable=False)
+    order_index = Column(Integer, nullable=False)
+    execution_mode = Column(String(50), default="sequential")
+    depends_on = Column(Integer, ForeignKey("release_pipelines.id", ondelete="SET NULL"))
+    position_x = Column(Integer, default=0)
+    position_y = Column(Integer, default=0)
+    created_at = Column(TIMESTAMP, server_default=func.now())
+
+    # Relationships
+    release = relationship("Release", back_populates="pipelines")
+    pipeline = relationship("Pipeline")
+
+    __table_args__ = (
+        CheckConstraint("execution_mode IN ('sequential', 'parallel')", name="check_execution_mode"),
+    )
 
 
 class ReleaseExecution(Base):

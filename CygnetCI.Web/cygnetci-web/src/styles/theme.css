@@ -54,22 +54,24 @@
 
   /* ==================== STATUS COLORS ==================== */
 
-  /* Pipeline/Task Status Colors - Bold backgrounds with white text */
-  --color-status-running: #2563eb;    /* Blue 600 */
-  --color-status-success: #059669;    /* Green 600 */
-  --color-status-completed: #059669;  /* Green 600 */
-  --color-status-failed: #dc2626;     /* Red 600 */
-  --color-status-pending: #d97706;    /* Amber 600 */
-  --color-status-queued: #4b5563;     /* Gray 600 */
+  /* Pipeline/Task Status Colors - 500 level vibrant colors */
+  --color-status-running: #3b82f6;    /* Blue 500 */
+  --color-status-success: #10b981;    /* Green 500 */
+  --color-status-completed: #10b981;  /* Green 500 */
+  --color-status-failed: #ef4444;     /* Red 500 */
+  --color-status-pending: #6b7280;    /* Gray 500 */
+  --color-status-queued: #9ca3af;     /* Gray 400 */
   --color-status-cancelled: #6b7280;  /* Gray 500 */
-  --color-status-analyzing: #2563eb;  /* Blue 600 */
+  --color-status-analyzing: #3b82f6;  /* Blue 500 */
+  --color-status-warning: #eab308;    /* Yellow 500 */
+  --color-status-critical: #f97316;   /* Orange 500 */
 
-  /* Agent Status Colors - Bold backgrounds with white text */
-  --color-agent-online: #059669;      /* Green 600 */
-  --color-agent-active: #059669;      /* Green 600 */
-  --color-agent-offline: #4b5563;     /* Gray 600 */
-  --color-agent-inactive: #4b5563;    /* Gray 600 */
-  --color-agent-busy: #d97706;        /* Amber 600 */
+  /* Agent Status Colors - 500 level vibrant colors */
+  --color-agent-online: #10b981;      /* Green 500 */
+  --color-agent-active: #10b981;      /* Green 500 */
+  --color-agent-offline: #ef4444;     /* Red 500 */
+  --color-agent-inactive: #9ca3af;    /* Gray 400 */
+  --color-agent-busy: #eab308;        /* Yellow 500 */
   --color-agent-idle: #6b7280;        /* Gray 500 */
 
 
@@ -282,91 +284,3 @@
 }
 
 
-/* ==================== GLOBAL STATUS BADGE OVERRIDES ==================== */
-/* These rules override Tailwind classes to ensure ALL status badges use white text */
-
-/* Pipeline/Task Status - Force white text on all colored backgrounds */
-.bg-green-600,
-.bg-green-500 {
-  background-color: #059669 !important; /* Green 600 */
-  color: white !important;
-}
-
-.bg-red-600,
-.bg-red-500 {
-  background-color: #dc2626 !important; /* Red 600 */
-  color: white !important;
-}
-
-.bg-blue-600,
-.bg-blue-500 {
-  background-color: #2563eb !important; /* Blue 600 */
-  color: white !important;
-}
-
-.bg-amber-600,
-.bg-amber-500,
-.bg-yellow-600,
-.bg-yellow-500 {
-  background-color: #d97706 !important; /* Amber 600 */
-  color: white !important;
-}
-
-.bg-gray-600,
-.bg-gray-500 {
-  background-color: #4b5563 !important; /* Gray 600 */
-  color: white !important;
-}
-
-/* Ensure text-white always wins over dark text colors in status badges */
-span.text-white,
-.text-white {
-  color: white !important;
-}
-
-/* Remove light backgrounds from status badges globally */
-.bg-green-100,
-.bg-red-100,
-.bg-blue-100,
-.bg-amber-100,
-.bg-yellow-100,
-.bg-gray-100 {
-  /* Don't override everything with gray-100, only status badges */
-}
-
-/* Status badge specific overrides */
-span[class*="px-"][class*="py-"][class*="rounded"] {
-  /* Target status badge-like elements */
-}
-
-span.bg-green-100.text-green-700,
-span.bg-green-100.text-green-800 {
-  background-color: #059669 !important;
-  color: white !important;
-}
-
-span.bg-red-100.text-red-700,
-span.bg-red-100.text-red-800 {
-  background-color: #dc2626 !important;
-  color: white !important;
-}
-
-span.bg-blue-100.text-blue-700,
-span.bg-blue-100.text-blue-800 {
-  background-color: #2563eb !important;
-  color: white !important;
-}
-
-span.bg-amber-100.text-amber-700,
-span.bg-amber-100.text-amber-800,
-span.bg-yellow-100.text-yellow-700,
-span.bg-yellow-100.text-yellow-800 {
-  background-color: #d97706 !important;
-  color: white !important;
-}
-
-span.bg-gray-100.text-gray-700,
-span.bg-gray-100.text-gray-800 {
-  background-color: #4b5563 !important;
-  color: white !important;
-}

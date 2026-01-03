@@ -315,8 +315,8 @@ export default function CustomersPage() {
                         <td className="px-6 py-4 whitespace-nowrap">
                           <span className={`px-3 py-1 rounded-full text-xs font-medium ${
                             customer.is_active
-                              ? 'bg-green-600 text-white'
-                              : 'bg-red-600 text-white'
+                              ? 'bg-green-500 text-white'
+                              : 'bg-red-500 text-white'
                           }`}>
                             {customer.is_active ? 'Active' : 'Inactive'}
                           </span>
@@ -349,13 +349,13 @@ export default function CustomersPage() {
                         <td className="px-6 py-4">
                           {stats ? (
                             <div className="flex flex-wrap gap-2">
-                              <span className="px-2 py-1 bg-blue-600 text-white text-xs rounded-full">
+                              <span className="px-2 py-1 bg-blue-500 text-white text-xs rounded-full">
                                 {stats.total_agents} Agents
                               </span>
-                              <span className="px-2 py-1 bg-green-600 text-white text-xs rounded-full">
+                              <span className="px-2 py-1 bg-green-500 text-white text-xs rounded-full">
                                 {stats.total_pipelines} Pipelines
                               </span>
-                              <span className="px-2 py-1 bg-purple-600 text-white text-xs rounded-full">
+                              <span className="px-2 py-1 bg-purple-500 text-white text-xs rounded-full">
                                 {stats.total_releases} Releases
                               </span>
                             </div>
@@ -367,14 +367,14 @@ export default function CustomersPage() {
                           <div className="flex space-x-2">
                             <button
                               onClick={() => openEditModal(customer)}
-                              className="text-blue-500 hover:text-blue-600 transition-colors"
+                              className="text-blue-600 hover:text-blue-700 transition-colors"
                               title="Edit Customer"
                             >
                               <Edit2 className="h-4 w-4" />
                             </button>
                             <button
                               onClick={() => handleToggleActive(customer)}
-                              className="text-gray-600 hover:text-gray-900 transition-colors"
+                              className="text-gray-600 hover:text-gray-700 transition-colors"
                               title={customer.is_active ? 'Deactivate' : 'Activate'}
                             >
                               <Power className="h-4 w-4" />
@@ -382,7 +382,7 @@ export default function CustomersPage() {
                             {customer.name !== 'default' && (
                               <button
                                 onClick={() => handleDelete(customer)}
-                                className="text-red-600 hover:text-red-900 transition-colors"
+                                className="text-red-600 hover:text-red-700 transition-colors"
                                 title="Delete Customer"
                               >
                                 <Trash2 className="h-4 w-4" />
@@ -422,7 +422,7 @@ export default function CustomersPage() {
                     onClick={() => handlePageChange(page)}
                     className={`px-4 py-2 rounded-lg border transition-colors ${
                       currentPage === page
-                        ? 'bg-blue-600 text-white border-blue-500'
+                        ? 'bg-blue-500 text-white border-blue-500'
                         : 'border-gray-300 text-gray-700 hover:bg-gray-50'
                     }`}
                   >

@@ -5,7 +5,7 @@
 import React, { useState, useEffect } from 'react';
 import {
   Upload, Database, FileText, RefreshCw, Trash2, Download,
-  CheckCircle, XCircle, Clock, AlertCircle, Loader, FileDown
+  CheckCircle, XCircle, Clock, AlertCircle, Loader, FileDown, Eye
 } from 'lucide-react';
 
 interface RollbackScript {
@@ -541,46 +541,46 @@ export default function RollbackPage() {
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                       {new Date(script.created_at).toLocaleString()}
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium space-x-2">
-                      {(script.analysis_status === 'pending' || script.analysis_status === 'failed') && (
+                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                      <div className="flex space-x-2">
+                        {(script.analysis_status === 'pending' || script.analysis_status === 'failed') && (
+                          <button
+                            onClick={() => handleAnalyze(script.id)}
+                            disabled={analyzing === script.id}
+                            className="text-blue-600 hover:text-blue-700 transition-colors disabled:opacity-50"
+                            title={script.analysis_status === 'failed' ? 'Retry Analysis' : 'Analyze with AI'}
+                          >
+                            {analyzing === script.id ? (
+                              <Loader className="h-4 w-4 animate-spin" />
+                            ) : (
+                              <FileText className="h-4 w-4" />
+                            )}
+                          </button>
+                        )}
+                        {script.analysis_status === 'completed' && (
+                          <button
+                            onClick={() => handleViewDetails(script.id)}
+                            className="text-blue-600 hover:text-blue-700 transition-colors"
+                            title="View Details"
+                          >
+                            <Eye className="h-4 w-4" />
+                          </button>
+                        )}
                         <button
-                          onClick={() => handleAnalyze(script.id)}
-                          disabled={analyzing === script.id}
-                          className="text-blue-500 hover:text-blue-700 disabled:opacity-50"
-                          title={script.analysis_status === 'failed' ? 'Retry Analysis' : 'Analyze with AI'}
+                          onClick={() => handleDownload(script.id)}
+                          className="text-gray-600 hover:text-gray-700 transition-colors"
+                          title="Download"
                         >
-                          {analyzing === script.id ? (
-                            <Loader className="h-4 w-4 animate-spin inline" />
-                          ) : script.analysis_status === 'failed' ? (
-                            'Retry'
-                          ) : (
-                            'Analyze'
-                          )}
+                          <Download className="h-4 w-4" />
                         </button>
-                      )}
-                      {script.analysis_status === 'completed' && (
                         <button
-                          onClick={() => handleViewDetails(script.id)}
-                          className="text-blue-500 hover:text-blue-700"
-                          title="View Details"
+                          onClick={() => handleDeleteClick(script.id, script.script_name)}
+                          className="text-red-600 hover:text-red-700 transition-colors"
+                          title="Delete"
                         >
-                          View Details
+                          <Trash2 className="h-4 w-4" />
                         </button>
-                      )}
-                      <button
-                        onClick={() => handleDownload(script.id)}
-                        className="text-gray-600 hover:text-gray-900"
-                        title="Download"
-                      >
-                        <Download className="h-4 w-4 inline" />
-                      </button>
-                      <button
-                        onClick={() => handleDeleteClick(script.id, script.script_name)}
-                        className="text-red-600 hover:text-red-900"
-                        title="Delete"
-                      >
-                        <Trash2 className="h-4 w-4 inline" />
-                      </button>
+                      </div>
                     </td>
                   </tr>
                 ))}
@@ -784,7 +784,7 @@ export default function RollbackPage() {
             <div className="px-6 py-4 border-t border-gray-200 flex gap-3 justify-end">
               <button
                 onClick={handleCancelDelete}
-                className="px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-200 transition-colors font-medium"
+                className="px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-all font-medium"
               >
                 Cancel
               </button>

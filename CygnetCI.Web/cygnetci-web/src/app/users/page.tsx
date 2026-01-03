@@ -252,21 +252,25 @@ export default function UsersPage() {
                         <div className="flex space-x-2">
                           <button
                             onClick={() => handleUpdate(user.id, { is_active: !user.is_active })}
-                            className={`${user.is_active ? 'text-yellow-600 hover:text-yellow-900' : 'text-green-600 hover:text-blue-700'} transition-colors`}
+                            className={`${
+                              user.is_active
+                                ? 'text-yellow-600 hover:text-yellow-700'
+                                : 'text-green-600 hover:text-green-700'
+                            } transition-colors`}
                             title={user.is_active ? 'Deactivate' : 'Activate'}
                           >
                             {user.is_active ? <UserX className="h-4 w-4" /> : <UserCheck className="h-4 w-4" />}
                           </button>
                           <button
                             onClick={() => handleUpdate(user.id, { is_superuser: !user.is_superuser })}
-                            className="text-purple-600 hover:text-purple-900 transition-colors"
+                            className="text-purple-600 hover:text-purple-700 transition-colors"
                             title={user.is_superuser ? 'Remove Superuser' : 'Make Superuser'}
                           >
                             <Shield className="h-4 w-4" />
                           </button>
                           <button
                             onClick={() => handleDelete(user.id)}
-                            className="text-red-600 hover:text-red-900 transition-colors"
+                            className="text-red-600 hover:text-red-700 transition-colors"
                           >
                             <Trash2 className="h-4 w-4" />
                           </button>

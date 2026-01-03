@@ -24,7 +24,7 @@ export const StatCard: React.FC<StatCardProps> = ({ title, value, icon: Icon, co
           )}
         </div>
         <div className={`p-4 rounded-full ${color}`}>
-          <Icon className="h-8 w-8 text-white" />
+          <Icon className="h-8 w-8 text-white" style={{ color: 'white' }} />
         </div>
       </div>
     </div>

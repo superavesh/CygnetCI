@@ -46,18 +46,19 @@ export default function CustomerSelector() {
     <div className="relative customer-dropdown">
       <button
         onClick={() => setIsOpen(!isOpen)}
-        className="flex items-center gap-2 px-4 py-2 bg-white border border-gray-300 rounded-lg hover:bg-blue-50 hover:border-blue-400 transition-colors min-w-[200px] shadow-sm"
+        className="flex items-center gap-2 px-4 py-2 bg-white border rounded-lg hover:bg-gray-100 transition-colors min-w-[200px] shadow-sm"
+        style={{ borderColor: '#1a365d' }}
       >
-        <div className="p-1 bg-gradient-to-br from-blue-500 to-blue-600 rounded">
+        <div className="p-1 rounded" style={{ background: 'linear-gradient(to bottom right, #1a365d, #2d4a73)' }}>
           <Building2 className="w-4 h-4 text-white" />
         </div>
         <div className="flex-1 text-left">
           <div className="text-xs text-gray-500">Customer</div>
-          <div className="text-sm font-medium text-gray-800 truncate">
+          <div className="text-sm font-medium truncate" style={{ color: '#1a365d' }}>
             {selectedCustomer?.display_name || 'Select Customer'}
           </div>
         </div>
-        <ChevronDown className={`w-4 h-4 text-gray-600 transition-transform ${isOpen ? 'rotate-180' : ''}`} />
+        <ChevronDown className={`w-4 h-4 transition-transform ${isOpen ? 'rotate-180' : ''}`} style={{ color: '#1a365d' }} />
       </button>
 
       {isOpen && (
@@ -83,7 +84,8 @@ export default function CustomerSelector() {
                   placeholder="Search customers..."
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm text-gray-800 bg-white"
+                  className="w-full pl-10 pr-4 py-2 border rounded-lg focus:outline-none focus:ring-2 text-sm bg-white"
+                  style={{ borderColor: '#1a365d', color: '#1a365d' }}
                   onClick={(e) => e.stopPropagation()}
                 />
               </div>
@@ -105,16 +107,17 @@ export default function CustomerSelector() {
                       }}
                       className={`w-full text-left px-3 py-2.5 rounded-lg transition-colors ${
                         selectedCustomer?.id === customer.id
-                          ? 'bg-blue-50 text-blue-700 border border-blue-200'
-                          : 'hover:bg-gray-50 text-gray-800'
+                          ? 'bg-gray-100 border'
+                          : 'hover:bg-gray-50'
                       }`}
+                      style={selectedCustomer?.id === customer.id ? { borderColor: '#1a365d', color: '#1a365d' } : { color: '#4b5563' }}
                     >
                       <div className="flex items-center justify-between">
                         <div className="flex-1 font-medium text-sm">
                           {customer.display_name}
                         </div>
                         {selectedCustomer?.id === customer.id && (
-                          <Check className="w-4 h-4 text-blue-600 flex-shrink-0 ml-2" />
+                          <Check className="w-4 h-4 flex-shrink-0 ml-2" style={{ color: '#1a365d' }} />
                         )}
                       </div>
                     </button>
@@ -126,7 +129,8 @@ export default function CustomerSelector() {
             <div className="border-t border-gray-100 p-2">
               <a
                 href="/customers"
-                className="block w-full text-center px-3 py-2 text-sm font-medium text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
+                className="block w-full text-center px-3 py-2 text-sm font-medium hover:bg-gray-100 rounded-lg transition-colors"
+                style={{ color: '#1a365d' }}
                 onClick={() => {
                   setIsOpen(false);
                   setSearchQuery('');

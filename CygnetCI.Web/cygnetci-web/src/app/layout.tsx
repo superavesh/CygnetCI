@@ -9,12 +9,38 @@ import '../styles/color-fixes.css';
 import { Header } from '@/components/layout/Header';
 import { Navigation } from '@/components/layout/Navigation';
 import { CustomerProvider } from '@/lib/contexts/CustomerContext';
+import { SidebarProvider, useSidebar } from '@/lib/contexts/SidebarContext';
 import { LoadingState } from '@/components/common/LoadingState';
 import { AlertCircle } from 'lucide-react';
 import { CONFIG } from '@/lib/config';
 import { usePathname, useRouter } from 'next/navigation';
 
 const inter = Inter({ subsets: ['latin'] });
+
+// Wrapper component that uses the sidebar context
+function LayoutContent({ children }: { children: React.ReactNode }) {
+  const { isCollapsed } = useSidebar();
+  const pathname = usePathname();
+  const isLoginPage = pathname === '/login';
+
+  if (isLoginPage) {
+    return children;
+  }
+
+  return (
+    <div className="min-h-screen bg-gray-50">
+      <Header />
+      <Navigation />
+      <main
+        className={`mt-16 p-8 transition-all duration-300 ${
+          isCollapsed ? 'ml-16' : 'ml-64'
+        }`}
+      >
+        {children}
+      </main>
+    </div>
+  );
+}
 
 export default function RootLayout({
   children,
@@ -135,30 +161,17 @@ export default function RootLayout({
     );
   }
 
-  // Check if we're on the login page
-  const isLoginPage = pathname === '/login';
-
   return (
     <html lang="en">
       <head>
         <link rel="icon" href="/favicon.ico" sizes="any" />
       </head>
       <body className={inter.className}>
-        {isLoginPage ? (
-          // Login page - no layout wrapper
-          children
-        ) : (
-          // Regular pages - with header and navigation
+        <SidebarProvider>
           <CustomerProvider>
-            <div className="min-h-screen bg-gray-50">
-              <Header />
-              <Navigation />
-              <main className="ml-64 mt-16 p-8">
-                {children}
-              </main>
-            </div>
+            <LayoutContent>{children}</LayoutContent>
           </CustomerProvider>
-        )}
+        </SidebarProvider>
       </body>
     </html>
   );

@@ -12,16 +12,14 @@ h3.text-white:not(.modal-header *):not(button *) {
 }
 
 /* Fix all body text that is white (should be gray-900) */
+/* Exception: User avatar initials should stay white */
 div.text-white:not(.modal-header *):not(button *):not(.badge),
 p.text-white:not(button *):not(.badge),
-span.text-white:not(button *):not(.badge) {
+span.text-white:not(button *):not(.badge):not([class*="rounded-full"] *) {
   color: #111827 !important; /* gray-900 */
 }
 
-/* Fix Download icon hover states that have wrong colors */
-button .lucide-download:hover {
-  color: #4b5563 !important; /* gray-600 */
-}
+/* Removed - download icons should inherit from parent button */
 
 /* Fix Database/Server icons to be gray instead of blue */
 .lucide-database {
@@ -39,10 +37,7 @@ h2 .lucide-file-text {
   color: #4b5563 !important; /* gray-600 */
 }
 
-/* Fix all hover states that have wrong text-white */
-button:hover:not(.bg-blue-500):not(.bg-green-600):not(.bg-red-600) {
-  color: inherit !important;
-}
+/* Removed - this was breaking action button hover colors */
 
 /* Fix drag and drop zone hover background */
 .hover\:bg-orange-50:hover {
@@ -91,140 +86,112 @@ button.hover\:text-\[blue-600\]:hover {
 }
 
 /* Fix all icons that should be context-appropriate */
-.lucide-check-circle {
+/* These only apply when NOT inside buttons - buttons control their own icon colors */
+.lucide-check-circle:not(button *) {
   color: #10b981 !important; /* green for success */
 }
 
-.lucide-x-circle {
+.lucide-x-circle:not(button *) {
   color: #ef4444 !important; /* red for error/cancel */
 }
 
-.lucide-loader {
+.lucide-loader:not(button *) {
   color: #3b82f6 !important; /* blue for loading */
 }
 
-.lucide-clock {
+.lucide-clock:not(button *):not([class*="rounded-full"] *):not([class*="bg-gradient"] *) {
   color: #9ca3af !important; /* gray for pending */
 }
 
-.lucide-alert-circle {
+.lucide-alert-circle:not(button *) {
   color: #f59e0b !important; /* amber for warnings */
 }
 
-.lucide-trash-2 {
+.lucide-trash-2:not(button *) {
   color: #ef4444 !important; /* red for delete */
 }
 
-.lucide-refresh-cw {
+.lucide-refresh-cw:not(button *) {
   color: #6b7280 !important; /* gray for refresh */
 }
 
-.lucide-download {
+.lucide-download:not(button *) {
   color: #6b7280 !important; /* gray for download */
 }
 
-.lucide-file-down {
-  color: currentColor; /* inherit from button */
+/* Icons inside buttons should inherit the button's text color */
+button .lucide {
+  color: currentColor !important;
 }
 
 /* ============================================
    STATUS BADGE COLOR FIXES
-   Forces ALL status badges to use white text
-   on bold colored backgrounds
+   Matches the original cicd-dashboard theme
+   500-level colors with appropriate text colors
    ============================================ */
 
-/* Target all status badge spans - very specific selector to override Tailwind */
-span.px-3.py-1.rounded-full.text-xs.font-medium.bg-green-600,
-span.px-3.py-1.rounded-full.text-xs.font-medium.bg-green-500,
-span.px-2.py-1.rounded-full.text-xs.font-medium.bg-green-600,
-span.px-2.py-1.rounded-full.text-xs.font-medium.bg-green-500,
+/* Green status badges (success, online, completed, healthy) - 500 level with white text */
+span[class*="px-"][class*="py-"][class*="rounded"].bg-green-500,
 span[class*="px-"][class*="py-"][class*="rounded"].bg-green-600,
-span[class*="px-"][class*="py-"][class*="rounded"].bg-green-500 {
-  background-color: #059669 !important; /* Green 600 */
-  color: white !important;
-}
-
-span.px-3.py-1.rounded-full.text-xs.font-medium.bg-red-600,
-span.px-3.py-1.rounded-full.text-xs.font-medium.bg-red-500,
-span.px-2.py-1.rounded-full.text-xs.font-medium.bg-red-600,
-span.px-2.py-1.rounded-full.text-xs.font-medium.bg-red-500,
-span[class*="px-"][class*="py-"][class*="rounded"].bg-red-600,
-span[class*="px-"][class*="py-"][class*="rounded"].bg-red-500 {
-  background-color: #dc2626 !important; /* Red 600 */
-  color: white !important;
-}
-
-span.px-3.py-1.rounded-full.text-xs.font-medium.bg-blue-600,
-span.px-3.py-1.rounded-full.text-xs.font-medium.bg-blue-500,
-span.px-2.py-1.rounded-full.text-xs.font-medium.bg-blue-600,
-span.px-2.py-1.rounded-full.text-xs.font-medium.bg-blue-500,
-span[class*="px-"][class*="py-"][class*="rounded"].bg-blue-600,
-span[class*="px-"][class*="py-"][class*="rounded"].bg-blue-500 {
-  background-color: #2563eb !important; /* Blue 600 */
-  color: white !important;
-}
-
-span.px-3.py-1.rounded-full.text-xs.font-medium.bg-amber-600,
-span.px-3.py-1.rounded-full.text-xs.font-medium.bg-amber-500,
-span.px-2.py-1.rounded-full.text-xs.font-medium.bg-amber-600,
-span.px-2.py-1.rounded-full.text-xs.font-medium.bg-amber-500,
-span[class*="px-"][class*="py-"][class*="rounded"].bg-amber-600,
-span[class*="px-"][class*="py-"][class*="rounded"].bg-amber-500,
-span[class*="px-"][class*="py-"][class*="rounded"].bg-yellow-600,
-span[class*="px-"][class*="py-"][class*="rounded"].bg-yellow-500 {
-  background-color: #d97706 !important; /* Amber 600 */
-  color: white !important;
-}
-
-span.px-3.py-1.rounded-full.text-xs.font-medium.bg-gray-600,
-span.px-3.py-1.rounded-full.text-xs.font-medium.bg-gray-500,
-span.px-2.py-1.rounded-full.text-xs.font-medium.bg-gray-600,
-span.px-2.py-1.rounded-full.text-xs.font-medium.bg-gray-500,
-span[class*="px-"][class*="py-"][class*="rounded"].bg-gray-600,
-span[class*="px-"][class*="py-"][class*="rounded"].bg-gray-500 {
-  background-color: #4b5563 !important; /* Gray 600 */
-  color: white !important;
-}
-
-/* Override any text-green-700, text-red-700, etc on status badges */
-span[class*="px-"][class*="py-"][class*="rounded"][class*="text-green"],
-span[class*="px-"][class*="py-"][class*="rounded"][class*="text-red"],
-span[class*="px-"][class*="py-"][class*="rounded"][class*="text-blue"],
-span[class*="px-"][class*="py-"][class*="rounded"][class*="text-amber"],
-span[class*="px-"][class*="py-"][class*="rounded"][class*="text-yellow"],
-span[class*="px-"][class*="py-"][class*="rounded"][class*="text-gray"] {
-  color: white !important;
-}
-
-/* Fix light background status badges */
 span.bg-green-100.text-green-700,
 span.bg-green-100.text-green-800 {
-  background-color: #059669 !important;
+  background-color: #10b981 !important; /* Green 500 */
   color: white !important;
 }
 
+/* Red status badges (failed, down, offline) - 500 level with white text */
+span[class*="px-"][class*="py-"][class*="rounded"].bg-red-500,
+span[class*="px-"][class*="py-"][class*="rounded"].bg-red-600,
 span.bg-red-100.text-red-700,
 span.bg-red-100.text-red-800 {
-  background-color: #dc2626 !important;
+  background-color: #ef4444 !important; /* Red 500 */
   color: white !important;
 }
 
+/* Blue status badges (running, analyzing) - 500 level with white text */
+span[class*="px-"][class*="py-"][class*="rounded"].bg-blue-500,
+span[class*="px-"][class*="py-"][class*="rounded"].bg-blue-600,
 span.bg-blue-100.text-blue-700,
 span.bg-blue-100.text-blue-800 {
-  background-color: #2563eb !important;
+  background-color: #3b82f6 !important; /* Blue 500 */
   color: white !important;
 }
 
-span.bg-amber-100.text-amber-700,
-span.bg-amber-100.text-amber-800,
+/* Yellow status badges (busy, warning) - 500 level with BLACK text for contrast */
+span[class*="px-"][class*="py-"][class*="rounded"].bg-yellow-500,
+span[class*="px-"][class*="py-"][class*="rounded"].bg-amber-600,
 span.bg-yellow-100.text-yellow-700,
-span.bg-yellow-100.text-yellow-800 {
-  background-color: #d97706 !important;
-  color: white !important;
+span.bg-yellow-100.text-yellow-800,
+span.bg-amber-100.text-amber-700,
+span.bg-amber-100.text-amber-800 {
+  background-color: #eab308 !important; /* Yellow 500 */
+  color: black !important;
 }
 
+/* Gray status badges (pending, queued, unknown) - 500 level with white text */
+span[class*="px-"][class*="py-"][class*="rounded"].bg-gray-500,
+span[class*="px-"][class*="py-"][class*="rounded"].bg-gray-600,
 span.bg-gray-100.text-gray-700,
 span.bg-gray-100.text-gray-800 {
-  background-color: #4b5563 !important;
+  background-color: #6b7280 !important; /* Gray 500 */
+  color: white !important;
+}
+
+/* Gray 400 for queued/inactive - lighter gray */
+span[class*="px-"][class*="py-"][class*="rounded"].bg-gray-400 {
+  background-color: #9ca3af !important; /* Gray 400 */
+  color: white !important;
+}
+
+/* Orange status badges (critical) - 500 level with white text */
+span[class*="px-"][class*="py-"][class*="rounded"].bg-orange-500 {
+  background-color: #f97316 !important; /* Orange 500 */
+  color: white !important;
+}
+
+/* Purple badges (releases, etc) - 500 level with white text */
+span[class*="px-"][class*="py-"][class*="rounded"].bg-purple-500,
+span[class*="px-"][class*="py-"][class*="rounded"].bg-purple-600 {
+  background-color: #a855f7 !important; /* Purple 500 */
   color: white !important;
 }
