@@ -1,7 +1,7 @@
 // src/components/monitoring/MetricDetailModal.tsx
 
 import React, { useState, useEffect } from 'react';
-import { X, Calendar, TrendingUp, RefreshCw, Trash2 } from 'lucide-react';
+import { X, Calendar, TrendingUp, RefreshCw, Trash2, ChevronLeft, ChevronRight } from 'lucide-react';
 
 interface MetricHistory {
   id?: number;
@@ -35,6 +35,8 @@ export const MetricDetailModal: React.FC<MetricDetailModalProps> = ({
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
   const [selectedRows, setSelectedRows] = useState<Set<number>>(new Set());
+  const [currentPage, setCurrentPage] = useState(1);
+  const [itemsPerPage] = useState(10);
 
   const fetchHistory = async () => {
     setLoading(true);
@@ -143,6 +145,13 @@ export const MetricDetailModal: React.FC<MetricDetailModalProps> = ({
   const minValue = history.length > 0
     ? Math.min(...history.map(m => getMetricData(m)))
     : 0;
+
+  // Pagination logic
+  const reversedHistory = history.slice().reverse();
+  const totalPages = Math.ceil(reversedHistory.length / itemsPerPage);
+  const startIndex = (currentPage - 1) * itemsPerPage;
+  const endIndex = startIndex + itemsPerPage;
+  const paginatedHistory = reversedHistory.slice(startIndex, endIndex);
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
@@ -297,85 +306,47 @@ export const MetricDetailModal: React.FC<MetricDetailModalProps> = ({
             </div>
           ) : (
             <div>
-              {/* Line Chart with Area */}
-              <div className="p-6 bg-gray-50 rounded-lg border border-gray-200">
-                <div className="relative h-80">
-                  {/* Y-axis labels */}
-                  <div className="absolute left-0 top-0 bottom-0 w-12 flex flex-col justify-between text-xs text-gray-600">
-                    <span>100%</span>
-                    <span>75%</span>
-                    <span>50%</span>
-                    <span>25%</span>
-                    <span>0%</span>
+              {/* Column Chart */}
+              <div className="p-6 bg-gray-50 rounded-lg border border-gray-200 mb-6">
+                <div className="flex items-end justify-between gap-1 h-64 border-b border-l border-gray-300 pb-2 pl-2">
+                  {history.slice(-20).map((m, i) => {
+                    const value = getMetricData(m);
+                    const time = new Date(m.timestamp).toLocaleTimeString();
+                    return (
+                      <div key={i} className="flex-1 flex flex-col items-center gap-1 group relative">
+                        <div className="w-full flex items-end justify-center" style={{ height: '240px' }}>
+                          <div
+                            className={`w-full rounded-t transition-all relative ${
+                              value >= 80 ? 'bg-gradient-to-t from-red-500 to-red-600' :
+                              value >= 60 ? 'bg-gradient-to-t from-yellow-500 to-amber-500' :
+                              'bg-gradient-to-t from-green-500 to-green-600'
+                            }`}
+                            style={{ height: `${value}%` }}
+                          >
+                            <span className="absolute -top-6 left-1/2 transform -translate-x-1/2 text-xs font-semibold text-gray-700 whitespace-nowrap">
+                              {value}%
+                            </span>
+                          </div>
+                        </div>
+                        <span className="text-[10px] text-gray-600 transform rotate-45 origin-left whitespace-nowrap mt-2">
+                          {time}
+                        </span>
+                      </div>
+                    );
+                  })}
+                </div>
+                <div className="mt-8 flex items-center justify-center gap-4 text-xs">
+                  <div className="flex items-center gap-2">
+                    <div className="w-4 h-4 rounded bg-gradient-to-t from-green-500 to-green-600"></div>
+                    <span className="text-gray-700">Normal (&lt; 60%)</span>
                   </div>
-
-                  {/* Grid lines */}
-                  <div className="absolute left-12 right-0 top-0 bottom-0">
-                    {[0, 25, 50, 75, 100].map((val) => (
-                      <div
-                        key={val}
-                        className="absolute w-full border-t border-gray-200"
-                        style={{ bottom: `${val}%` }}
-                      />
-                    ))}
+                  <div className="flex items-center gap-2">
+                    <div className="w-4 h-4 rounded bg-gradient-to-t from-yellow-500 to-amber-500"></div>
+                    <span className="text-gray-700">Warning (60-80%)</span>
                   </div>
-
-                  {/* Chart area */}
-                  <div className="absolute left-12 right-0 top-0 bottom-0">
-                    <svg className="w-full h-full" preserveAspectRatio="none">
-                      {/* Area fill */}
-                      <defs>
-                        <linearGradient id={`gradient-${color}`} x1="0%" y1="0%" x2="0%" y2="100%">
-                          <stop offset="0%" stopColor={color === 'blue' ? '#3b82f6' : color === 'purple' ? '#a855f7' : '#f97316'} stopOpacity="0.3" />
-                          <stop offset="100%" stopColor={color === 'blue' ? '#3b82f6' : color === 'purple' ? '#a855f7' : '#f97316'} stopOpacity="0.05" />
-                        </linearGradient>
-                      </defs>
-
-                      {history.length > 1 && (
-                        <>
-                          {/* Area polygon */}
-                          <polygon
-                            points={`
-                              ${history.map((m, i) => {
-                                const x = (i / (history.length - 1)) * 100;
-                                const y = 100 - getMetricData(m);
-                                return `${x},${y}`;
-                              }).join(' ')}
-                              100,100 0,100
-                            `}
-                            fill={`url(#gradient-${color})`}
-                            vectorEffect="non-scaling-stroke"
-                          />
-
-                          {/* Line */}
-                          <polyline
-                            points={history.map((m, i) => {
-                              const x = (i / (history.length - 1)) * 100;
-                              const y = 100 - getMetricData(m);
-                              return `${x},${y}`;
-                            }).join(' ')}
-                            fill="none"
-                            stroke={color === 'blue' ? '#3b82f6' : color === 'purple' ? '#a855f7' : '#f97316'}
-                            strokeWidth="3"
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                            vectorEffect="non-scaling-stroke"
-                          />
-                        </>
-                      )}
-                    </svg>
-                  </div>
-
-                  {/* X-axis time labels */}
-                  <div className="absolute left-12 right-0 -bottom-6 flex justify-between text-xs text-gray-600">
-                    {history.length > 0 && (
-                      <>
-                        <span>{new Date(history[0].timestamp).toLocaleTimeString()}</span>
-                        {history.length > 1 && (
-                          <span>{new Date(history[history.length - 1].timestamp).toLocaleTimeString()}</span>
-                        )}
-                      </>
-                    )}
+                  <div className="flex items-center gap-2">
+                    <div className="w-4 h-4 rounded bg-gradient-to-t from-red-500 to-red-600"></div>
+                    <span className="text-gray-700">Critical (&gt;= 80%)</span>
                   </div>
                 </div>
               </div>
@@ -383,14 +354,19 @@ export const MetricDetailModal: React.FC<MetricDetailModalProps> = ({
               {/* Data Table */}
               <div className="mt-6">
                 <div className="flex items-center justify-between mb-3">
-                  <h4 className="text-sm font-semibold text-gray-900">Recent Data Points ({history.length})</h4>
-                  {selectedRows.size > 0 && (
-                    <span className="text-sm text-gray-600">{selectedRows.size} selected</span>
-                  )}
+                  <h4 className="text-sm font-semibold text-gray-900">Recent Data Points ({history.length} total)</h4>
+                  <div className="flex items-center gap-4">
+                    {selectedRows.size > 0 && (
+                      <span className="text-sm text-gray-600">{selectedRows.size} selected</span>
+                    )}
+                    <span className="text-sm text-gray-600">
+                      Page {currentPage} of {totalPages}
+                    </span>
+                  </div>
                 </div>
-                <div className="overflow-x-auto max-h-96 overflow-y-auto border border-gray-200 rounded-lg">
+                <div className="overflow-x-auto border border-gray-200 rounded-lg">
                   <table className="w-full text-sm">
-                    <thead className="bg-gray-50 sticky top-0">
+                    <thead className="bg-gray-50">
                       <tr>
                         <th className="px-4 py-2 text-left">
                           <input
@@ -406,21 +382,21 @@ export const MetricDetailModal: React.FC<MetricDetailModalProps> = ({
                       </tr>
                     </thead>
                     <tbody className="bg-white">
-                      {history.slice().reverse().map((m, i) => {
+                      {paginatedHistory.map((m, i) => {
                         const value = getMetricData(m);
-                        const reversedIndex = history.length - 1 - i;
+                        const actualIndex = history.length - 1 - (startIndex + i);
                         return (
                           <tr
                             key={i}
                             className={`border-b border-gray-100 hover:bg-gray-50 transition-colors ${
-                              selectedRows.has(reversedIndex) ? 'bg-blue-50' : ''
+                              selectedRows.has(actualIndex) ? 'bg-blue-50' : ''
                             }`}
                           >
                             <td className="px-4 py-2">
                               <input
                                 type="checkbox"
-                                checked={selectedRows.has(reversedIndex)}
-                                onChange={() => toggleRowSelection(reversedIndex)}
+                                checked={selectedRows.has(actualIndex)}
+                                onChange={() => toggleRowSelection(actualIndex)}
                                 className="rounded border-gray-300 text-blue-500 focus:ring-[blue-500]"
                               />
                             </td>
@@ -450,6 +426,58 @@ export const MetricDetailModal: React.FC<MetricDetailModalProps> = ({
                       })}
                     </tbody>
                   </table>
+                </div>
+
+                {/* Pagination Controls */}
+                <div className="flex items-center justify-between mt-4">
+                  <div className="text-sm text-gray-600">
+                    Showing {startIndex + 1} to {Math.min(endIndex, history.length)} of {history.length} entries
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <button
+                      onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
+                      disabled={currentPage === 1}
+                      className="px-3 py-1.5 border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center gap-1"
+                    >
+                      <ChevronLeft className="h-4 w-4" />
+                      Previous
+                    </button>
+                    <div className="flex items-center gap-1">
+                      {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
+                        let pageNum;
+                        if (totalPages <= 5) {
+                          pageNum = i + 1;
+                        } else if (currentPage <= 3) {
+                          pageNum = i + 1;
+                        } else if (currentPage >= totalPages - 2) {
+                          pageNum = totalPages - 4 + i;
+                        } else {
+                          pageNum = currentPage - 2 + i;
+                        }
+                        return (
+                          <button
+                            key={pageNum}
+                            onClick={() => setCurrentPage(pageNum)}
+                            className={`px-3 py-1.5 border rounded-lg transition-colors font-medium ${
+                              currentPage === pageNum
+                                ? 'bg-blue-500 text-white border-blue-500'
+                                : 'border-gray-300 text-gray-700 hover:bg-gray-50 hover:text-gray-900'
+                            }`}
+                          >
+                            {pageNum}
+                          </button>
+                        );
+                      })}
+                    </div>
+                    <button
+                      onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
+                      disabled={currentPage === totalPages}
+                      className="px-3 py-1.5 border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center gap-1"
+                    >
+                      Next
+                      <ChevronRight className="h-4 w-4" />
+                    </button>
+                  </div>
                 </div>
               </div>
             </div>

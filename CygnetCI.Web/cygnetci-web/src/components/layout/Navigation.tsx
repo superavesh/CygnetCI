@@ -16,9 +16,7 @@ import {
   Upload,
   Users,
   Building2,
-  RotateCcw,
-  ChevronLeft,
-  ChevronRight
+  RotateCcw
 } from 'lucide-react';
 
 const navItems = [
@@ -36,29 +34,16 @@ const navItems = [
 
 export const Navigation: React.FC = () => {
   const pathname = usePathname();
-  const { isCollapsed, toggleSidebar } = useSidebar();
+  const { isCollapsed, setIsCollapsed } = useSidebar();
 
   return (
-    <nav className={`fixed left-0 top-16 h-[calc(100vh-4rem)] bg-white shadow-lg border-r border-gray-200 transition-all duration-300 z-30 ${
-      isCollapsed ? 'w-16' : 'w-64'
-    }`}>
-      {/* Toggle Button */}
-      <button
-        onClick={toggleSidebar}
-        className="absolute -right-3 top-6 rounded-full p-1.5 shadow-lg hover:shadow-xl transition-all"
-        style={{
-          background: 'linear-gradient(135deg, #1a365d, #2d4a73)',
-          border: '2px solid white'
-        }}
-        title={isCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
-      >
-        {isCollapsed ? (
-          <ChevronRight className="w-5 h-5 text-white" />
-        ) : (
-          <ChevronLeft className="w-5 h-5 text-white" />
-        )}
-      </button>
-
+    <nav
+      className={`fixed left-0 top-16 h-[calc(100vh-4rem)] bg-gradient-to-b from-gray-50 to-white shadow-lg border-r border-gray-100 transition-all duration-300 z-30 ${
+        isCollapsed ? 'w-16' : 'w-64'
+      }`}
+      onMouseEnter={() => setIsCollapsed(false)}
+      onMouseLeave={() => setIsCollapsed(true)}
+    >
       {/* Navigation Items */}
       <div className="flex flex-col py-4 overflow-y-auto h-full">
         {navItems.map(item => {
@@ -67,16 +52,16 @@ export const Navigation: React.FC = () => {
             <Link
               key={item.id}
               href={item.href}
-              className={`flex items-center ${isCollapsed ? 'justify-center' : 'space-x-3'} px-4 py-3 mx-2 rounded-lg font-medium text-sm transition-all border-l-4 ${
+              onClick={() => setIsCollapsed(true)}
+              className={`flex items-center ${isCollapsed ? 'justify-center' : 'space-x-3'} px-4 py-3 mx-2 rounded-xl font-medium text-sm transition-all relative group ${
                 isActive
-                  ? 'bg-gray-100 border-blue-500'
-                  : 'hover:bg-gray-50 border-transparent'
+                  ? 'bg-gradient-to-r from-blue-500 to-purple-600 text-white shadow-md'
+                  : 'text-gray-700 hover:bg-gradient-to-r hover:from-blue-50 hover:to-purple-50 hover:text-blue-600'
               }`}
-              style={isActive ? { color: '#1a365d' } : { color: '#4b5563' }}
               title={isCollapsed ? item.name : undefined}
             >
-              <item.icon className={`${isCollapsed ? 'w-6 h-6' : 'w-5 h-5'} flex-shrink-0`} style={isActive ? { color: '#1a365d' } : { color: '#4b5563' }} />
-              {!isCollapsed && <span className={`truncate`} style={isActive ? { color: '#1a365d' } : { color: '#4b5563' }}>{item.name}</span>}
+              <item.icon className={`${isCollapsed ? 'w-6 h-6' : 'w-5 h-5'} flex-shrink-0 ${isActive ? 'text-white' : 'text-gray-600 group-hover:text-blue-600'} transition-colors`} />
+              {!isCollapsed && <span className={`truncate ${isActive ? 'text-white' : 'text-gray-700 group-hover:text-blue-600'}`}>{item.name}</span>}
             </Link>
           );
         })}

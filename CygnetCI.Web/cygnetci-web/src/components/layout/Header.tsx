@@ -81,18 +81,18 @@ export const Header: React.FC<HeaderProps> = ({ onRefresh }) => {
         <div className="flex justify-between items-center h-16">
           <div className="flex items-center space-x-4">
             <div className="flex items-center space-x-3">
-              <div className="relative w-12 h-12">
+              <div className="relative w-10 h-10">
                 <Image
                   src="/cygnet-logo.svg"
                   alt="CygnetCI Logo"
-                  width={48}
-                  height={48}
+                  width={40}
+                  height={40}
                   priority
                 />
               </div>
               <div>
-                <h1 className="text-2xl font-bold text-gray-800">{CONFIG.app.name}</h1>
-                <p className="text-sm text-gray-600">CI/CD Management Platform v{CONFIG.app.version}</p>
+                <h1 className="text-2xl font-bold bg-gradient-to-r from-blue-600 via-purple-600 to-indigo-600 bg-clip-text text-transparent">{CONFIG.app.name}</h1>
+                <p className="text-xs text-gray-600">CI/CD Management Platform v{CONFIG.app.version}</p>
               </div>
             </div>
           </div>
@@ -102,10 +102,10 @@ export const Header: React.FC<HeaderProps> = ({ onRefresh }) => {
             {onRefresh && (
               <button
                 onClick={onRefresh}
-                className="p-2 bg-white hover:bg-gray-100 rounded-lg transition-colors border border-gray-200 shadow-sm"
+                className="p-2 bg-gradient-to-r from-blue-50 to-purple-50 hover:from-blue-100 hover:to-purple-100 rounded-lg transition-all border border-blue-200 shadow-sm"
                 title="Refresh Data"
               >
-                <RefreshCw className="h-4 w-4" style={{ color: '#1a365d' }} />
+                <RefreshCw className="h-4 w-4 text-blue-600" />
               </button>
             )}
 
@@ -113,11 +113,10 @@ export const Header: React.FC<HeaderProps> = ({ onRefresh }) => {
             <div className="relative" ref={userMenuRef}>
               <button
                 onClick={() => setShowUserMenu(!showUserMenu)}
-                className="p-1 bg-white rounded-full border border-gray-200 shadow-sm transition-colors"
-                style={{ borderColor: '#1a365d' }}
+                className="p-1 bg-gradient-to-r from-blue-50 to-purple-50 hover:from-blue-100 hover:to-purple-100 rounded-full border border-blue-200 shadow-md transition-all"
                 title={currentUser?.full_name || 'User Menu'}
               >
-                <div className="h-9 w-9 rounded-full flex items-center justify-center" style={{ background: 'linear-gradient(to bottom right, #1a365d, #2d4a73)' }}>
+                <div className="h-9 w-9 rounded-full flex items-center justify-center bg-gradient-to-br from-blue-500 to-purple-600">
                   {currentUser ? (
                     <span className="text-sm font-bold text-white">
                       {getUserInitials(currentUser.full_name)}
@@ -130,11 +129,11 @@ export const Header: React.FC<HeaderProps> = ({ onRefresh }) => {
 
               {/* Dropdown Menu */}
               {showUserMenu && (
-                <div className="absolute right-0 mt-2 w-64 bg-white rounded-lg shadow-xl border z-50" style={{ borderColor: '#1a365d' }}>
+                <div className="absolute right-0 mt-2 w-64 bg-white rounded-xl shadow-2xl border border-gray-100 z-50 overflow-hidden">
                   {/* User Info Section */}
-                  <div className="px-4 py-4 border-b" style={{ borderColor: '#e5e7eb', background: 'linear-gradient(to bottom, #f8f9fa, #ffffff)' }}>
+                  <div className="px-4 py-4 bg-gradient-to-br from-blue-50 to-purple-50 border-b border-gray-100">
                     <div className="flex items-center space-x-3">
-                      <div className="h-14 w-14 rounded-full flex items-center justify-center shadow-md" style={{ background: 'linear-gradient(135deg, #1a365d, #2d4a73)' }}>
+                      <div className="h-14 w-14 rounded-full flex items-center justify-center shadow-lg bg-gradient-to-br from-orange-500 to-pink-500">
                         {currentUser && (
                           <span className="text-xl font-bold text-white">
                             {getUserInitials(currentUser.full_name)}
@@ -142,12 +141,12 @@ export const Header: React.FC<HeaderProps> = ({ onRefresh }) => {
                         )}
                       </div>
                       <div className="flex-1">
-                        <p className="text-sm font-semibold" style={{ color: '#1a365d' }}>
+                        <p className="text-sm font-semibold text-gray-800">
                           {currentUser?.full_name || 'Loading...'}
                         </p>
                         <p className="text-xs text-gray-500">{currentUser?.email}</p>
                         {currentUser?.is_superuser && (
-                          <p className="text-xs mt-1 font-medium px-2 py-0.5 rounded inline-block" style={{ background: '#fef3c7', color: '#92400e' }}>
+                          <p className="text-xs mt-1 font-medium px-2 py-0.5 rounded inline-block bg-gradient-to-r from-yellow-100 to-amber-100 text-amber-700">
                             👑 Administrator
                           </p>
                         )}
@@ -161,10 +160,9 @@ export const Header: React.FC<HeaderProps> = ({ onRefresh }) => {
                       onClick={() => {
                         setShowUserMenu(false);
                       }}
-                      className="w-full px-4 py-2 text-left text-sm hover:bg-gray-50 transition-colors flex items-center space-x-2"
-                      style={{ color: '#1a365d' }}
+                      className="w-full px-4 py-2 text-left text-sm text-gray-700 hover:bg-gradient-to-r hover:from-blue-50 hover:to-purple-50 transition-colors flex items-center space-x-2"
                     >
-                      <User className="h-4 w-4" style={{ color: '#1a365d' }} />
+                      <User className="h-4 w-4 text-blue-600" />
                       <span>View Profile</span>
                     </button>
                     <button

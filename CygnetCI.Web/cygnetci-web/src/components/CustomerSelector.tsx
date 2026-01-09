@@ -46,19 +46,12 @@ export default function CustomerSelector() {
     <div className="relative customer-dropdown">
       <button
         onClick={() => setIsOpen(!isOpen)}
-        className="flex items-center gap-2 px-4 py-2 bg-white border rounded-lg hover:bg-gray-100 transition-colors min-w-[200px] shadow-sm"
-        style={{ borderColor: '#1a365d' }}
+        className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-blue-50 to-purple-50 border border-blue-200 rounded-lg hover:from-blue-100 hover:to-purple-100 transition-all shadow-sm"
       >
-        <div className="p-1 rounded" style={{ background: 'linear-gradient(to bottom right, #1a365d, #2d4a73)' }}>
-          <Building2 className="w-4 h-4 text-white" />
+        <div className="text-sm font-medium text-gray-800 truncate">
+          {selectedCustomer?.display_name || 'Select Customer'}
         </div>
-        <div className="flex-1 text-left">
-          <div className="text-xs text-gray-500">Customer</div>
-          <div className="text-sm font-medium truncate" style={{ color: '#1a365d' }}>
-            {selectedCustomer?.display_name || 'Select Customer'}
-          </div>
-        </div>
-        <ChevronDown className={`w-4 h-4 transition-transform ${isOpen ? 'rotate-180' : ''}`} style={{ color: '#1a365d' }} />
+        <ChevronDown className={`w-4 h-4 text-blue-600 transition-transform ${isOpen ? 'rotate-180' : ''}`} />
       </button>
 
       {isOpen && (

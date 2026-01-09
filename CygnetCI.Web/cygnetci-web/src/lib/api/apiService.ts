@@ -1,7 +1,6 @@
 // src/lib/api/apiService.ts
 
 import { CONFIG } from '../config';
-import { DUMMY_DATA } from '@/data/dummyData';
 import type { DashboardData, Environment, Release, ReleaseExecution, TransferFile, TransferFilePickup } from '@/types';
 
 class ApiService {
