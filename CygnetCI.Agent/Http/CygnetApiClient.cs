@@ -83,6 +83,7 @@ public class CygnetApiClient : ICygnetApiClient
                 status = metrics.Status,
                 cpu = metrics.CpuUsage,
                 memory = metrics.MemoryUsage,
+                disk = metrics.DiskUsage,
                 jobs = metrics.ActiveJobs
             };
 

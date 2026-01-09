@@ -898,27 +898,22 @@ def get_agent_drive_info(agent_uuid: str, db: Session = Depends(get_db)):
     if not agent:
         raise HTTPException(status_code=404, detail="Agent not found")
 
-    # Mock drive data - In production, agent would report this
-    drives = [
-        {
-            "letter": "C:",
-            "label": "System",
-            "total_gb": 500,
-            "used_gb": 320,
-            "free_gb": 180,
-            "percent_used": 64
-        },
-        {
-            "letter": "D:",
-            "label": "Data",
-            "total_gb": 1000,
-            "used_gb": 450,
-            "free_gb": 550,
-            "percent_used": 45
-        }
-    ]
+    # Get drive data from database
+    drives = db.query(models.AgentDriveInfo)\
+        .filter(models.AgentDriveInfo.agent_id == agent.id)\
+        .all()
 
-    return drives
+    return [
+        {
+            "letter": drive.drive_letter,
+            "label": drive.drive_label,
+            "total_gb": drive.total_gb,
+            "used_gb": drive.used_gb,
+            "free_gb": drive.free_gb,
+            "percent_used": drive.percent_used
+        }
+        for drive in drives
+    ]
 
 @app.get("/monitoring/agents/{agent_uuid}/website-ping", tags=["🌐 UI - Monitoring"])
 def get_agent_website_ping(agent_uuid: str, db: Session = Depends(get_db)):
@@ -2866,6 +2861,20 @@ def agent_heartbeat(agent_uuid: str, heartbeat: dict, db: Session = Depends(get_
     agent.memory = heartbeat.get("memory", 0)
     agent.jobs = heartbeat.get("jobs", 0)
     agent.last_seen = datetime.now()
+
+    # Save resource data to AgentResourceData table for historical tracking
+    cpu = heartbeat.get("cpu", 0)
+    memory = heartbeat.get("memory", 0)
+    disk = heartbeat.get("disk", 0)
+
+    resource_data = models.AgentResourceData(
+        agent_id=agent.id,
+        cpu=cpu,
+        memory=memory,
+        disk=disk,
+        timestamp=datetime.now()
+    )
+    db.add(resource_data)
 
     db.commit()
 
