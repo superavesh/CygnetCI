@@ -16,27 +16,6 @@ export default function OverviewPage() {
 
   return (
     <div className="space-y-8">
-      {/* API Status Indicator */}
-      <div className="bg-white rounded-lg p-4 shadow-sm border border-gray-200">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center space-x-3">
-            <div className={`h-3 w-3 rounded-full ${CONFIG.app.useRealAPI ? 'bg-green-500' : 'bg-yellow-500'}`}></div>
-            <span className="text-sm text-gray-600">
-              {CONFIG.app.useRealAPI ? 'Connected to API' : 'Using dummy data'}
-            </span>
-          </div>
-          <button
-            onClick={() => {
-              CONFIG.app.useRealAPI = !CONFIG.app.useRealAPI;
-              refetch();
-            }}
-            className="text-sm text-blue-500 hover:text-blue-700 transition-colors"
-          >
-            {CONFIG.app.useRealAPI ? 'Switch to Dummy' : 'Switch to API'}
-          </button>
-        </div>
-      </div>
-
       {/* Stats Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         <StatCard 

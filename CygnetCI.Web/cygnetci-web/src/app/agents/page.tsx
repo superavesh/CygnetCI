@@ -13,7 +13,6 @@ import { SimpleChart } from '@/components/charts/SimpleChart';
 import { AddAgentModal } from '@/components/agents/AddAgentModal';
 import { ConfigureAgentModal } from '@/components/agents/ConfigureAgentModal';
 import { AgentLogsModal } from '@/components/agents/AgentLogsModal';
-import { generateResourceData } from '@/data/dummyData';
 import type { Agent } from '@/types';
 
 export default function AgentsPage() {

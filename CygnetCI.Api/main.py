@@ -2055,6 +2055,49 @@ def get_release_execution(execution_id: int, db: Session = Depends(get_db)):
         ]
     }
 
+@app.get("/release-executions/{execution_id}/pipeline-executions", tags=["🌐 UI - Releases"])
+def get_release_pipeline_executions(execution_id: int, db: Session = Depends(get_db)):
+    """Get list of pipeline executions for a release execution"""
+    # First, verify the release execution exists
+    release_execution = db.query(models.ReleaseExecution).filter(models.ReleaseExecution.id == execution_id).first()
+    if not release_execution:
+        raise HTTPException(status_code=404, detail="Release execution not found")
+
+    # Get all pipeline executions that were created as part of this release
+    time_window_start = release_execution.started_at
+    time_window_end = release_execution.completed_at if release_execution.completed_at else datetime.now()
+
+    pipeline_executions = db.query(models.PipelineExecution)\
+        .filter(models.PipelineExecution.triggered_by == release_execution.triggered_by)\
+        .filter(models.PipelineExecution.started_at >= time_window_start)\
+        .filter(models.PipelineExecution.started_at <= time_window_end)\
+        .order_by(models.PipelineExecution.started_at)\
+        .all()
+
+    # Build response with pipeline information
+    result = []
+    for pipe_exec in pipeline_executions:
+        # Get pipeline name
+        pipeline = db.query(models.Pipeline).filter(models.Pipeline.id == pipe_exec.pipeline_id).first()
+        pipeline_name = pipeline.name if pipeline else f"Pipeline {pipe_exec.pipeline_id}"
+
+        # Calculate duration if completed
+        duration = None
+        if pipe_exec.completed_at and pipe_exec.started_at:
+            duration = int((pipe_exec.completed_at - pipe_exec.started_at).total_seconds())
+
+        result.append({
+            "id": pipe_exec.id,
+            "pipeline_id": pipe_exec.pipeline_id,
+            "pipeline_name": pipeline_name,
+            "status": pipe_exec.status,
+            "started_at": pipe_exec.started_at.isoformat(),
+            "completed_at": pipe_exec.completed_at.isoformat() if pipe_exec.completed_at else None,
+            "duration": duration
+        })
+
+    return result
+
 @app.get("/release-executions/{execution_id}/logs", tags=["🌐 UI - Releases"])
 def get_release_execution_logs(execution_id: int, db: Session = Depends(get_db)):
     """Get all pipeline execution logs for a release execution"""
@@ -3623,6 +3666,7 @@ async def upload_rollback_script(
     """Upload a SQL rollback/migration script for analysis"""
     import os
     from pathlib import Path
+    from datetime import datetime
 
     # Validate file extension
     if not file.filename.endswith('.sql'):
@@ -3632,18 +3676,26 @@ async def upload_rollback_script(
     rollback_folder = Path("../NFSShared/rollback")
     rollback_folder.mkdir(parents=True, exist_ok=True)
 
-    # Save file
-    file_path = rollback_folder / file.filename
+    # Generate unique filename with timestamp to avoid overwriting
+    # Format: originalname_YYYYMMDD_HHMMSS.sql
+    original_filename = file.filename
+    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+    filename_without_ext = original_filename.rsplit('.', 1)[0]
+    file_extension = original_filename.rsplit('.', 1)[1] if '.' in original_filename else 'sql'
+    unique_filename = f"{filename_without_ext}_{timestamp}.{file_extension}"
+
+    # Save file with unique name
+    file_path = rollback_folder / unique_filename
     content = await file.read()
     file_size = len(content)
 
     with open(file_path, "wb") as f:
         f.write(content)
 
-    # Create database record
+    # Create database record - store original filename for display/download
     script = models.RollbackScript(
-        filename=file.filename,
-        file_path=str(file_path),
+        filename=original_filename,  # Store original filename
+        file_path=str(file_path),     # Store actual file path with timestamp
         description=description,
         uploaded_by=uploaded_by,
         file_size=file_size,

@@ -33,7 +33,7 @@ export const ExecutionViewModal: React.FC<ExecutionViewModalProps> = ({
   executionId
 }) => {
   const [logs, setLogs] = useState<LogLine[]>([]);
-  const [isRunning, setIsRunning] = useState(true);
+  const [isRunning, setIsRunning] = useState(false);
   const [copied, setCopied] = useState(false);
   const logsEndRef = useRef<HTMLDivElement>(null);
   const logsContainerRef = useRef<HTMLDivElement>(null);
@@ -43,27 +43,63 @@ export const ExecutionViewModal: React.FC<ExecutionViewModalProps> = ({
     logsEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [logs]);
 
-  // Fetch execution logs from API
+  // Fetch execution status and logs from API
   useEffect(() => {
-    if (!isOpen || !executionId) return;
+    console.log('[ExecutionViewModal] useEffect triggered:', { isOpen, executionId, pipelineId });
 
-    const fetchLogs = async () => {
+    if (!isOpen || !executionId) {
+      console.log('[ExecutionViewModal] Skipping fetch - modal closed or no executionId');
+      return;
+    }
+
+    console.log('[ExecutionViewModal] Starting fetch for execution:', executionId);
+
+    const fetchExecutionData = async () => {
       try {
-        const response = await fetch(`http://127.0.0.1:8000/pipeline-executions/${executionId}/logs`);
-        if (response.ok) {
-          const data = await response.json();
-          setLogs(data);
+        // Fetch execution status from the executions endpoint (only if pipelineId is provided)
+        if (pipelineId && pipelineId > 0) {
+          const statusResponse = await fetch(`http://127.0.0.1:8000/pipelines/${pipelineId}/executions?limit=500`);
+          if (statusResponse.ok) {
+            const executions = await statusResponse.json();
+            const currentExecution = executions.find((exec: any) => exec.id === executionId);
 
-          // Check if execution is still running by checking the last log
-          if (data.length > 0) {
-            const lastLog = data[data.length - 1];
-            const isComplete = lastLog.log_level === 'success' &&
-                             (lastLog.message.includes('completed') || lastLog.message.includes('finished'));
-            setIsRunning(!isComplete);
+            if (currentExecution) {
+              // Check if execution is still running based on actual status from database
+              // An execution IS running ONLY if status is exactly 'running'
+              const running = currentExecution.status === 'running';
+              setIsRunning(running);
+            } else {
+              setIsRunning(false);
+            }
+          } else {
+            setIsRunning(false);
           }
+        } else {
+          // If no pipelineId, assume execution is not running
+          console.log('[ExecutionViewModal] No pipelineId provided, assuming execution is not running');
+          setIsRunning(false);
+        }
+
+        // Fetch logs with high limit to get all logs
+        const logsUrl = `http://127.0.0.1:8000/pipeline-executions/${executionId}/logs?limit=10000`;
+        console.log('[ExecutionViewModal] Fetching logs from:', logsUrl);
+        const logsResponse = await fetch(logsUrl);
+        console.log('[ExecutionViewModal] Logs response status:', logsResponse.status, logsResponse.ok);
+
+        if (logsResponse.ok) {
+          const data = await logsResponse.json();
+          console.log('[ExecutionViewModal] Logs data received:', data.length, 'logs');
+          if (data && Array.isArray(data)) {
+            setLogs(data);
+          } else {
+            console.error('[ExecutionViewModal] Invalid logs data format:', data);
+          }
+        } else {
+          console.error('[ExecutionViewModal] Failed to fetch logs, status:', logsResponse.status);
         }
       } catch (error) {
-        console.error('Failed to fetch logs:', error);
+        console.error('Failed to fetch execution data:', error);
+        setIsRunning(false);
         setLogs([{
           id: 0,
           timestamp: new Date().toISOString(),
@@ -75,17 +111,15 @@ export const ExecutionViewModal: React.FC<ExecutionViewModalProps> = ({
     };
 
     // Initial fetch
-    fetchLogs();
+    fetchExecutionData();
 
-    // Poll for new logs every 2 seconds while running
-    const logInterval = setInterval(() => {
-      if (isRunning) {
-        fetchLogs();
-      }
+    // Poll for new data every 2 seconds
+    const pollInterval = setInterval(() => {
+      fetchExecutionData();
     }, 2000);
 
-    return () => clearInterval(logInterval);
-  }, [isOpen, executionId, isRunning]);
+    return () => clearInterval(pollInterval);
+  }, [isOpen, executionId]);
 
   if (!isOpen) return null;
 
@@ -213,38 +247,49 @@ export const ExecutionViewModal: React.FC<ExecutionViewModalProps> = ({
           className="flex-1 overflow-y-auto p-6 bg-black font-mono text-sm"
           style={{ fontFamily: 'Consolas, Monaco, "Courier New", monospace' }}
         >
-          {logs.map((log) => (
-            <div key={log.id} className="flex space-x-3 mb-2">
-              <span className="text-gray-600 flex-shrink-0">
-                {formatTime(log.timestamp)}
-              </span>
-              <span className={`flex-shrink-0 ${getLogColor(log.log_level)}`}>
-                {getLogPrefix(log.log_level, log.source)}
-              </span>
-              {log.step_name && (
-                <span className="text-blue-400 flex-shrink-0">
-                  [{log.step_name}]
-                </span>
+          {logs.length === 0 ? (
+            <div className="flex items-center justify-center h-full">
+              <div className="text-center">
+                <Terminal className="h-16 w-16 text-gray-600 mx-auto mb-4" />
+                <p className="text-gray-500">No logs available for this execution</p>
+              </div>
+            </div>
+          ) : (
+            <>
+              {logs.map((log) => (
+                <div key={log.id} className="flex space-x-3 mb-2">
+                  <span className="text-gray-600 flex-shrink-0">
+                    {formatTime(log.timestamp)}
+                  </span>
+                  <span className={`flex-shrink-0 ${getLogColor(log.log_level)}`}>
+                    {getLogPrefix(log.log_level, log.source)}
+                  </span>
+                  {log.step_name && (
+                    <span className="text-blue-400 flex-shrink-0">
+                      [{log.step_name}]
+                    </span>
+                  )}
+                  <span className={getLogColor(log.log_level)}>
+                    {log.message}
+                  </span>
+                </div>
+              ))}
+
+              {isRunning && (
+                <div className="flex space-x-3 mb-2">
+                  <span className="text-gray-600">
+                    {formatTime(new Date().toISOString())}
+                  </span>
+                  <span className="text-yellow-400 animate-pulse">●</span>
+                  <span className="text-yellow-400 animate-pulse">
+                    Processing...
+                  </span>
+                </div>
               )}
-              <span className={getLogColor(log.log_level)}>
-                {log.message}
-              </span>
-            </div>
-          ))}
 
-          {isRunning && (
-            <div className="flex space-x-3 mb-2">
-              <span className="text-gray-600">
-                {formatTime(new Date().toISOString())}
-              </span>
-              <span className="text-yellow-400 animate-pulse">●</span>
-              <span className="text-yellow-400 animate-pulse">
-                Processing...
-              </span>
-            </div>
+              <div ref={logsEndRef} />
+            </>
           )}
-
-          <div ref={logsEndRef} />
         </div>
 
         {/* Footer */}

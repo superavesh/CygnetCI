@@ -324,36 +324,34 @@ export default function RollbackPage() {
   };
 
   return (
-    <div className="p-6 max-w-7xl mx-auto">
+    <div className="space-y-6">
       {/* Header */}
-      <div className="mb-6">
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-3xl font-bold text-gray-900 flex items-center gap-3">
-              <Database className="h-8 w-8 text-gray-600" />
-              Database Rollback Scripts
-            </h1>
-            <p className="text-gray-600 mt-1">Upload and analyze SQL scripts with AI-powered object detection</p>
-          </div>
-          <button
-            onClick={fetchScripts}
-            className="flex items-center gap-2 px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors"
-          >
-            <RefreshCw className="h-5 w-5" />
-            Refresh
-          </button>
+      <div className="flex items-center justify-between">
+        <div>
+          <h2 className="text-2xl font-bold text-gray-800">Database Rollback Scripts</h2>
+          <p className="text-sm text-gray-600 mt-1">Upload and analyze SQL scripts with AI-powered object detection</p>
         </div>
+        <button
+          onClick={fetchScripts}
+          className="flex items-center gap-2 px-4 py-2 bg-blue-500 hover:bg-blue-600 text-white rounded-lg transition-colors"
+        >
+          <RefreshCw className="h-5 w-5" />
+          Refresh
+        </button>
       </div>
 
       {/* Main Content Grid - Upload and Scripts Side by Side */}
-      <div className="grid grid-cols-1 xl:grid-cols-3 gap-6 mb-6">
+      <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
         {/* Upload Section */}
         <div className="xl:col-span-1">
-          <div className="bg-white rounded-lg shadow-md border border-gray-200 p-6 h-full">
-            <h2 className="text-xl font-semibold text-gray-800 mb-4 flex items-center gap-2">
-              <Upload className="h-6 w-6 text-gray-600" />
-              Upload New Script
-            </h2>
+          <div className="bg-white rounded-xl shadow-lg border border-gray-100 h-full flex flex-col">
+            <div className="px-6 py-4 border-b border-gray-100">
+              <h2 className="text-lg font-semibold text-gray-800 flex items-center gap-2">
+                <Upload className="h-5 w-5 text-blue-500" />
+                Upload New Script
+              </h2>
+            </div>
+            <div className="p-6 flex-1">
             <div className="space-y-4">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -386,14 +384,14 @@ export default function RollbackPage() {
                   <div className="flex flex-col items-center">
                     {selectedFile ? (
                       <>
-                        <CheckCircle className="h-10 w-10 text-blue-500 mb-2" />
+                        <CheckCircle className="h-10 w-10 text-green-500 mb-2" />
                         <p className="text-sm font-semibold text-gray-900 mb-1 truncate w-full">
                           {selectedFile.name}
                         </p>
-                        <p className="text-xs text-gray-600 mb-2">
+                        <p className="text-xs text-gray-700 mb-2">
                           {formatFileSize(selectedFile.size)}
                         </p>
-                        <p className="text-xs text-gray-500">
+                        <p className="text-xs text-gray-600">
                           Click to change
                         </p>
                       </>
@@ -403,10 +401,10 @@ export default function RollbackPage() {
                         <p className="text-sm font-semibold text-gray-900 mb-1">
                           Drop SQL file here
                         </p>
-                        <p className="text-xs text-gray-600 mb-1">
+                        <p className="text-xs text-gray-700 mb-1">
                           or click to browse
                         </p>
-                        <p className="text-xs text-gray-500">
+                        <p className="text-xs text-gray-600">
                           Up to 500MB
                         </p>
                       </>
@@ -423,7 +421,7 @@ export default function RollbackPage() {
                   value={description}
                   onChange={(e) => setDescription(e.target.value)}
                   placeholder="Enter script description"
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm text-gray-900 bg-white"
                 />
               </div>
               <div>
@@ -435,13 +433,13 @@ export default function RollbackPage() {
                   value={uploadedBy}
                   onChange={(e) => setUploadedBy(e.target.value)}
                   placeholder="Your name"
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm text-gray-900 bg-white"
                 />
               </div>
               <button
                 onClick={handleUpload}
                 disabled={!selectedFile || uploading}
-                className="w-full px-4 py-2.5 bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-600 text-white font-semibold rounded-lg shadow-md hover:shadow-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 text-sm font-medium"
+                className="w-full px-4 py-2.5 bg-blue-500 hover:bg-blue-600 text-white font-medium rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
               >
                 {uploading ? (
                   <>
@@ -456,15 +454,16 @@ export default function RollbackPage() {
                 )}
               </button>
             </div>
+            </div>
           </div>
         </div>
 
         {/* Scripts List */}
         <div className="xl:col-span-2">
-          <div className="bg-white rounded-lg shadow-md border border-gray-200 h-full flex flex-col">
-            <div className="px-6 py-4 border-b border-gray-200 flex-shrink-0">
-              <h2 className="text-xl font-semibold text-gray-800 flex items-center gap-2">
-                <FileText className="h-6 w-6 text-gray-600" />
+          <div className="bg-white rounded-xl shadow-lg border border-gray-100 h-full flex flex-col">
+            <div className="px-6 py-4 border-b border-gray-100 flex-shrink-0">
+              <h2 className="text-lg font-semibold text-gray-800 flex items-center gap-2">
+                <FileText className="h-5 w-5 text-purple-500" />
                 Uploaded Scripts ({scripts.length})
               </h2>
             </div>
@@ -595,12 +594,15 @@ export default function RollbackPage() {
       {/* Details Modal */}
       {showDetails && selectedScript && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-lg shadow-2xl w-full max-w-4xl max-h-[90vh] flex flex-col">
-            <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200">
-              <h2 className="text-xl font-semibold text-gray-800">{selectedScript.script_name}</h2>
+          <div className="bg-white rounded-xl shadow-2xl w-full max-w-4xl max-h-[90vh] flex flex-col">
+            <div className="px-6 py-4 border-b border-gray-100 flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <Database className="h-6 w-6 text-green-500" />
+                <h2 className="text-xl font-semibold text-gray-800">{selectedScript.script_name}</h2>
+              </div>
               <button
                 onClick={() => setShowDetails(false)}
-                className="text-gray-400 hover:text-gray-600"
+                className="text-gray-400 hover:text-gray-600 transition-colors"
               >
                 <XCircle className="h-6 w-6" />
               </button>
@@ -728,11 +730,11 @@ export default function RollbackPage() {
               </div>
             </div>
 
-            <div className="px-6 py-4 border-t border-gray-200 flex flex-col sm:flex-row gap-3 justify-between">
+            <div className="px-6 py-4 border-t border-gray-200 bg-gray-50 flex flex-col sm:flex-row gap-3 justify-between">
               <div className="flex flex-col sm:flex-row gap-3">
                 <button
                   onClick={handleDownloadResultsJSON}
-                  className="px-6 py-2 bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-600 text-white font-semibold rounded-lg shadow-md hover:shadow-lg transition-colors flex items-center justify-center gap-2"
+                  className="px-6 py-2 bg-blue-500 hover:bg-blue-600 text-white font-medium rounded-lg transition-colors flex items-center justify-center gap-2"
                   title="Download analysis results as JSON"
                 >
                   <FileDown className="h-4 w-4" />
@@ -740,7 +742,7 @@ export default function RollbackPage() {
                 </button>
                 <button
                   onClick={handleDownloadResultsCSV}
-                  className="px-6 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors flex items-center justify-center gap-2"
+                  className="px-6 py-2 bg-green-500 hover:bg-green-600 text-white font-medium rounded-lg transition-colors flex items-center justify-center gap-2"
                   title="Download analysis results as CSV"
                 >
                   <FileDown className="h-4 w-4" />
@@ -749,7 +751,7 @@ export default function RollbackPage() {
               </div>
               <button
                 onClick={() => setShowDetails(false)}
-                className="px-6 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors"
+                className="px-6 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-100 transition-colors font-medium"
               >
                 Close
               </button>
@@ -761,11 +763,9 @@ export default function RollbackPage() {
       {/* Delete Confirmation Modal */}
       {deleteConfirmation && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-lg shadow-2xl w-full max-w-md">
-            <div className="flex items-center gap-3 px-6 py-4 border-b border-gray-200">
-              <div className="flex-shrink-0 w-12 h-12 rounded-full bg-red-100 flex items-center justify-center">
-                <AlertCircle className="h-6 w-6 text-red-600" />
-              </div>
+          <div className="bg-white rounded-xl shadow-2xl w-full max-w-md">
+            <div className="px-6 py-4 border-b border-gray-100 flex items-center gap-3">
+              <AlertCircle className="h-6 w-6 text-red-500 flex-shrink-0" />
               <div>
                 <h2 className="text-xl font-semibold text-gray-800">Confirm Delete</h2>
                 <p className="text-sm text-gray-600">This action cannot be undone</p>
@@ -781,16 +781,16 @@ export default function RollbackPage() {
               </p>
             </div>
 
-            <div className="px-6 py-4 border-t border-gray-200 flex gap-3 justify-end">
+            <div className="px-6 py-4 border-t border-gray-200 bg-gray-50 flex gap-3 justify-end">
               <button
                 onClick={handleCancelDelete}
-                className="px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-all font-medium"
+                className="px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-100 transition-colors font-medium"
               >
                 Cancel
               </button>
               <button
                 onClick={handleConfirmDelete}
-                className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors font-medium flex items-center gap-2"
+                className="px-4 py-2 bg-red-500 hover:bg-red-600 text-white rounded-lg transition-colors font-medium flex items-center gap-2"
               >
                 <Trash2 className="h-4 w-4" />
                 Delete Script
@@ -808,22 +808,22 @@ export default function RollbackPage() {
             toast.type === 'error' ? 'bg-red-50 border-l-4 border-red-500' :
             'bg-blue-50 border-l-4 border-blue-500'
           }`}>
-            {toast.type === 'success' && <CheckCircle className="h-5 w-5 text-blue-500 flex-shrink-0" />}
+            {toast.type === 'success' && <CheckCircle className="h-5 w-5 text-green-600 flex-shrink-0" />}
             {toast.type === 'error' && <XCircle className="h-5 w-5 text-red-600 flex-shrink-0" />}
-            {toast.type === 'info' && <AlertCircle className="h-5 w-5 text-blue-500 flex-shrink-0" />}
+            {toast.type === 'info' && <AlertCircle className="h-5 w-5 text-blue-600 flex-shrink-0" />}
             <p className={`text-sm font-medium ${
               toast.type === 'success' ? 'text-green-800' :
               toast.type === 'error' ? 'text-red-800' :
-              'text-blue-500'
+              'text-blue-800'
             }`}>
               {toast.message}
             </p>
             <button
               onClick={() => setToast(null)}
               className={`ml-auto flex-shrink-0 ${
-                toast.type === 'success' ? 'text-blue-500 hover:text-green-800' :
+                toast.type === 'success' ? 'text-green-600 hover:text-green-800' :
                 toast.type === 'error' ? 'text-red-600 hover:text-red-800' :
-                'text-blue-500 hover:text-blue-500'
+                'text-blue-600 hover:text-blue-800'
               }`}
             >
               <XCircle className="h-4 w-4" />

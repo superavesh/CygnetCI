@@ -20,7 +20,8 @@ export default function TransferPage() {
   const [uploadSuccess, setUploadSuccess] = useState<string | null>(null);
 
   // Push Section State
-  const [files, setFiles] = useState<TransferFile[]>([]);
+  const [files, setFiles] = useState<TransferFile[]>([]); // Filtered files for push dropdown
+  const [allFiles, setAllFiles] = useState<TransferFile[]>([]); // All files for uploaded files table
   const [versions, setVersions] = useState<string[]>([]);
   const [agents, setAgents] = useState<any[]>([]);
   const [pushFileType, setPushFileType] = useState<'script' | 'artifact'>('script');
@@ -34,6 +35,7 @@ export default function TransferPage() {
 
   // Files List State
   const [filesLoading, setFilesLoading] = useState(false);
+  const [allFilesLoading, setAllFilesLoading] = useState(false);
   const [pickups, setPickups] = useState<TransferFilePickup[]>([]);
   const [pickupsLoading, setPickupsLoading] = useState(false);
 
@@ -46,6 +48,7 @@ export default function TransferPage() {
     fetchVersions();
     fetchAgents();
     fetchPickups();
+    fetchAllFiles(); // Load all files for the uploaded files table
   }, []);
 
   // When push file type or version changes, refresh file list
@@ -64,6 +67,18 @@ export default function TransferPage() {
       console.error('Failed to fetch files:', err);
     } finally {
       setFilesLoading(false);
+    }
+  };
+
+  const fetchAllFiles = async () => {
+    try {
+      setAllFilesLoading(true);
+      const data = await apiService.getTransferFiles(); // No filters - get all files
+      setAllFiles(data);
+    } catch (err) {
+      console.error('Failed to fetch all files:', err);
+    } finally {
+      setAllFilesLoading(false);
     }
   };
 
@@ -139,8 +154,9 @@ export default function TransferPage() {
       const fileInput = document.getElementById('file-input') as HTMLInputElement;
       if (fileInput) fileInput.value = '';
 
-      // Auto-refresh files list to show the newly uploaded file
-      fetchFiles();
+      // Auto-refresh both files lists to show the newly uploaded file
+      fetchFiles(); // For push dropdown
+      fetchAllFiles(); // For uploaded files table
     } catch (err: any) {
       setUploadError(err.message || 'Failed to upload file');
     } finally {
@@ -195,8 +211,9 @@ export default function TransferPage() {
 
     try {
       await apiService.deleteTransferFile(fileId);
-      // Manually refresh the files list after delete
-      await fetchFiles();
+      // Manually refresh both files lists after delete
+      await fetchFiles(); // For push dropdown
+      await fetchAllFiles(); // For uploaded files table
     } catch (err) {
       alert('Failed to delete file');
     }
@@ -506,7 +523,7 @@ export default function TransferPage() {
           </div>
           <button
             onClick={fetchPickups}
-            className="flex items-center gap-2 px-3 py-1.5 text-sm bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-all"
+            className="flex items-center gap-2 px-4 py-2 bg-blue-500 hover:bg-blue-600 text-white rounded-lg transition-colors"
           >
             <RefreshCw className="h-4 w-4" />
             Refresh
@@ -563,17 +580,17 @@ export default function TransferPage() {
         <div className="flex justify-between items-center mb-4">
           <h2 className="text-xl font-semibold text-gray-900">Uploaded Files</h2>
           <button
-            onClick={fetchFiles}
-            className="flex items-center gap-2 px-3 py-1.5 text-sm bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-all"
+            onClick={fetchAllFiles}
+            className="flex items-center gap-2 px-4 py-2 bg-blue-500 hover:bg-blue-600 text-white rounded-lg transition-colors"
           >
             <RefreshCw className="h-4 w-4" />
             Refresh
           </button>
         </div>
 
-        {filesLoading ? (
+        {allFilesLoading ? (
           <div className="text-center py-8 text-gray-600">Loading files...</div>
-        ) : files.length === 0 ? (
+        ) : allFiles.length === 0 ? (
           <div className="text-center py-8 text-gray-600">No files uploaded yet</div>
         ) : (
           <div className="overflow-x-auto">
@@ -589,7 +606,7 @@ export default function TransferPage() {
                 </tr>
               </thead>
               <tbody>
-                {files && files.map((file, index) => (
+                {allFiles && allFiles.map((file, index) => (
                   <tr key={`file-table-${file.id}-${index}`} className="border-b border-gray-100 hover:bg-gray-50">
                     <td className="px-4 py-3 text-sm font-medium text-gray-900">{file.file_name}</td>
                     <td className="px-4 py-3 text-sm">

@@ -93,8 +93,6 @@ export default function UsersPage() {
       if (!response.ok) throw new Error('Failed to fetch users');
 
       const data = await response.json();
-      console.log('Fetched users from API:', data);
-      console.log('Number of users fetched:', data.length);
       setUsers(data);
     } catch (error) {
       console.error('Error fetching users:', error);
@@ -112,35 +110,6 @@ export default function UsersPage() {
       }
     } catch (error) {
       console.error('Error fetching roles:', error);
-      // Set mock data for now
-      setRoles([
-        {
-          id: 1,
-          name: 'Administrator',
-          description: 'Full system access',
-          permissions: pages.reduce((acc, page) => {
-            acc[page] = { read: true, write: true, edit: true, delete: true };
-            return acc;
-          }, {} as Record<string, { read: boolean; write: boolean; edit: boolean; delete: boolean }>),
-          created_at: new Date().toISOString(),
-          updated_at: new Date().toISOString()
-        },
-        {
-          id: 2,
-          name: 'Developer',
-          description: 'Read and write access to pipelines and releases',
-          permissions: pages.reduce((acc, page) => {
-            if (['Pipelines', 'Releases', 'Tasks'].includes(page)) {
-              acc[page] = { read: true, write: true, edit: true, delete: false };
-            } else {
-              acc[page] = { read: true, write: false, edit: false, delete: false };
-            }
-            return acc;
-          }, {} as Record<string, { read: boolean; write: boolean; edit: boolean; delete: boolean }>),
-          created_at: new Date().toISOString(),
-          updated_at: new Date().toISOString()
-        }
-      ]);
     }
   }, []);
 
@@ -153,27 +122,6 @@ export default function UsersPage() {
       }
     } catch (error) {
       console.error('Error fetching audit logs:', error);
-      // Set mock data for now
-      setAuditLogs([
-        {
-          id: 1,
-          user_id: 1,
-          user_name: 'Admin User',
-          action: 'CREATE',
-          resource: 'User',
-          details: 'Created new user: John Doe',
-          timestamp: new Date().toISOString()
-        },
-        {
-          id: 2,
-          user_id: 1,
-          user_name: 'Admin User',
-          action: 'UPDATE',
-          resource: 'Role',
-          details: 'Updated role permissions for Developer',
-          timestamp: new Date(Date.now() - 3600000).toISOString()
-        }
-      ]);
     }
   }, []);
 
@@ -271,12 +219,6 @@ export default function UsersPage() {
       (user.username?.toLowerCase().includes(query))
     );
   });
-
-  console.log('Total users:', users.length);
-  console.log('Filtered users:', filteredUsers.length);
-  console.log('Search query:', searchQuery);
-  console.log('Users data:', users);
-  console.log('Filtered users data:', filteredUsers);
 
   const getRoleDisplay = (user: User) => {
     if (user.is_superuser) return { text: 'Superuser', color: 'bg-purple-600 text-white border border-purple-300' };

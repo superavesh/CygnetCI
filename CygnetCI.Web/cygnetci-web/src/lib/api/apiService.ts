@@ -6,7 +6,7 @@ import type { DashboardData, Environment, Release, ReleaseExecution, TransferFil
 class ApiService {
   async fetchData(endpoint: string) {
     const url = `${CONFIG.api.baseUrl}${endpoint}`;
-    
+
     const response = await fetch(url, {
       method: 'GET',
       headers: CONFIG.api.headers,
@@ -20,12 +20,6 @@ class ApiService {
   }
 
   async getAllData(customerId?: number): Promise<DashboardData> {
-    if (!CONFIG.app.useRealAPI) {
-      // Simulate API delay
-      await new Promise(resolve => setTimeout(resolve, 500));
-      return DUMMY_DATA;
-    }
-
     try {
       const endpoint = customerId !== undefined
         ? `${CONFIG.api.endpoints.allData}?customer_id=${customerId}`
@@ -38,11 +32,6 @@ class ApiService {
   }
 
   async runPipeline(pipelineId: number, parameters?: Record<string, any>, agentId?: number | null) {
-    if (!CONFIG.app.useRealAPI) {
-      console.log(`Running pipeline ${pipelineId} (dummy mode)`, parameters, agentId);
-      return { success: true, executionId: Date.now() };
-    }
-
     const url = `${CONFIG.api.baseUrl}/pipelines/${pipelineId}/run`;
     const payload: any = {
       parameters: parameters || {},
@@ -63,11 +52,6 @@ class ApiService {
   }
 
   async stopPipeline(pipelineId: number) {
-    if (!CONFIG.app.useRealAPI) {
-      console.log(`Stopping pipeline ${pipelineId} (dummy mode)`);
-      return { success: true };
-    }
-
     const url = `${CONFIG.api.baseUrl}/pipelines/${pipelineId}/stop`;
     const response = await fetch(url, {
       method: 'POST',
@@ -82,11 +66,6 @@ class ApiService {
   }
 
   async updateServiceStatus(serviceId: string, newCategory: string) {
-    if (!CONFIG.app.useRealAPI) {
-      console.log(`Moving service ${serviceId} to ${newCategory} (dummy mode)`);
-      return { success: true };
-    }
-
     const url = `${CONFIG.api.baseUrl}/services/${serviceId}/move`;
     const response = await fetch(url, {
       method: 'POST',
@@ -104,11 +83,6 @@ class ApiService {
   // ==================== AGENT METHODS ====================
 
   async addAgent(agentData: { name: string; description: string; uuid: string; location: string }) {
-    if (!CONFIG.app.useRealAPI) {
-      console.log('Adding agent (dummy mode):', agentData);
-      return { success: true, id: Date.now() };
-    }
-
     const url = `${CONFIG.api.baseUrl}/agents`;
     const response = await fetch(url, {
       method: 'POST',
@@ -124,11 +98,6 @@ class ApiService {
   }
 
   async updateAgent(agentId: number, agentData: { name: string; description: string; location: string }) {
-    if (!CONFIG.app.useRealAPI) {
-      console.log(`Updating agent ${agentId} (dummy mode):`, agentData);
-      return { success: true };
-    }
-
     const url = `${CONFIG.api.baseUrl}/agents/${agentId}`;
     const response = await fetch(url, {
       method: 'PUT',
@@ -144,11 +113,6 @@ class ApiService {
   }
 
   async deleteAgent(agentId: number) {
-    if (!CONFIG.app.useRealAPI) {
-      console.log(`Deleting agent ${agentId} (dummy mode)`);
-      return { success: true };
-    }
-
     const url = `${CONFIG.api.baseUrl}/agents/${agentId}`;
     const response = await fetch(url, {
       method: 'DELETE',
@@ -165,11 +129,6 @@ class ApiService {
   // ==================== PIPELINE METHODS ====================
 
   async createPipeline(pipelineData: any) {
-    if (!CONFIG.app.useRealAPI) {
-      console.log('Creating pipeline (dummy mode):', pipelineData);
-      return { success: true, id: Date.now() };
-    }
-
     const url = `${CONFIG.api.baseUrl}/pipelines`;
     const response = await fetch(url, {
       method: 'POST',
@@ -192,11 +151,6 @@ class ApiService {
   }
 
   async updatePipeline(pipelineId: number, pipelineData: any) {
-    if (!CONFIG.app.useRealAPI) {
-      console.log(`Updating pipeline ${pipelineId} (dummy mode):`, pipelineData);
-      return { success: true };
-    }
-
     const url = `${CONFIG.api.baseUrl}/pipelines/${pipelineId}`;
     const response = await fetch(url, {
       method: 'PUT',
@@ -219,11 +173,6 @@ class ApiService {
   }
 
   async deletePipeline(pipelineId: number) {
-    if (!CONFIG.app.useRealAPI) {
-      console.log(`Deleting pipeline ${pipelineId} (dummy mode)`);
-      return { success: true };
-    }
-
     const url = `${CONFIG.api.baseUrl}/pipelines/${pipelineId}`;
     const response = await fetch(url, {
       method: 'DELETE',
@@ -240,16 +189,6 @@ class ApiService {
   // ==================== ENVIRONMENT METHODS ====================
 
   async getEnvironments(): Promise<Environment[]> {
-    if (!CONFIG.app.useRealAPI) {
-      console.log('Getting environments (dummy mode)');
-      return [
-        { id: 1, name: 'Development', description: 'Dev environment', order_index: 1, requires_approval: false, approvers: [], created_at: new Date().toISOString() },
-        { id: 2, name: 'QA', description: 'QA environment', order_index: 2, requires_approval: false, approvers: [], created_at: new Date().toISOString() },
-        { id: 3, name: 'Staging', description: 'Staging environment', order_index: 3, requires_approval: true, approvers: [], created_at: new Date().toISOString() },
-        { id: 4, name: 'Production', description: 'Production environment', order_index: 4, requires_approval: true, approvers: [], created_at: new Date().toISOString() }
-      ];
-    }
-
     const url = `${CONFIG.api.baseUrl}/environments`;
     const response = await fetch(url, {
       method: 'GET',
@@ -264,11 +203,6 @@ class ApiService {
   }
 
   async createEnvironment(environmentData: { name: string; description?: string; order_index: number; requires_approval: boolean; approvers?: string[] }) {
-    if (!CONFIG.app.useRealAPI) {
-      console.log('Creating environment (dummy mode):', environmentData);
-      return { success: true, id: Date.now() };
-    }
-
     const url = `${CONFIG.api.baseUrl}/environments`;
     const response = await fetch(url, {
       method: 'POST',
@@ -284,11 +218,6 @@ class ApiService {
   }
 
   async updateEnvironment(environmentId: number, environmentData: any) {
-    if (!CONFIG.app.useRealAPI) {
-      console.log(`Updating environment ${environmentId} (dummy mode):`, environmentData);
-      return { success: true };
-    }
-
     const url = `${CONFIG.api.baseUrl}/environments/${environmentId}`;
     const response = await fetch(url, {
       method: 'PUT',
@@ -306,11 +235,6 @@ class ApiService {
   // ==================== RELEASE METHODS ====================
 
   async getReleases(customerId?: number): Promise<Release[]> {
-    if (!CONFIG.app.useRealAPI) {
-      console.log('Getting releases (dummy mode)');
-      return [];
-    }
-
     const url = customerId
       ? `${CONFIG.api.baseUrl}/releases?customer_id=${customerId}`
       : `${CONFIG.api.baseUrl}/releases`;
@@ -327,11 +251,6 @@ class ApiService {
   }
 
   async getRelease(releaseId: number): Promise<Release> {
-    if (!CONFIG.app.useRealAPI) {
-      console.log(`Getting release ${releaseId} (dummy mode)`);
-      throw new Error('Not implemented in dummy mode');
-    }
-
     const url = `${CONFIG.api.baseUrl}/releases/${releaseId}`;
     const response = await fetch(url, {
       method: 'GET',
@@ -368,11 +287,6 @@ class ApiService {
       position_y: number;
     }>;
   }) {
-    if (!CONFIG.app.useRealAPI) {
-      console.log('Creating release (dummy mode):', releaseData);
-      return { success: true, id: Date.now() };
-    }
-
     const url = `${CONFIG.api.baseUrl}/releases`;
     const response = await fetch(url, {
       method: 'POST',
@@ -388,11 +302,6 @@ class ApiService {
   }
 
   async updateRelease(releaseId: number, releaseData: { name?: string; description?: string; status?: string; version?: string }) {
-    if (!CONFIG.app.useRealAPI) {
-      console.log(`Updating release ${releaseId} (dummy mode):`, releaseData);
-      return { success: true };
-    }
-
     const url = `${CONFIG.api.baseUrl}/releases/${releaseId}`;
     const response = await fetch(url, {
       method: 'PUT',
@@ -408,11 +317,6 @@ class ApiService {
   }
 
   async deleteRelease(releaseId: number) {
-    if (!CONFIG.app.useRealAPI) {
-      console.log(`Deleting release ${releaseId} (dummy mode)`);
-      return { success: true };
-    }
-
     const url = `${CONFIG.api.baseUrl}/releases/${releaseId}`;
     const response = await fetch(url, {
       method: 'DELETE',
@@ -432,11 +336,6 @@ class ApiService {
     parameters?: Record<string, any>;
     agent_id?: number | null;
   }) {
-    if (!CONFIG.app.useRealAPI) {
-      console.log(`Deploying release ${releaseId} (dummy mode):`, deployData);
-      return { success: true, executionId: Date.now(), releaseNumber: 'Release-1' };
-    }
-
     const url = `${CONFIG.api.baseUrl}/releases/${releaseId}/deploy`;
     const response = await fetch(url, {
       method: 'POST',
@@ -452,11 +351,6 @@ class ApiService {
   }
 
   async getReleaseExecutions(releaseId: number): Promise<ReleaseExecution[]> {
-    if (!CONFIG.app.useRealAPI) {
-      console.log(`Getting release executions for ${releaseId} (dummy mode)`);
-      return [];
-    }
-
     const url = `${CONFIG.api.baseUrl}/releases/${releaseId}/executions`;
     const response = await fetch(url, {
       method: 'GET',
@@ -471,11 +365,6 @@ class ApiService {
   }
 
   async getReleaseExecutionLogs(stageExecutionId: number): Promise<{ logs: string }> {
-    if (!CONFIG.app.useRealAPI) {
-      console.log(`Getting logs for stage execution ${stageExecutionId} (dummy mode)`);
-      return { logs: 'Dummy logs - no real data available in dummy mode' };
-    }
-
     const url = `${CONFIG.api.baseUrl}/stage-executions/${stageExecutionId}/logs`;
     const response = await fetch(url, {
       method: 'GET',
@@ -490,11 +379,6 @@ class ApiService {
   }
 
   async approveStage(stageExecutionId: number, approvalData: { approved_by: string; comments?: string }) {
-    if (!CONFIG.app.useRealAPI) {
-      console.log(`Approving stage ${stageExecutionId} (dummy mode):`, approvalData);
-      return { success: true };
-    }
-
     const url = `${CONFIG.api.baseUrl}/stage-executions/${stageExecutionId}/approve`;
     const response = await fetch(url, {
       method: 'POST',
@@ -510,11 +394,6 @@ class ApiService {
   }
 
   async rejectStage(stageExecutionId: number, approvalData: { approved_by: string; comments?: string }) {
-    if (!CONFIG.app.useRealAPI) {
-      console.log(`Rejecting stage ${stageExecutionId} (dummy mode):`, approvalData);
-      return { success: true };
-    }
-
     const url = `${CONFIG.api.baseUrl}/stage-executions/${stageExecutionId}/reject`;
     const response = await fetch(url, {
       method: 'POST',
@@ -530,11 +409,6 @@ class ApiService {
   }
 
   async getPipelines() {
-    if (!CONFIG.app.useRealAPI) {
-      console.log('Getting pipelines (dummy mode)');
-      return DUMMY_DATA.pipelines;
-    }
-
     const url = `${CONFIG.api.baseUrl}/pipelines`;
     const response = await fetch(url, {
       method: 'GET',
@@ -549,11 +423,6 @@ class ApiService {
   }
 
   async getPipeline(pipelineId: number) {
-    if (!CONFIG.app.useRealAPI) {
-      console.log(`Getting pipeline ${pipelineId} (dummy mode)`);
-      return DUMMY_DATA.pipelines.find(p => p.id === pipelineId);
-    }
-
     const url = `${CONFIG.api.baseUrl}/pipelines/${pipelineId}`;
     const response = await fetch(url, {
       method: 'GET',
@@ -570,11 +439,6 @@ class ApiService {
   // ==================== FILE TRANSFER METHODS ====================
 
   async uploadFile(fileData: FormData): Promise<any> {
-    if (!CONFIG.app.useRealAPI) {
-      console.log('Uploading file (dummy mode):', fileData);
-      return { success: true, file: { id: Date.now() } };
-    }
-
     const url = `${CONFIG.api.baseUrl}/transfer/upload`;
     const response = await fetch(url, {
       method: 'POST',
@@ -589,11 +453,6 @@ class ApiService {
   }
 
   async getTransferFiles(fileType?: string, version?: string): Promise<TransferFile[]> {
-    if (!CONFIG.app.useRealAPI) {
-      console.log('Getting transfer files (dummy mode)');
-      return [];
-    }
-
     let url = `${CONFIG.api.baseUrl}/transfer/files`;
     const params = new URLSearchParams();
     if (fileType) params.append('file_type', fileType);
@@ -613,11 +472,6 @@ class ApiService {
   }
 
   async getVersions(fileType?: string): Promise<string[]> {
-    if (!CONFIG.app.useRealAPI) {
-      console.log('Getting versions (dummy mode)');
-      return [];
-    }
-
     let url = `${CONFIG.api.baseUrl}/transfer/versions`;
     if (fileType) url += `?file_type=${fileType}`;
 
@@ -639,11 +493,6 @@ class ApiService {
     agent_name?: string;
     requested_by?: string;
   }): Promise<any> {
-    if (!CONFIG.app.useRealAPI) {
-      console.log('Pushing file to agent (dummy mode):', pushData);
-      return { success: true, pickup_id: Date.now() };
-    }
-
     const url = `${CONFIG.api.baseUrl}/transfer/push`;
     const response = await fetch(url, {
       method: 'POST',
@@ -659,11 +508,6 @@ class ApiService {
   }
 
   async getPickups(status?: string, agentUuid?: string): Promise<TransferFilePickup[]> {
-    if (!CONFIG.app.useRealAPI) {
-      console.log('Getting pickups (dummy mode)');
-      return [];
-    }
-
     let url = `${CONFIG.api.baseUrl}/transfer/pickups`;
     const params = new URLSearchParams();
     if (status) params.append('status', status);
@@ -683,11 +527,6 @@ class ApiService {
   }
 
   async deleteTransferFile(fileId: number): Promise<any> {
-    if (!CONFIG.app.useRealAPI) {
-      console.log(`Deleting transfer file ${fileId} (dummy mode)`);
-      return { success: true };
-    }
-
     const url = `${CONFIG.api.baseUrl}/transfer/files/${fileId}`;
     const response = await fetch(url, {
       method: 'DELETE',
@@ -702,11 +541,6 @@ class ApiService {
   }
 
   async getAgents() {
-    if (!CONFIG.app.useRealAPI) {
-      console.log('Getting agents (dummy mode)');
-      return DUMMY_DATA.agents;
-    }
-
     const url = `${CONFIG.api.baseUrl}/agents`;
     const response = await fetch(url, {
       method: 'GET',

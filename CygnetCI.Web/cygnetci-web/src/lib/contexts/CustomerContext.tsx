@@ -44,46 +44,6 @@ interface CustomerContextType {
 
 const CustomerContext = createContext<CustomerContextType | undefined>(undefined);
 
-// Dummy customers data
-const dummyCustomers: Customer[] = [
-  {
-    id: 1,
-    name: 'acme_corp',
-    display_name: 'Acme Corporation',
-    description: 'Leading technology company',
-    contact_email: 'admin@acme.com',
-    contact_phone: '+1-555-0100',
-    address: '123 Tech Street, Silicon Valley, CA',
-    is_active: true,
-    created_at: new Date().toISOString(),
-    updated_at: new Date().toISOString()
-  },
-  {
-    id: 2,
-    name: 'techstart_inc',
-    display_name: 'TechStart Inc',
-    description: 'Innovation startup',
-    contact_email: 'contact@techstart.com',
-    contact_phone: '+1-555-0200',
-    address: '456 Innovation Ave, San Francisco, CA',
-    is_active: true,
-    created_at: new Date().toISOString(),
-    updated_at: new Date().toISOString()
-  },
-  {
-    id: 3,
-    name: 'global_solutions',
-    display_name: 'Global Solutions Ltd',
-    description: 'Enterprise software solutions',
-    contact_email: 'info@globalsolutions.com',
-    contact_phone: '+1-555-0300',
-    address: '789 Enterprise Blvd, New York, NY',
-    is_active: true,
-    created_at: new Date().toISOString(),
-    updated_at: new Date().toISOString()
-  }
-];
-
 export const CustomerProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [selectedCustomer, setSelectedCustomerState] = useState<Customer | null>(null);
   const [customers, setCustomers] = useState<Customer[]>([]);
@@ -92,23 +52,6 @@ export const CustomerProvider: React.FC<{ children: React.ReactNode }> = ({ chil
 
   const fetchCustomers = useCallback(async () => {
     try {
-      if (!CONFIG.app.useRealAPI) {
-        // Use dummy data
-        setCustomers(dummyCustomers);
-        const savedCustomerId = localStorage.getItem('selectedCustomerId');
-        if (savedCustomerId) {
-          const savedCustomer = dummyCustomers.find(c => c.id === parseInt(savedCustomerId));
-          if (savedCustomer) {
-            setSelectedCustomerState(savedCustomer);
-            setIsLoading(false);
-            return;
-          }
-        }
-        setSelectedCustomerState(dummyCustomers[0]);
-        setIsLoading(false);
-        return;
-      }
-
       const response = await fetch(`${CONFIG.api.baseUrl}/customers/?active_only=true`);
       if (!response.ok) throw new Error('Failed to fetch customers');
 
@@ -131,39 +74,13 @@ export const CustomerProvider: React.FC<{ children: React.ReactNode }> = ({ chil
       }
     } catch (error) {
       console.error('Failed to fetch customers:', error);
-      // Fallback to dummy data on error
-      setCustomers(dummyCustomers);
-      if (dummyCustomers.length > 0) {
-        setSelectedCustomerState(dummyCustomers[0]);
-      }
     } finally {
       setIsLoading(false);
     }
-  }, []); // Remove selectedCustomer dependency to prevent infinite loop
+  }, []);
 
   const fetchCustomerStats = useCallback(async (customerId: number) => {
     try {
-      if (!CONFIG.app.useRealAPI) {
-        // Use dummy stats
-        const customer = dummyCustomers.find(c => c.id === customerId);
-        if (customer) {
-          setCustomerStats({
-            customer_id: customer.id,
-            customer_name: customer.name,
-            display_name: customer.display_name,
-            is_active: customer.is_active,
-            total_agents: 5,
-            online_agents: 3,
-            total_pipelines: 12,
-            successful_pipelines: 10,
-            total_releases: 8,
-            total_services: 15,
-            total_users: 20
-          });
-        }
-        return;
-      }
-
       const response = await fetch(`${CONFIG.api.baseUrl}/customers/${customerId}/statistics`);
       if (!response.ok) throw new Error('Failed to fetch customer statistics');
 
@@ -171,23 +88,6 @@ export const CustomerProvider: React.FC<{ children: React.ReactNode }> = ({ chil
       setCustomerStats(data);
     } catch (error) {
       console.error('Failed to fetch customer statistics:', error);
-      // Fallback to dummy stats on error
-      const customer = dummyCustomers.find(c => c.id === customerId);
-      if (customer) {
-        setCustomerStats({
-          customer_id: customer.id,
-          customer_name: customer.name,
-          display_name: customer.display_name,
-          is_active: customer.is_active,
-          total_agents: 5,
-          online_agents: 3,
-          total_pipelines: 12,
-          successful_pipelines: 10,
-          total_releases: 8,
-          total_services: 15,
-          total_users: 20
-        });
-      }
     }
   }, []);
 
