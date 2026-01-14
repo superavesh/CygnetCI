@@ -18,4 +18,30 @@ public class AgentConfiguration
     public int MaxConcurrentReleases { get; set; } = 2;
     public int MaxConcurrentPipelines { get; set; } = 2;
     public int ScriptTimeoutSeconds { get; set; } = 3600;
+
+    // Proxy Configuration
+    public ProxySettings Proxy { get; set; } = new ProxySettings();
+
+    // Website/API Health Check Configuration
+    public List<WebsitePingConfig> WebsitePings { get; set; } = new List<WebsitePingConfig>();
+}
+
+public class ProxySettings
+{
+    public bool Enabled { get; set; } = false;
+    public string Address { get; set; } = string.Empty;
+    public int Port { get; set; } = 8080;
+    public bool UseDefaultCredentials { get; set; } = false;
+    public string Username { get; set; } = string.Empty;
+    public string Password { get; set; } = string.Empty;
+    public string[] BypassList { get; set; } = Array.Empty<string>();
+    public bool BypassOnLocal { get; set; } = true;
+}
+
+public class WebsitePingConfig
+{
+    public string Name { get; set; } = string.Empty;
+    public string Url { get; set; } = string.Empty;
+    public int TimeoutSeconds { get; set; } = 5;
+    public bool Enabled { get; set; } = true;
 }

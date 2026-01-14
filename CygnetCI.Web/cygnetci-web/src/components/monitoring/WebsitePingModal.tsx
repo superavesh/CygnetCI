@@ -26,9 +26,11 @@ export const WebsitePingModal: React.FC<WebsitePingModalProps> = ({
 }) => {
   const [pings, setPings] = useState<WebsitePing[]>([]);
   const [loading, setLoading] = useState(false);
+  const [refreshing, setRefreshing] = useState(false);
 
   const fetchPings = async () => {
     setLoading(true);
+    setRefreshing(true);
     try {
       const response = await fetch(
         `http://127.0.0.1:8000/monitoring/agents/${agentUuid}/website-ping`
@@ -41,6 +43,7 @@ export const WebsitePingModal: React.FC<WebsitePingModalProps> = ({
       console.error('Failed to fetch website pings:', error);
     } finally {
       setLoading(false);
+      setRefreshing(false);
     }
   };
 
@@ -79,11 +82,11 @@ export const WebsitePingModal: React.FC<WebsitePingModalProps> = ({
             </p>
             <button
               onClick={fetchPings}
-              className="px-3 py-1.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors flex items-center gap-2"
-              disabled={loading}
+              className={`px-3 py-1.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors flex items-center gap-2 ${refreshing ? 'opacity-75' : ''}`}
+              disabled={refreshing}
             >
-              <RefreshCw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
-              Refresh Now
+              <RefreshCw className={`h-4 w-4 ${refreshing ? 'animate-spin' : ''}`} />
+              {refreshing ? 'Refreshing...' : 'Refresh'}
             </button>
           </div>
         </div>

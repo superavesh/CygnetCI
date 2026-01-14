@@ -334,6 +334,7 @@ class ApiService {
     triggered_by: string;
     artifact_version?: string;
     parameters?: Record<string, any>;
+    pipeline_parameters?: Record<number, Record<string, any>>;
     agent_id?: number | null;
   }) {
     const url = `${CONFIG.api.baseUrl}/releases/${releaseId}/deploy`;

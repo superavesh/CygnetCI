@@ -31,7 +31,8 @@
       "Bash(timeout /t 5)",
       "Bash(cat:*)",
       "Bash(powershell -ExecutionPolicy Bypass -File:*)",
-      "Bash(git checkout:*)"
+      "Bash(git checkout:*)",
+      "Bash(npm install:*)"
     ],
     "deny": [],
     "ask": []

@@ -132,39 +132,50 @@ public class MonitoringDataCollector : IMonitoringDataCollector
 
         try
         {
-            // Default URLs to ping - can be configured later
-            var urlsToPing = new List<(string Name, string Url)>
+            // Get configured URLs from appsettings.json
+            var configuredPings = _config.WebsitePings?.Where(p => p.Enabled).ToList() ?? new List<WebsitePingConfig>();
+
+            // If no URLs configured, skip
+            if (!configuredPings.Any())
             {
-                ("CygnetCI API", "http://localhost:8000/health"),
-                ("CygnetCI Web", "http://localhost:3000")
-            };
+                _logger.LogDebug("No website pings configured");
+                return pings;
+            }
 
             using var httpClient = new HttpClient();
-            httpClient.Timeout = TimeSpan.FromSeconds(5);
 
-            foreach (var (name, url) in urlsToPing)
+            foreach (var pingConfig in configuredPings)
             {
                 try
                 {
+                    // Set timeout from configuration
+                    httpClient.Timeout = TimeSpan.FromSeconds(pingConfig.TimeoutSeconds);
+
                     var stopwatch = Stopwatch.StartNew();
-                    var response = httpClient.GetAsync(url).Result;
+                    var response = httpClient.GetAsync(pingConfig.Url).Result;
                     stopwatch.Stop();
 
                     pings.Add(new WebsitePingInfo
                     {
-                        Url = url,
-                        Name = name,
+                        Url = pingConfig.Url,
+                        Name = pingConfig.Name,
                         Status = response.IsSuccessStatusCode ? "healthy" : "unhealthy",
                         ResponseTimeMs = (int)stopwatch.ElapsedMilliseconds,
                         LastChecked = DateTime.Now
                     });
+
+                    _logger.LogDebug("Pinged {Name} ({Url}): {Status} - {ResponseTime}ms",
+                        pingConfig.Name, pingConfig.Url, response.IsSuccessStatusCode ? "healthy" : "unhealthy",
+                        stopwatch.ElapsedMilliseconds);
                 }
-                catch
+                catch (Exception ex)
                 {
+                    _logger.LogWarning(ex, "Failed to ping {Name} ({Url})", pingConfig.Name, pingConfig.Url);
+
                     pings.Add(new WebsitePingInfo
                     {
-                        Url = url,
-                        Name = name,
+                        Url = pingConfig.Url,
+                        Name = pingConfig.Name,
                         Status = "unhealthy",
                         ResponseTimeMs = 0,
                         LastChecked = DateTime.Now

@@ -2,7 +2,7 @@
 'use client';
 
 import React, { useState, useEffect, useCallback } from 'react';
-import { Users, Plus, Search, Edit2, Trash2, Shield, Mail, Key, UserCheck, UserX, Lock, FileText, Clock } from 'lucide-react';
+import { Users, Plus, Search, Edit2, Trash2, Shield, Mail, Key, UserCheck, UserX, Lock, FileText, Clock, AlertCircle, CheckCircle, X, RefreshCw } from 'lucide-react';
 import { CONFIG } from '@/lib/config';
 import { useCustomer } from '@/lib/contexts/CustomerContext';
 
@@ -41,8 +41,16 @@ interface AuditLog {
   user_name: string;
   action: string;
   resource: string;
-  details: string;
+  details: string | Record<string, any>;
   timestamp: string;
+}
+
+type NotificationType = 'success' | 'error' | 'info';
+
+interface Notification {
+  id: number;
+  type: NotificationType;
+  message: string;
 }
 
 export default function UsersPage() {
@@ -56,6 +64,8 @@ export default function UsersPage() {
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
   const [showAddModal, setShowAddModal] = useState(false);
+  const [showEditModal, setShowEditModal] = useState(false);
+  const [showPasswordResetModal, setShowPasswordResetModal] = useState(false);
   const [editingUser, setEditingUser] = useState<User | null>(null);
   const [formData, setFormData] = useState({
     username: '',
@@ -64,6 +74,11 @@ export default function UsersPage() {
     password: '',
     is_superuser: false,
     role_id: undefined as number | undefined
+  });
+  const [passwordResetData, setPasswordResetData] = useState({
+    userId: 0,
+    newPassword: '',
+    confirmPassword: ''
   });
 
   // Roles state
@@ -75,31 +90,58 @@ export default function UsersPage() {
     description: '',
     permissions: {} as Record<string, { read: boolean; write: boolean; edit: boolean; delete: boolean }>
   });
+  const [deletingRole, setDeletingRole] = useState<Role | null>(null);
+  const [roleSearchQuery, setRoleSearchQuery] = useState('');
+  const [expandedRoles, setExpandedRoles] = useState<Set<number>>(new Set());
 
   // Audit logs state
   const [auditLogs, setAuditLogs] = useState<AuditLog[]>([]);
   const [auditSearchQuery, setAuditSearchQuery] = useState('');
+  const [auditFilterAction, setAuditFilterAction] = useState<string>('all');
+  const [auditDateFrom, setAuditDateFrom] = useState('');
+  const [auditDateTo, setAuditDateTo] = useState('');
+
+  // Notifications
+  const [notifications, setNotifications] = useState<Notification[]>([]);
+  const [notificationId, setNotificationId] = useState(0);
+
+  // Loading states
+  const [actionLoading, setActionLoading] = useState(false);
 
   const pages = ['Overview', 'Pipelines', 'Releases', 'Transfer', 'Rollback', 'Agents', 'Monitoring', 'Customers', 'Users', 'Tasks'];
+
+  const showNotification = (type: NotificationType, message: string) => {
+    const id = notificationId;
+    setNotificationId(prev => prev + 1);
+    setNotifications(prev => [...prev, { id, type, message }]);
+    setTimeout(() => {
+      setNotifications(prev => prev.filter(n => n.id !== id));
+    }, 5000);
+  };
+
+  const removeNotification = (id: number) => {
+    setNotifications(prev => prev.filter(n => n.id !== id));
+  };
 
   const fetchUsers = useCallback(async () => {
     setLoading(true);
     try {
-      const url = selectedCustomer
-        ? `${CONFIG.api.baseUrl}/users?customer_id=${selectedCustomer.id}`
-        : `${CONFIG.api.baseUrl}/users`;
+      // Always fetch all users - users are global, not filtered by customer
+      const url = `${CONFIG.api.baseUrl}/users`;
 
+      console.log('[UsersPage] Fetching users from:', url);
       const response = await fetch(url);
       if (!response.ok) throw new Error('Failed to fetch users');
 
       const data = await response.json();
+      console.log('[UsersPage] Received users:', data.length, 'users');
       setUsers(data);
     } catch (error) {
       console.error('Error fetching users:', error);
     } finally {
       setLoading(false);
     }
-  }, [selectedCustomer?.id]); // Use only the ID, not the entire object
+  }, []); // No dependencies - users are global
 
   const fetchRoles = useCallback(async () => {
     try {
@@ -133,6 +175,7 @@ export default function UsersPage() {
 
   const handleCreate = async (e: React.FormEvent) => {
     e.preventDefault();
+    setActionLoading(true);
 
     try {
       const formDataToSend = new FormData();
@@ -162,13 +205,17 @@ export default function UsersPage() {
         is_superuser: false,
         role_id: undefined
       });
+      showNotification('success', `User "${formData.username}" created successfully!`);
     } catch (error: any) {
-      alert(error.message);
+      showNotification('error', error.message || 'Failed to create user');
       console.error('Error creating user:', error);
+    } finally {
+      setActionLoading(false);
     }
   };
 
   const handleUpdate = async (userId: number, updates: Partial<User>) => {
+    setActionLoading(true);
     try {
       const formDataToSend = new FormData();
       if (updates.email) formDataToSend.append('email', updates.email);
@@ -185,15 +232,80 @@ export default function UsersPage() {
 
       await fetchUsers();
       setEditingUser(null);
+      setShowEditModal(false);
+      showNotification('success', 'User updated successfully!');
     } catch (error) {
       console.error('Error updating user:', error);
-      alert('Failed to update user');
+      showNotification('error', 'Failed to update user');
+    } finally {
+      setActionLoading(false);
     }
   };
 
-  const handleDelete = async (userId: number) => {
-    if (!confirm('Are you sure you want to delete this user?')) return;
+  const handleEditUser = (user: User) => {
+    setEditingUser(user);
+    setFormData({
+      username: user.username,
+      email: user.email,
+      full_name: user.full_name,
+      password: '',
+      is_superuser: user.is_superuser,
+      role_id: user.role_id
+    });
+    setShowEditModal(true);
+  };
 
+  const handleUpdateUser = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editingUser) return;
+
+    await handleUpdate(editingUser.id, {
+      email: formData.email,
+      full_name: formData.full_name,
+      is_superuser: formData.is_superuser
+    });
+  };
+
+  const handlePasswordReset = async (e: React.FormEvent) => {
+    e.preventDefault();
+
+    if (passwordResetData.newPassword !== passwordResetData.confirmPassword) {
+      showNotification('error', 'Passwords do not match!');
+      return;
+    }
+
+    if (passwordResetData.newPassword.length < 6) {
+      showNotification('error', 'Password must be at least 6 characters long!');
+      return;
+    }
+
+    setActionLoading(true);
+    try {
+      const formDataToSend = new FormData();
+      formDataToSend.append('password', passwordResetData.newPassword);
+
+      const response = await fetch(`${CONFIG.api.baseUrl}/users/${passwordResetData.userId}`, {
+        method: 'PUT',
+        body: formDataToSend
+      });
+
+      if (!response.ok) throw new Error('Failed to reset password');
+
+      setShowPasswordResetModal(false);
+      setPasswordResetData({ userId: 0, newPassword: '', confirmPassword: '' });
+      showNotification('success', 'Password reset successfully!');
+    } catch (error) {
+      console.error('Error resetting password:', error);
+      showNotification('error', 'Failed to reset password');
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
+  const handleDelete = async (userId: number, username: string) => {
+    if (!confirm(`Are you sure you want to delete user "${username}"? This action cannot be undone.`)) return;
+
+    setActionLoading(true);
     try {
       const response = await fetch(`${CONFIG.api.baseUrl}/users/${userId}`, {
         method: 'DELETE'
@@ -202,9 +314,88 @@ export default function UsersPage() {
       if (!response.ok) throw new Error('Failed to delete user');
 
       await fetchUsers();
+      showNotification('success', `User "${username}" deleted successfully!`);
     } catch (error) {
       console.error('Error deleting user:', error);
-      alert('Failed to delete user');
+      showNotification('error', 'Failed to delete user');
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
+  const handleCreateRole = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setActionLoading(true);
+
+    try {
+      const response = await fetch(`${CONFIG.api.baseUrl}/roles`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(roleFormData)
+      });
+
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.detail || 'Failed to create role');
+      }
+
+      await fetchRoles();
+      setShowAddRoleModal(false);
+      setRoleFormData({ name: '', description: '', permissions: {} });
+      showNotification('success', `Role "${roleFormData.name}" created successfully!`);
+    } catch (error: any) {
+      showNotification('error', error.message || 'Failed to create role');
+      console.error('Error creating role:', error);
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
+  const handleUpdateRole = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editingRole) return;
+
+    setActionLoading(true);
+    try {
+      const response = await fetch(`${CONFIG.api.baseUrl}/roles/${editingRole.id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(roleFormData)
+      });
+
+      if (!response.ok) throw new Error('Failed to update role');
+
+      await fetchRoles();
+      setShowAddRoleModal(false);
+      setEditingRole(null);
+      setRoleFormData({ name: '', description: '', permissions: {} });
+      showNotification('success', 'Role updated successfully!');
+    } catch (error) {
+      console.error('Error updating role:', error);
+      showNotification('error', 'Failed to update role');
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
+  const handleDeleteRole = async (roleId: number, roleName: string) => {
+    if (!confirm(`Are you sure you want to delete role "${roleName}"? This action cannot be undone.`)) return;
+
+    setActionLoading(true);
+    try {
+      const response = await fetch(`${CONFIG.api.baseUrl}/roles/${roleId}`, {
+        method: 'DELETE'
+      });
+
+      if (!response.ok) throw new Error('Failed to delete role');
+
+      await fetchRoles();
+      showNotification('success', `Role "${roleName}" deleted successfully!`);
+    } catch (error) {
+      console.error('Error deleting role:', error);
+      showNotification('error', 'Failed to delete role');
+    } finally {
+      setActionLoading(false);
     }
   };
 
@@ -231,6 +422,65 @@ export default function UsersPage() {
       : { text: 'Inactive', color: 'bg-gray-600 text-white' };
   };
 
+  const toggleRoleExpansion = (roleId: number) => {
+    setExpandedRoles(prev => {
+      const newSet = new Set(prev);
+      if (newSet.has(roleId)) {
+        newSet.delete(roleId);
+      } else {
+        newSet.add(roleId);
+      }
+      return newSet;
+    });
+  };
+
+  const getFilteredRoles = () => {
+    if (!roleSearchQuery) return roles;
+    const query = roleSearchQuery.toLowerCase();
+    return roles.filter(role =>
+      role.name.toLowerCase().includes(query) ||
+      role.description.toLowerCase().includes(query)
+    );
+  };
+
+  const getFilteredAuditLogs = () => {
+    return auditLogs.filter(log => {
+      // Search query filter
+      const query = auditSearchQuery.toLowerCase();
+      const detailsStr = typeof log.details === 'object' ? JSON.stringify(log.details) : String(log.details || '');
+      const matchesSearch = !query || (
+        log.user_name?.toLowerCase().includes(query) ||
+        log.action?.toLowerCase().includes(query) ||
+        log.resource?.toLowerCase().includes(query) ||
+        detailsStr.toLowerCase().includes(query)
+      );
+
+      // Action filter
+      const matchesAction = auditFilterAction === 'all' || log.action === auditFilterAction;
+
+      // Date filters
+      const logDate = new Date(log.timestamp);
+      const matchesDateFrom = !auditDateFrom || logDate >= new Date(auditDateFrom);
+      const matchesDateTo = !auditDateTo || logDate <= new Date(auditDateTo + 'T23:59:59');
+
+      return matchesSearch && matchesAction && matchesDateFrom && matchesDateTo;
+    });
+  };
+
+  const getUniqueActions = () => {
+    const actions = new Set(auditLogs.map(log => log.action));
+    return Array.from(actions).sort();
+  };
+
+  const getPermissionSummary = (permissions: Record<string, any>) => {
+    const perms = Object.values(permissions).flat();
+    const total = perms.length * 4; // 4 permission types
+    const granted = perms.reduce((acc: number, perm: any) => {
+      return acc + (perm.read ? 1 : 0) + (perm.write ? 1 : 0) + (perm.edit ? 1 : 0) + (perm.delete ? 1 : 0);
+    }, 0);
+    return { granted, total, percentage: total > 0 ? Math.round((granted / total) * 100) : 0 };
+  };
+
   if (loading) {
     return (
       <div className="flex items-center justify-center h-64">
@@ -241,62 +491,118 @@ export default function UsersPage() {
 
   return (
     <div className="space-y-6">
+      {/* Notifications */}
+      <div className="fixed top-4 right-4 z-[60] space-y-2">
+        {notifications.map(notification => (
+          <div
+            key={notification.id}
+            className={`flex items-center gap-3 min-w-[300px] px-4 py-3 rounded-lg shadow-lg border animate-slide-in ${
+              notification.type === 'success'
+                ? 'bg-green-50 border-green-200 text-green-800'
+                : notification.type === 'error'
+                ? 'bg-red-50 border-red-200 text-red-800'
+                : 'bg-blue-50 border-blue-200 text-blue-800'
+            }`}
+          >
+            {notification.type === 'success' && <CheckCircle className="h-5 w-5 text-green-600 flex-shrink-0" />}
+            {notification.type === 'error' && <AlertCircle className="h-5 w-5 text-red-600 flex-shrink-0" />}
+            {notification.type === 'info' && <AlertCircle className="h-5 w-5 text-blue-600 flex-shrink-0" />}
+            <span className="text-sm font-medium flex-1">{notification.message}</span>
+            <button
+              onClick={() => removeNotification(notification.id)}
+              className="text-gray-400 hover:text-gray-600 transition-colors"
+            >
+              <X className="h-4 w-4" />
+            </button>
+          </div>
+        ))}
+      </div>
+
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
           <h2 className="text-2xl font-bold text-gray-800">User Management</h2>
           <p className="text-sm text-gray-600 mt-1">
             Manage system users, roles, and audit trail
-            {selectedCustomer && ` • Filtering for ${selectedCustomer.display_name}`}
           </p>
         </div>
-        <button
-          onClick={() => {
-            if (activeTab === 'users') setShowAddModal(true);
-            else if (activeTab === 'roles') setShowAddRoleModal(true);
-          }}
-          className="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-lg flex items-center space-x-2 transition-colors"
-        >
-          <Plus className="h-4 w-4" />
-          <span>{activeTab === 'users' ? 'Add User' : activeTab === 'roles' ? 'Add Role' : ''}</span>
-        </button>
+        <div className="flex items-center gap-3">
+          <button
+            onClick={() => {
+              fetchUsers();
+              fetchRoles();
+              fetchAuditLogs();
+              showNotification('info', 'Data refreshed');
+            }}
+            className="bg-gray-100 hover:bg-gray-200 text-gray-700 px-4 py-2 rounded-lg flex items-center space-x-2 transition-colors"
+            disabled={actionLoading}
+          >
+            <RefreshCw className={`h-4 w-4 ${actionLoading ? 'animate-spin' : ''}`} />
+            <span>Refresh</span>
+          </button>
+          {activeTab !== 'audit' && (
+            <button
+              onClick={() => {
+                if (activeTab === 'users') setShowAddModal(true);
+                else if (activeTab === 'roles') setShowAddRoleModal(true);
+              }}
+              className="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-lg flex items-center space-x-2 transition-colors"
+              disabled={actionLoading}
+            >
+              <Plus className="h-4 w-4" />
+              <span>{activeTab === 'users' ? 'Add User' : 'Add Role'}</span>
+            </button>
+          )}
+        </div>
       </div>
 
       {/* Tabs */}
-      <div className="bg-white rounded-xl shadow-lg border border-gray-100">
-        <div className="flex border-b border-gray-200">
+      <div className="inline-flex bg-gradient-to-r from-gray-50 to-gray-100 rounded-lg shadow border border-gray-200 p-1.5">
+        <div className="flex gap-1.5">
           <button
             onClick={() => setActiveTab('users')}
-            className={`flex-1 px-6 py-4 text-sm font-medium transition-colors flex items-center justify-center gap-2 ${
+            className={`px-4 py-2 rounded-md font-medium transition-all duration-200 flex items-center gap-2 ${
               activeTab === 'users'
-                ? 'text-blue-600 border-b-2 border-blue-600 bg-blue-50'
-                : 'text-gray-600 hover:text-gray-800 hover:bg-gray-50'
+                ? 'bg-white text-blue-600 shadow-sm'
+                : 'text-gray-600 hover:text-gray-900 hover:bg-white/50'
             }`}
           >
-            <Users className="h-4 w-4" />
-            <span>Users</span>
+            <div className={`p-1 rounded ${
+              activeTab === 'users' ? 'bg-blue-100' : 'bg-transparent'
+            }`}>
+              <Users className={`h-3.5 w-3.5 ${activeTab === 'users' ? 'text-blue-600' : 'text-gray-500'}`} />
+            </div>
+            <span className="text-sm">Users</span>
           </button>
           <button
             onClick={() => setActiveTab('roles')}
-            className={`flex-1 px-6 py-4 text-sm font-medium transition-colors flex items-center justify-center gap-2 ${
+            className={`px-4 py-2 rounded-md font-medium transition-all duration-200 flex items-center gap-2 ${
               activeTab === 'roles'
-                ? 'text-blue-600 border-b-2 border-blue-600 bg-blue-50'
-                : 'text-gray-600 hover:text-gray-800 hover:bg-gray-50'
+                ? 'bg-white text-purple-600 shadow-sm'
+                : 'text-gray-600 hover:text-gray-900 hover:bg-white/50'
             }`}
           >
-            <Lock className="h-4 w-4" />
-            <span>Roles</span>
+            <div className={`p-1 rounded ${
+              activeTab === 'roles' ? 'bg-purple-100' : 'bg-transparent'
+            }`}>
+              <Shield className={`h-3.5 w-3.5 ${activeTab === 'roles' ? 'text-purple-600' : 'text-gray-500'}`} />
+            </div>
+            <span className="text-sm">Roles</span>
           </button>
           <button
             onClick={() => setActiveTab('audit')}
-            className={`flex-1 px-6 py-4 text-sm font-medium transition-colors flex items-center justify-center gap-2 ${
+            className={`px-4 py-2 rounded-md font-medium transition-all duration-200 flex items-center gap-2 ${
               activeTab === 'audit'
-                ? 'text-blue-600 border-b-2 border-blue-600 bg-blue-50'
-                : 'text-gray-600 hover:text-gray-800 hover:bg-gray-50'
+                ? 'bg-white text-green-600 shadow-sm'
+                : 'text-gray-600 hover:text-gray-900 hover:bg-white/50'
             }`}
           >
-            <FileText className="h-4 w-4" />
-            <span>Audit Trail</span>
+            <div className={`p-1 rounded ${
+              activeTab === 'audit' ? 'bg-green-100' : 'bg-transparent'
+            }`}>
+              <FileText className={`h-3.5 w-3.5 ${activeTab === 'audit' ? 'text-green-600' : 'text-gray-500'}`} />
+            </div>
+            <span className="text-sm">Audit Trail</span>
           </button>
         </div>
       </div>
@@ -376,28 +682,51 @@ export default function UsersPage() {
                         {user.last_login ? new Date(user.last_login).toLocaleDateString() : 'Never'}
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                        <div className="flex space-x-2">
+                        <div className="flex items-center gap-2">
+                          <button
+                            onClick={() => handleEditUser(user)}
+                            className="p-1.5 text-blue-600 hover:text-blue-700 hover:bg-blue-50 rounded transition-colors"
+                            title="Edit User"
+                            disabled={actionLoading}
+                          >
+                            <Edit2 className="h-4 w-4" />
+                          </button>
+                          <button
+                            onClick={() => {
+                              setPasswordResetData({ userId: user.id, newPassword: '', confirmPassword: '' });
+                              setShowPasswordResetModal(true);
+                            }}
+                            className="p-1.5 text-amber-600 hover:text-amber-700 hover:bg-amber-50 rounded transition-colors"
+                            title="Reset Password"
+                            disabled={actionLoading}
+                          >
+                            <Key className="h-4 w-4" />
+                          </button>
                           <button
                             onClick={() => handleUpdate(user.id, { is_active: !user.is_active })}
-                            className={`${
+                            className={`p-1.5 rounded transition-colors ${
                               user.is_active
-                                ? 'text-yellow-600 hover:text-yellow-700'
-                                : 'text-green-600 hover:text-green-700'
-                            } transition-colors`}
+                                ? 'text-yellow-600 hover:text-yellow-700 hover:bg-yellow-50'
+                                : 'text-green-600 hover:text-green-700 hover:bg-green-50'
+                            }`}
                             title={user.is_active ? 'Deactivate' : 'Activate'}
+                            disabled={actionLoading}
                           >
                             {user.is_active ? <UserX className="h-4 w-4" /> : <UserCheck className="h-4 w-4" />}
                           </button>
                           <button
                             onClick={() => handleUpdate(user.id, { is_superuser: !user.is_superuser })}
-                            className="text-purple-600 hover:text-purple-700 transition-colors"
+                            className="p-1.5 text-purple-600 hover:text-purple-700 hover:bg-purple-50 rounded transition-colors"
                             title={user.is_superuser ? 'Remove Superuser' : 'Make Superuser'}
+                            disabled={actionLoading}
                           >
                             <Shield className="h-4 w-4" />
                           </button>
                           <button
-                            onClick={() => handleDelete(user.id)}
-                            className="text-red-600 hover:text-red-700 transition-colors"
+                            onClick={() => handleDelete(user.id, user.username)}
+                            className="p-1.5 text-red-600 hover:text-red-700 hover:bg-red-50 rounded transition-colors"
+                            title="Delete User"
+                            disabled={actionLoading}
                           >
                             <Trash2 className="h-4 w-4" />
                           </button>
@@ -425,146 +754,476 @@ export default function UsersPage() {
       {/* Roles Tab Content */}
       {activeTab === 'roles' && (
         <>
-          <div className="bg-white rounded-xl shadow-lg border border-gray-100 overflow-hidden">
-            <div className="p-6">
-              <h3 className="text-lg font-semibold text-gray-900 mb-4">Roles & Permissions</h3>
-              <p className="text-sm text-gray-600 mb-6">Define roles with specific permissions for different pages and actions</p>
-
-              <div className="space-y-4">
-                {roles.map(role => (
-                  <div key={role.id} className="border border-gray-200 rounded-lg p-4 hover:shadow-md transition-shadow">
-                    <div className="flex items-center justify-between mb-4">
-                      <div>
-                        <h4 className="text-base font-semibold text-gray-900">{role.name}</h4>
-                        <p className="text-sm text-gray-600">{role.description}</p>
-                      </div>
-                      <div className="flex gap-2">
-                        <button
-                          onClick={() => {
-                            setEditingRole(role);
-                            setRoleFormData({
-                              name: role.name,
-                              description: role.description,
-                              permissions: role.permissions
-                            });
-                            setShowAddRoleModal(true);
-                          }}
-                          className="text-blue-600 hover:text-blue-700 transition-colors"
-                        >
-                          <Edit2 className="h-4 w-4" />
-                        </button>
-                        <button className="text-red-600 hover:text-red-700 transition-colors">
-                          <Trash2 className="h-4 w-4" />
-                        </button>
-                      </div>
-                    </div>
-
-                    {/* Permissions Grid */}
-                    <div className="overflow-x-auto">
-                      <table className="w-full text-xs">
-                        <thead className="bg-gray-50">
-                          <tr>
-                            <th className="px-3 py-2 text-left text-gray-700 font-medium">Page</th>
-                            <th className="px-3 py-2 text-center text-gray-700 font-medium">Read</th>
-                            <th className="px-3 py-2 text-center text-gray-700 font-medium">Write</th>
-                            <th className="px-3 py-2 text-center text-gray-700 font-medium">Edit</th>
-                            <th className="px-3 py-2 text-center text-gray-700 font-medium">Delete</th>
-                          </tr>
-                        </thead>
-                        <tbody>
-                          {Object.entries(role.permissions).map(([page, perms]) => (
-                            <tr key={page} className="border-t border-gray-100">
-                              <td className="px-3 py-2 text-gray-900">{page}</td>
-                              <td className="px-3 py-2 text-center">
-                                {perms.read ? <span className="text-green-600">✓</span> : <span className="text-gray-300">−</span>}
-                              </td>
-                              <td className="px-3 py-2 text-center">
-                                {perms.write ? <span className="text-green-600">✓</span> : <span className="text-gray-300">−</span>}
-                              </td>
-                              <td className="px-3 py-2 text-center">
-                                {perms.edit ? <span className="text-green-600">✓</span> : <span className="text-gray-300">−</span>}
-                              </td>
-                              <td className="px-3 py-2 text-center">
-                                {perms.delete ? <span className="text-green-600">✓</span> : <span className="text-gray-300">−</span>}
-                              </td>
-                            </tr>
-                          ))}
-                        </tbody>
-                      </table>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-          </div>
-        </>
-      )}
-
-      {/* Audit Trail Tab Content */}
-      {activeTab === 'audit' && (
-        <>
           {/* Search */}
           <div className="bg-white rounded-xl shadow-lg border border-gray-100 p-4">
             <div className="relative">
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
               <input
                 type="text"
-                placeholder="Search audit logs..."
-                value={auditSearchQuery}
-                onChange={(e) => setAuditSearchQuery(e.target.value)}
+                placeholder="Search roles by name or description..."
+                value={roleSearchQuery}
+                onChange={(e) => setRoleSearchQuery(e.target.value)}
                 className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
               />
             </div>
           </div>
 
+          {getFilteredRoles().length === 0 ? (
+            <div className="bg-white rounded-xl shadow-lg p-12 text-center">
+              <Lock className="h-16 w-16 text-gray-400 mx-auto mb-4" />
+              <h3 className="text-xl font-semibold text-gray-800 mb-2">
+                {roleSearchQuery ? 'No matching roles found' : 'No roles found'}
+              </h3>
+              <p className="text-gray-600 mb-4">
+                {roleSearchQuery
+                  ? 'Try adjusting your search criteria'
+                  : 'Create roles to manage user permissions across different pages'}
+              </p>
+              {!roleSearchQuery && (
+                <button
+                  onClick={() => setShowAddRoleModal(true)}
+                  className="bg-blue-500 hover:bg-blue-600 text-white px-6 py-2 rounded-lg flex items-center space-x-2 transition-colors mx-auto"
+                >
+                  <Plus className="h-4 w-4" />
+                  <span>Create Your First Role</span>
+                </button>
+              )}
+            </div>
+          ) : (
+          <div className="space-y-4">
+            {/* Roles Summary Cards */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div className="bg-white rounded-xl shadow-lg border border-gray-100 p-4">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm text-gray-600">Total Roles</p>
+                    <p className="text-2xl font-bold text-gray-900">{roles.length}</p>
+                  </div>
+                  <Lock className="h-10 w-10 text-purple-500" />
+                </div>
+              </div>
+              <div className="bg-white rounded-xl shadow-lg border border-gray-100 p-4">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm text-gray-600">Showing</p>
+                    <p className="text-2xl font-bold text-gray-900">{getFilteredRoles().length}</p>
+                  </div>
+                  <Shield className="h-10 w-10 text-blue-500" />
+                </div>
+              </div>
+              <div className="bg-white rounded-xl shadow-lg border border-gray-100 p-4">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm text-gray-600">Total Pages</p>
+                    <p className="text-2xl font-bold text-gray-900">{pages.length}</p>
+                  </div>
+                  <FileText className="h-10 w-10 text-green-500" />
+                </div>
+              </div>
+            </div>
+
+            {/* Roles List */}
+            <div className="bg-white rounded-xl shadow-lg border border-gray-100 overflow-hidden">
+              <div className="p-6">
+                <h3 className="text-lg font-semibold text-gray-900 mb-4">Roles & Permissions</h3>
+                <p className="text-sm text-gray-600 mb-6">Define roles with specific permissions for different pages and actions</p>
+
+                <div className="space-y-4">
+                  {getFilteredRoles().map(role => {
+                    const isExpanded = expandedRoles.has(role.id);
+                    const permSummary = getPermissionSummary(role.permissions);
+                    return (
+                    <div key={role.id} className="border-2 border-gray-200 rounded-lg overflow-hidden hover:shadow-lg transition-all">
+                      {/* Role Header */}
+                      <div className="bg-gradient-to-r from-purple-50 to-blue-50 p-4">
+                        <div className="flex items-start justify-between">
+                          <div className="flex-1">
+                            <div className="flex items-center gap-3 mb-2">
+                              <div className="bg-purple-600 p-2 rounded-lg">
+                                <Shield className="h-5 w-5 text-white" />
+                              </div>
+                              <div>
+                                <h4 className="text-lg font-bold text-gray-900">{role.name}</h4>
+                                <p className="text-sm text-gray-600">{role.description}</p>
+                              </div>
+                            </div>
+                            {/* Permission Summary */}
+                            <div className="flex items-center gap-4 mt-3">
+                              <div className="flex items-center gap-2">
+                                <div className="text-xs text-gray-600">Permissions:</div>
+                                <div className="flex items-center gap-1">
+                                  <span className="text-sm font-semibold text-gray-900">{permSummary.granted}</span>
+                                  <span className="text-xs text-gray-500">/ {permSummary.total}</span>
+                                </div>
+                              </div>
+                              <div className="flex-1 max-w-xs">
+                                <div className="h-2 bg-gray-200 rounded-full overflow-hidden">
+                                  <div
+                                    className="h-full bg-gradient-to-r from-purple-500 to-blue-500 rounded-full transition-all"
+                                    style={{ width: `${permSummary.percentage}%` }}
+                                  />
+                                </div>
+                              </div>
+                              <span className="text-xs font-medium text-gray-600">{permSummary.percentage}%</span>
+                            </div>
+                          </div>
+                          <div className="flex items-center gap-2 ml-4">
+                            <button
+                              onClick={() => toggleRoleExpansion(role.id)}
+                              className="p-2 text-gray-600 hover:text-gray-900 hover:bg-white rounded-lg transition-colors"
+                              title={isExpanded ? 'Collapse' : 'Expand'}
+                            >
+                              {isExpanded ? (
+                                <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 15l7-7 7 7" />
+                                </svg>
+                              ) : (
+                                <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                                </svg>
+                              )}
+                            </button>
+                            <button
+                              onClick={() => {
+                                setEditingRole(role);
+                                setRoleFormData({
+                                  name: role.name,
+                                  description: role.description,
+                                  permissions: role.permissions
+                                });
+                                setShowAddRoleModal(true);
+                              }}
+                              className="p-2 text-blue-600 hover:text-blue-700 hover:bg-blue-100 rounded-lg transition-colors"
+                              title="Edit Role"
+                              disabled={actionLoading}
+                            >
+                              <Edit2 className="h-5 w-5" />
+                            </button>
+                            <button
+                              onClick={() => handleDeleteRole(role.id, role.name)}
+                              className="p-2 text-red-600 hover:text-red-700 hover:bg-red-100 rounded-lg transition-colors"
+                              title="Delete Role"
+                              disabled={actionLoading}
+                            >
+                              <Trash2 className="h-5 w-5" />
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Permissions Grid - Collapsible */}
+                      {isExpanded && (
+                        <div className="p-4 bg-white">
+                          <div className="overflow-x-auto">
+                            <table className="w-full text-sm">
+                              <thead className="bg-gray-100 border-b-2 border-gray-200">
+                                <tr>
+                                  <th className="px-4 py-3 text-left text-gray-700 font-semibold">Page</th>
+                                  <th className="px-4 py-3 text-center text-gray-700 font-semibold">Read</th>
+                                  <th className="px-4 py-3 text-center text-gray-700 font-semibold">Write</th>
+                                  <th className="px-4 py-3 text-center text-gray-700 font-semibold">Edit</th>
+                                  <th className="px-4 py-3 text-center text-gray-700 font-semibold">Delete</th>
+                                </tr>
+                              </thead>
+                              <tbody>
+                                {Object.entries(role.permissions).map(([page, perms]) => (
+                                  <tr key={page} className="border-b border-gray-100 hover:bg-gray-50 transition-colors">
+                                    <td className="px-4 py-3 text-gray-900 font-medium">{page}</td>
+                                    <td className="px-4 py-3 text-center">
+                                      {perms.read ? (
+                                        <CheckCircle className="h-5 w-5 text-green-600 inline" />
+                                      ) : (
+                                        <X className="h-5 w-5 text-gray-300 inline" />
+                                      )}
+                                    </td>
+                                    <td className="px-4 py-3 text-center">
+                                      {perms.write ? (
+                                        <CheckCircle className="h-5 w-5 text-green-600 inline" />
+                                      ) : (
+                                        <X className="h-5 w-5 text-gray-300 inline" />
+                                      )}
+                                    </td>
+                                    <td className="px-4 py-3 text-center">
+                                      {perms.edit ? (
+                                        <CheckCircle className="h-5 w-5 text-green-600 inline" />
+                                      ) : (
+                                        <X className="h-5 w-5 text-gray-300 inline" />
+                                      )}
+                                    </td>
+                                    <td className="px-4 py-3 text-center">
+                                      {perms.delete ? (
+                                        <CheckCircle className="h-5 w-5 text-green-600 inline" />
+                                      ) : (
+                                        <X className="h-5 w-5 text-gray-300 inline" />
+                                      )}
+                                    </td>
+                                  </tr>
+                                ))}
+                              </tbody>
+                            </table>
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Quick Permission Summary - When Collapsed */}
+                      {!isExpanded && (
+                        <div className="px-4 py-3 bg-gray-50 border-t border-gray-200">
+                          <div className="flex flex-wrap gap-2">
+                            {Object.entries(role.permissions).slice(0, 5).map(([page, perms]) => {
+                              const hasAnyPerm = perms.read || perms.write || perms.edit || perms.delete;
+                              return (
+                                <span
+                                  key={page}
+                                  className={`px-2 py-1 text-xs rounded ${
+                                    hasAnyPerm ? 'bg-purple-100 text-purple-700' : 'bg-gray-200 text-gray-500'
+                                  }`}
+                                >
+                                  {page}
+                                </span>
+                              );
+                            })}
+                            {Object.keys(role.permissions).length > 5 && (
+                              <span className="px-2 py-1 text-xs rounded bg-gray-200 text-gray-600">
+                                +{Object.keys(role.permissions).length - 5} more
+                              </span>
+                            )}
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  );
+                  })}
+                </div>
+              </div>
+            </div>
+          </div>
+          )}
+        </>
+      )}
+
+      {/* Audit Trail Tab Content */}
+      {activeTab === 'audit' && (
+        <>
+          {/* Filters */}
+          <div className="bg-white rounded-xl shadow-lg border border-gray-100 p-4">
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+              {/* Search */}
+              <div className="md:col-span-2">
+                <label className="block text-xs font-medium text-gray-700 mb-1">Search</label>
+                <div className="relative">
+                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+                  <input
+                    type="text"
+                    placeholder="Search by user, action, resource..."
+                    value={auditSearchQuery}
+                    onChange={(e) => setAuditSearchQuery(e.target.value)}
+                    className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
+                  />
+                </div>
+              </div>
+
+              {/* Action Filter */}
+              <div>
+                <label className="block text-xs font-medium text-gray-700 mb-1">Action Type</label>
+                <select
+                  value={auditFilterAction}
+                  onChange={(e) => setAuditFilterAction(e.target.value)}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm bg-white"
+                >
+                  <option value="all">All Actions</option>
+                  {getUniqueActions().map(action => (
+                    <option key={action} value={action}>{action}</option>
+                  ))}
+                </select>
+              </div>
+
+              {/* Clear Filters */}
+              <div className="flex items-end">
+                <button
+                  onClick={() => {
+                    setAuditSearchQuery('');
+                    setAuditFilterAction('all');
+                    setAuditDateFrom('');
+                    setAuditDateTo('');
+                  }}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm text-gray-700 hover:bg-gray-50 transition-colors"
+                >
+                  Clear Filters
+                </button>
+              </div>
+            </div>
+
+            {/* Date Range Filters */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
+              <div>
+                <label className="block text-xs font-medium text-gray-700 mb-1">From Date</label>
+                <input
+                  type="date"
+                  value={auditDateFrom}
+                  onChange={(e) => setAuditDateFrom(e.target.value)}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm bg-white"
+                />
+              </div>
+              <div>
+                <label className="block text-xs font-medium text-gray-700 mb-1">To Date</label>
+                <input
+                  type="date"
+                  value={auditDateTo}
+                  onChange={(e) => setAuditDateTo(e.target.value)}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm bg-white"
+                />
+              </div>
+            </div>
+          </div>
+
+          {/* Audit Logs Statistics */}
+          {auditLogs.length > 0 && (
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+              <div className="bg-white rounded-xl shadow-lg border border-gray-100 p-4">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm text-gray-600">Total Logs</p>
+                    <p className="text-2xl font-bold text-gray-900">{auditLogs.length}</p>
+                  </div>
+                  <FileText className="h-10 w-10 text-blue-500" />
+                </div>
+              </div>
+              <div className="bg-white rounded-xl shadow-lg border border-gray-100 p-4">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm text-gray-600">Filtered Results</p>
+                    <p className="text-2xl font-bold text-gray-900">{getFilteredAuditLogs().length}</p>
+                  </div>
+                  <Search className="h-10 w-10 text-green-500" />
+                </div>
+              </div>
+              <div className="bg-white rounded-xl shadow-lg border border-gray-100 p-4">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm text-gray-600">Create Actions</p>
+                    <p className="text-2xl font-bold text-green-700">
+                      {auditLogs.filter(log => log.action === 'CREATE').length}
+                    </p>
+                  </div>
+                  <Plus className="h-10 w-10 text-green-500" />
+                </div>
+              </div>
+              <div className="bg-white rounded-xl shadow-lg border border-gray-100 p-4">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm text-gray-600">Delete Actions</p>
+                    <p className="text-2xl font-bold text-red-700">
+                      {auditLogs.filter(log => log.action === 'DELETE').length}
+                    </p>
+                  </div>
+                  <Trash2 className="h-10 w-10 text-red-500" />
+                </div>
+              </div>
+            </div>
+          )}
+
           {/* Audit Logs Table */}
+          {getFilteredAuditLogs().length === 0 ? (
+            <div className="bg-white rounded-xl shadow-lg p-12 text-center">
+              <FileText className="h-16 w-16 text-gray-400 mx-auto mb-4" />
+              <h3 className="text-xl font-semibold text-gray-800 mb-2">
+                {auditLogs.length === 0 ? 'No audit logs' : 'No matching logs found'}
+              </h3>
+              <p className="text-gray-600">
+                {auditLogs.length === 0
+                  ? 'User activities will be tracked and displayed here'
+                  : 'Try adjusting your filters or search criteria'}
+              </p>
+            </div>
+          ) : (
           <div className="bg-white rounded-xl shadow-lg border border-gray-100 overflow-hidden">
             <div className="overflow-x-auto">
               <table className="w-full">
-                <thead className="bg-gray-50 border-b border-gray-200">
+                <thead className="bg-gradient-to-r from-gray-50 to-gray-100 border-b-2 border-gray-200">
                   <tr>
-                    <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase">Timestamp</th>
-                    <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase">User</th>
-                    <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase">Action</th>
-                    <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase">Resource</th>
-                    <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase">Details</th>
+                    <th className="px-6 py-4 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">Timestamp</th>
+                    <th className="px-6 py-4 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">User</th>
+                    <th className="px-6 py-4 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">Action</th>
+                    <th className="px-6 py-4 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">Resource</th>
+                    <th className="px-6 py-4 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">Details</th>
                   </tr>
                 </thead>
                 <tbody className="bg-white divide-y divide-gray-200">
-                  {auditLogs
-                    .filter(log =>
-                      log.user_name?.toLowerCase().includes(auditSearchQuery.toLowerCase()) ||
-                      log.action?.toLowerCase().includes(auditSearchQuery.toLowerCase()) ||
-                      log.resource?.toLowerCase().includes(auditSearchQuery.toLowerCase()) ||
-                      log.details?.toLowerCase().includes(auditSearchQuery.toLowerCase())
-                    )
-                    .map(log => (
-                      <tr key={log.id} className="hover:bg-gray-50 transition-colors">
+                  {getFilteredAuditLogs().map(log => {
+                    const detailsDisplay = typeof log.details === 'object'
+                      ? JSON.stringify(log.details, null, 2)
+                      : String(log.details || '');
+
+                    return (
+                      <tr key={log.id} className="hover:bg-blue-50 transition-colors">
                         <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                           <div className="flex items-center gap-2">
-                            <Clock className="h-4 w-4 text-gray-400" />
-                            {new Date(log.timestamp).toLocaleString()}
+                            <Clock className="h-4 w-4 text-blue-500" />
+                            <div>
+                              <div className="font-medium">{new Date(log.timestamp).toLocaleDateString()}</div>
+                              <div className="text-xs text-gray-500">{new Date(log.timestamp).toLocaleTimeString()}</div>
+                            </div>
                           </div>
                         </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{log.user_name}</td>
                         <td className="px-6 py-4 whitespace-nowrap">
-                          <span className={`px-2 py-1 rounded text-xs font-medium ${
-                            log.action === 'CREATE' ? 'bg-green-100 text-green-700' :
-                            log.action === 'UPDATE' ? 'bg-blue-100 text-blue-700' :
-                            log.action === 'DELETE' ? 'bg-red-100 text-red-700' :
-                            'bg-gray-100 text-gray-700'
+                          <div className="flex items-center gap-2">
+                            <div className="h-8 w-8 rounded-full bg-gradient-to-br from-blue-500 to-purple-500 flex items-center justify-center">
+                              <span className="text-xs font-bold text-white">
+                                {log.user_name?.charAt(0).toUpperCase() || '?'}
+                              </span>
+                            </div>
+                            <span className="text-sm font-medium text-gray-900">{log.user_name}</span>
+                          </div>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <span className={`px-3 py-1.5 rounded-full text-xs font-semibold flex items-center gap-1 w-fit ${
+                            log.action === 'CREATE' ? 'bg-green-100 text-green-700 border border-green-300' :
+                            log.action === 'UPDATE' ? 'bg-blue-100 text-blue-700 border border-blue-300' :
+                            log.action === 'DELETE' ? 'bg-red-100 text-red-700 border border-red-300' :
+                            'bg-gray-100 text-gray-700 border border-gray-300'
                           }`}>
+                            {log.action === 'CREATE' && <Plus className="h-3 w-3" />}
+                            {log.action === 'UPDATE' && <Edit2 className="h-3 w-3" />}
+                            {log.action === 'DELETE' && <Trash2 className="h-3 w-3" />}
                             {log.action}
                           </span>
                         </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{log.resource}</td>
-                        <td className="px-6 py-4 text-sm text-gray-600">{log.details}</td>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <span className="text-sm font-medium text-gray-900 bg-gray-100 px-2 py-1 rounded">
+                            {log.resource}
+                          </span>
+                        </td>
+                        <td className="px-6 py-4 text-sm text-gray-600 max-w-md">
+                          <details className="cursor-pointer">
+                            <summary className="text-blue-600 hover:text-blue-700 font-medium">
+                              View Details
+                            </summary>
+                            <pre className="mt-2 whitespace-pre-wrap font-mono text-xs bg-gray-50 p-3 rounded border border-gray-200 overflow-x-auto">
+                              {detailsDisplay}
+                            </pre>
+                          </details>
+                        </td>
                       </tr>
-                    ))}
+                    );
+                  })}
                 </tbody>
               </table>
             </div>
+
+            {/* Pagination Info */}
+            <div className="px-6 py-4 bg-gray-50 border-t border-gray-200">
+              <div className="flex items-center justify-between text-sm text-gray-600">
+                <span>
+                  Showing <span className="font-semibold text-gray-900">{getFilteredAuditLogs().length}</span> of{' '}
+                  <span className="font-semibold text-gray-900">{auditLogs.length}</span> total logs
+                </span>
+                <span className="text-xs">
+                  Last updated: {auditLogs.length > 0 ? new Date(auditLogs[0].timestamp).toLocaleString() : 'N/A'}
+                </span>
+              </div>
+            </div>
           </div>
+          )}
         </>
       )}
 
@@ -636,14 +1295,17 @@ export default function UsersPage() {
                     setFormData({ username: '', email: '', full_name: '', password: '', is_superuser: false, role_id: undefined });
                   }}
                   className="flex-1 px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 transition-colors"
+                  disabled={actionLoading}
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
-                  className="flex-1 px-4 py-2 bg-blue-500 hover:bg-blue-600 text-white rounded-lg transition-colors font-medium"
+                  className="flex-1 px-4 py-2 bg-blue-500 hover:bg-blue-600 text-white rounded-lg transition-colors font-medium flex items-center justify-center gap-2"
+                  disabled={actionLoading}
                 >
-                  Create User
+                  {actionLoading && <RefreshCw className="h-4 w-4 animate-spin" />}
+                  <span>{actionLoading ? 'Creating...' : 'Create User'}</span>
                 </button>
               </div>
             </form>
@@ -659,14 +1321,7 @@ export default function UsersPage() {
               <h3 className="text-xl font-bold text-white">{editingRole ? 'Edit Role' : 'Add New Role'}</h3>
             </div>
             <form
-              onSubmit={(e) => {
-                e.preventDefault();
-                // Handle role creation/update
-                console.log('Role form data:', roleFormData);
-                setShowAddRoleModal(false);
-                setEditingRole(null);
-                setRoleFormData({ name: '', description: '', permissions: {} });
-              }}
+              onSubmit={editingRole ? handleUpdateRole : handleCreateRole}
               className="p-6 space-y-6"
             >
               <div>
@@ -793,14 +1448,167 @@ export default function UsersPage() {
                     setRoleFormData({ name: '', description: '', permissions: {} });
                   }}
                   className="flex-1 px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 transition-colors"
+                  disabled={actionLoading}
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
-                  className="flex-1 px-4 py-2 bg-purple-500 hover:bg-purple-600 text-white rounded-lg transition-colors font-medium"
+                  className="flex-1 px-4 py-2 bg-purple-500 hover:bg-purple-600 text-white rounded-lg transition-colors font-medium flex items-center justify-center gap-2"
+                  disabled={actionLoading}
                 >
-                  {editingRole ? 'Update Role' : 'Create Role'}
+                  {actionLoading && <RefreshCw className="h-4 w-4 animate-spin" />}
+                  <span>{actionLoading ? (editingRole ? 'Updating...' : 'Creating...') : (editingRole ? 'Update Role' : 'Create Role')}</span>
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Edit User Modal */}
+      {showEditModal && editingUser && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-xl shadow-2xl max-w-md w-full mx-4">
+            <div className="bg-gradient-to-br from-blue-500 to-blue-600 px-6 py-4 rounded-t-xl">
+              <h3 className="text-xl font-bold text-white">Edit User</h3>
+              <p className="text-blue-100 text-sm mt-1">@{editingUser.username}</p>
+            </div>
+            <form onSubmit={handleUpdateUser} className="p-6 space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Username</label>
+                <input
+                  type="text"
+                  value={formData.username}
+                  disabled
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg bg-gray-100 text-gray-600 cursor-not-allowed"
+                />
+                <p className="text-xs text-gray-500 mt-1">Username cannot be changed</p>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Full Name</label>
+                <input
+                  type="text"
+                  required
+                  value={formData.full_name}
+                  onChange={(e) => setFormData({ ...formData, full_name: e.target.value })}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-900 bg-white"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Email</label>
+                <input
+                  type="email"
+                  required
+                  value={formData.email}
+                  onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-900 bg-white"
+                />
+              </div>
+              <div className="flex items-center">
+                <input
+                  type="checkbox"
+                  id="edit_is_superuser"
+                  checked={formData.is_superuser}
+                  onChange={(e) => setFormData({ ...formData, is_superuser: e.target.checked })}
+                  className="h-4 w-4 text-blue-500 focus:ring-blue-500 border-gray-300 rounded"
+                />
+                <label htmlFor="edit_is_superuser" className="ml-2 block text-sm text-gray-700">
+                  Superuser privileges
+                </label>
+              </div>
+              <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
+                <p className="text-xs text-blue-800">
+                  To change the password, use the "Reset Password" button in the actions menu.
+                </p>
+              </div>
+              <div className="flex space-x-3 pt-4">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setShowEditModal(false);
+                    setEditingUser(null);
+                    setFormData({ username: '', email: '', full_name: '', password: '', is_superuser: false, role_id: undefined });
+                  }}
+                  className="flex-1 px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 transition-colors"
+                  disabled={actionLoading}
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  className="flex-1 px-4 py-2 bg-blue-500 hover:bg-blue-600 text-white rounded-lg transition-colors font-medium flex items-center justify-center gap-2"
+                  disabled={actionLoading}
+                >
+                  {actionLoading && <RefreshCw className="h-4 w-4 animate-spin" />}
+                  <span>{actionLoading ? 'Updating...' : 'Update User'}</span>
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Password Reset Modal */}
+      {showPasswordResetModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-xl shadow-2xl max-w-md w-full mx-4">
+            <div className="bg-gradient-to-br from-amber-500 to-amber-600 px-6 py-4 rounded-t-xl">
+              <h3 className="text-xl font-bold text-white">Reset Password</h3>
+              <p className="text-amber-100 text-sm mt-1">Set a new password for this user</p>
+            </div>
+            <form onSubmit={handlePasswordReset} className="p-6 space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">New Password</label>
+                <input
+                  type="password"
+                  required
+                  minLength={6}
+                  value={passwordResetData.newPassword}
+                  onChange={(e) => setPasswordResetData({ ...passwordResetData, newPassword: e.target.value })}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-amber-500 text-gray-900 bg-white"
+                  placeholder="Enter new password"
+                />
+                <p className="text-xs text-gray-500 mt-1">Minimum 6 characters</p>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Confirm Password</label>
+                <input
+                  type="password"
+                  required
+                  minLength={6}
+                  value={passwordResetData.confirmPassword}
+                  onChange={(e) => setPasswordResetData({ ...passwordResetData, confirmPassword: e.target.value })}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-amber-500 text-gray-900 bg-white"
+                  placeholder="Confirm new password"
+                />
+              </div>
+              {passwordResetData.newPassword && passwordResetData.confirmPassword &&
+                passwordResetData.newPassword !== passwordResetData.confirmPassword && (
+                <div className="bg-red-50 border border-red-200 rounded-lg p-3 flex items-center gap-2">
+                  <AlertCircle className="h-4 w-4 text-red-600 flex-shrink-0" />
+                  <p className="text-xs text-red-800">Passwords do not match</p>
+                </div>
+              )}
+              <div className="flex space-x-3 pt-4">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setShowPasswordResetModal(false);
+                    setPasswordResetData({ userId: 0, newPassword: '', confirmPassword: '' });
+                  }}
+                  className="flex-1 px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 transition-colors"
+                  disabled={actionLoading}
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  className="flex-1 px-4 py-2 bg-amber-500 hover:bg-amber-600 text-white rounded-lg transition-colors font-medium flex items-center justify-center gap-2"
+                  disabled={actionLoading}
+                >
+                  {actionLoading && <RefreshCw className="h-4 w-4 animate-spin" />}
+                  <span>{actionLoading ? 'Resetting...' : 'Reset Password'}</span>
                 </button>
               </div>
             </form>

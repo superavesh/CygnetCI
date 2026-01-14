@@ -197,7 +197,7 @@ export default function ReleasesPage() {
                                         {rp.execution_mode === 'parallel' ? '||' : '→'}
                                       </span>
                                     </div>
-                                    {idx < Math.min(release.pipelines.length, 3) - 1 && (
+                                    {idx < Math.min(release.pipelines?.length || 0, 3) - 1 && (
                                       <ArrowRight className="h-3 w-3 text-gray-400" />
                                     )}
                                   </React.Fragment>

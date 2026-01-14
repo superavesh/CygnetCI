@@ -17,10 +17,12 @@ export const DeployReleaseModal: React.FC<DeployReleaseModalProps> = ({ release,
   const [triggeredBy, setTriggeredBy] = useState('');
   const [artifactVersion, setArtifactVersion] = useState('');
   const [parameters, setParameters] = useState<Record<string, any>>({});
+  const [pipelineParametersMap, setPipelineParametersMap] = useState<Record<number, Record<string, any>>>({});
   const [environments, setEnvironments] = useState<Environment[]>([]);
   const [agents, setAgents] = useState<Agent[]>([]);
   const [selectedAgentId, setSelectedAgentId] = useState<number | null>(null);
   const [pipeline, setPipeline] = useState<Pipeline | null>(null);
+  const [pipelines, setPipelines] = useState<Pipeline[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -37,9 +39,36 @@ export const DeployReleaseModal: React.FC<DeployReleaseModalProps> = ({ release,
       setEnvironments(envsData);
       setAgents(agentsData.filter((agent: Agent) => agent.status === 'online'));
 
-      if (release.pipeline_id) {
-        const pipelinesData = await apiService.getPipelines();
-        const pipelineData = pipelinesData.find((p: any) => p.id === release.pipeline_id);
+      // Fetch all pipeline details
+      const allPipelinesData = await apiService.getPipelines();
+
+      // For pipeline-based releases (new approach)
+      if (release.pipelines && release.pipelines.length > 0) {
+        const releasePipelines: Pipeline[] = [];
+        const initialPipelineParams: Record<number, Record<string, any>> = {};
+
+        for (const rp of release.pipelines) {
+          const pipelineData = allPipelinesData.find((p: any) => p.id === rp.pipeline_id);
+          if (pipelineData) {
+            releasePipelines.push(pipelineData);
+
+            // Initialize parameters for this pipeline
+            if (pipelineData.parameters && pipelineData.parameters.length > 0) {
+              const params: Record<string, any> = {};
+              pipelineData.parameters.forEach((param: any) => {
+                params[param.name] = param.defaultValue || '';
+              });
+              initialPipelineParams[pipelineData.id] = params;
+            }
+          }
+        }
+
+        setPipelines(releasePipelines);
+        setPipelineParametersMap(initialPipelineParams);
+      }
+      // For legacy single-pipeline releases
+      else if (release.pipeline_id) {
+        const pipelineData = allPipelinesData.find((p: any) => p.id === release.pipeline_id);
         if (pipelineData) {
           setPipeline(pipelineData);
           // Initialize parameters with default values
@@ -65,6 +94,16 @@ export const DeployReleaseModal: React.FC<DeployReleaseModalProps> = ({ release,
     });
   };
 
+  const handlePipelineParameterChange = (pipelineId: number, paramName: string, value: any) => {
+    setPipelineParametersMap({
+      ...pipelineParametersMap,
+      [pipelineId]: {
+        ...(pipelineParametersMap[pipelineId] || {}),
+        [paramName]: value
+      }
+    });
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
@@ -78,6 +117,21 @@ export const DeployReleaseModal: React.FC<DeployReleaseModalProps> = ({ release,
       return;
     }
 
+    // Validate required parameters for pipeline-based releases
+    if (pipelines.length > 0) {
+      for (const pipeline of pipelines) {
+        if (pipeline.parameters && pipeline.parameters.length > 0) {
+          const pipelineParams = pipelineParametersMap[pipeline.id] || {};
+          for (const param of pipeline.parameters) {
+            if (param.required && !pipelineParams[param.name]) {
+              setError(`Required parameter "${param.name}" for pipeline "${pipeline.name}" is missing`);
+              return;
+            }
+          }
+        }
+      }
+    }
+
     try {
       setLoading(true);
       setError(null);
@@ -86,6 +140,7 @@ export const DeployReleaseModal: React.FC<DeployReleaseModalProps> = ({ release,
         triggered_by: triggeredBy.trim(),
         artifact_version: artifactVersion.trim() || undefined,
         parameters: Object.keys(parameters).length > 0 ? parameters : undefined,
+        pipeline_parameters: Object.keys(pipelineParametersMap).length > 0 ? pipelineParametersMap : undefined,
         agent_id: selectedAgentId
       });
 
@@ -166,7 +221,7 @@ export const DeployReleaseModal: React.FC<DeployReleaseModalProps> = ({ release,
                               </div>
                               <span className="text-xs text-gray-600 mt-1">#{rp.order_index + 1}</span>
                             </div>
-                            {idx < release.pipelines.length - 1 && (
+                            {idx < (release.pipelines?.length || 0) - 1 && (
                               <ArrowRight className="h-5 w-5 text-gray-400" />
                             )}
                           </React.Fragment>
@@ -217,7 +272,82 @@ export const DeployReleaseModal: React.FC<DeployReleaseModalProps> = ({ release,
             )}
           </div>
 
-          {/* Pipeline Parameters */}
+          {/* Pipeline Parameters - Multiple Pipelines */}
+          {pipelines.length > 0 && pipelines.some(p => p.parameters && p.parameters.length > 0) && (
+            <div className="space-y-4">
+              <h3 className="text-sm font-semibold text-gray-700 uppercase">Pipeline Parameters</h3>
+              {pipelines.map((pipelineItem, pipelineIdx) => {
+                if (!pipelineItem.parameters || pipelineItem.parameters.length === 0) return null;
+
+                return (
+                  <div key={pipelineItem.id} className="bg-gray-50 border border-gray-200 rounded-lg p-4 space-y-3">
+                    <div className="flex items-center gap-2 mb-2">
+                      <Server className="h-4 w-4 text-blue-600" />
+                      <h4 className="font-semibold text-gray-900">{pipelineItem.name}</h4>
+                      <span className="text-xs text-gray-500">Pipeline #{pipelineIdx + 1}</span>
+                    </div>
+
+                    <div className="space-y-3">
+                      {pipelineItem.parameters.map((param: any) => (
+                        <div key={param.name}>
+                          <label className="block text-sm font-medium text-gray-700 mb-1">
+                            {param.name}
+                            {param.required && <span className="text-red-500 ml-1">*</span>}
+                          </label>
+                          {param.description && (
+                            <p className="text-xs text-gray-500 mb-1">{param.description}</p>
+                          )}
+
+                          {param.type === 'choice' && param.choices ? (
+                            <select
+                              value={pipelineParametersMap[pipelineItem.id]?.[param.name] || ''}
+                              onChange={(e) => handlePipelineParameterChange(pipelineItem.id, param.name, e.target.value)}
+                              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-gray-900 bg-white"
+                              required={param.required}
+                            >
+                              <option value="">Select...</option>
+                              {param.choices.map((choice: string) => (
+                                <option key={choice} value={choice}>{choice}</option>
+                              ))}
+                            </select>
+                          ) : param.type === 'boolean' ? (
+                            <label className="flex items-center gap-2">
+                              <input
+                                type="checkbox"
+                                checked={pipelineParametersMap[pipelineItem.id]?.[param.name] === 'true' || pipelineParametersMap[pipelineItem.id]?.[param.name] === true}
+                                onChange={(e) => handlePipelineParameterChange(pipelineItem.id, param.name, e.target.checked.toString())}
+                                className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                              />
+                              <span className="text-sm text-gray-600">Enable</span>
+                            </label>
+                          ) : param.type === 'number' ? (
+                            <input
+                              type="number"
+                              value={pipelineParametersMap[pipelineItem.id]?.[param.name] || ''}
+                              onChange={(e) => handlePipelineParameterChange(pipelineItem.id, param.name, e.target.value)}
+                              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-gray-900 bg-white"
+                              required={param.required}
+                            />
+                          ) : (
+                            <input
+                              type="text"
+                              value={pipelineParametersMap[pipelineItem.id]?.[param.name] || ''}
+                              onChange={(e) => handlePipelineParameterChange(pipelineItem.id, param.name, e.target.value)}
+                              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-gray-900 bg-white"
+                              required={param.required}
+                              placeholder={param.defaultValue}
+                            />
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+
+          {/* Pipeline Parameters - Single Legacy Pipeline */}
           {pipeline && pipeline.parameters && pipeline.parameters.length > 0 && (
             <div className="space-y-3">
               <h3 className="text-sm font-semibold text-gray-700 uppercase">Pipeline Parameters</h3>

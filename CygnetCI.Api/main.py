@@ -595,8 +595,23 @@ def get_dashboard_data(customer_id: int = None, db: Session = Depends(get_db)):
 
 @app.get("/agents", tags=["🌐 UI - Agents"])
 def get_agents(db: Session = Depends(get_db)):
-    """Get all agents"""
+    """Get all agents with automatic status update based on last heartbeat"""
     agents = db.query(models.Agent).all()
+
+    # Auto-update agent status based on last heartbeat (2 minutes timeout)
+    offline_threshold = datetime.now() - timedelta(minutes=2)
+
+    for agent in agents:
+        if agent.last_seen and agent.last_seen < offline_threshold:
+            if agent.status != "offline":
+                agent.status = "offline"
+                db.commit()
+        elif agent.last_seen and agent.last_seen >= offline_threshold:
+            # Agent is active but status might be offline, update to online
+            if agent.status == "offline":
+                agent.status = "online"
+                db.commit()
+
     return [format_agent(agent) for agent in agents]
 
 @app.post("/agents", status_code=201, tags=["🤖 Agent - Registration & Health"])
@@ -755,6 +770,45 @@ def get_agent_metrics_history(
         }
         for metric in metrics
     ]
+
+@app.delete("/monitoring/agents/{agent_uuid}/metrics/history", tags=["🌐 UI - Monitoring"])
+def delete_agent_metrics_history(
+    agent_uuid: str,
+    start_date: str = Query(..., description="Start datetime in ISO format"),
+    end_date: str = Query(..., description="End datetime in ISO format"),
+    db: Session = Depends(get_db)
+):
+    """Delete historical metrics for an agent within a date range"""
+    agent = db.query(models.Agent).filter(models.Agent.uuid == agent_uuid).first()
+    if not agent:
+        raise HTTPException(status_code=404, detail="Agent not found")
+
+    try:
+        from_time = datetime.fromisoformat(start_date.replace('Z', '+00:00'))
+        to_time = datetime.fromisoformat(end_date.replace('Z', '+00:00'))
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=f"Invalid datetime format: {str(e)}")
+
+    if from_time >= to_time:
+        raise HTTPException(status_code=400, detail="Start date must be before end date")
+
+    # Delete metrics in the specified range
+    deleted_count = db.query(models.AgentResourceData)\
+        .filter(
+            models.AgentResourceData.agent_id == agent.id,
+            models.AgentResourceData.timestamp >= from_time,
+            models.AgentResourceData.timestamp <= to_time
+        )\
+        .delete(synchronize_session=False)
+
+    db.commit()
+
+    return {
+        "message": f"Deleted {deleted_count} metrics",
+        "deleted_count": deleted_count,
+        "start_date": from_time.isoformat(),
+        "end_date": to_time.isoformat()
+    }
 
 @app.get("/monitoring/api/ping", tags=["🌐 UI - Monitoring"])
 def ping_api():
