@@ -5,10 +5,13 @@
 import React, { useState, useEffect } from 'react';
 import { Upload, Send, FileText, Package, Trash2, RefreshCw, Download, History } from 'lucide-react';
 import { apiService } from '@/lib/api/apiService';
+import { useCustomer } from '@/lib/contexts/CustomerContext';
 import type { TransferFile, TransferFilePickup } from '@/types';
 import { TransferHistoryModal } from '@/components/transfer/TransferHistoryModal';
 
 export default function TransferPage() {
+  const { selectedCustomer } = useCustomer();
+
   // Upload Section State
   const [uploadFileType, setUploadFileType] = useState<'script' | 'artifact'>('script');
   const [uploadVersion, setUploadVersion] = useState('');
@@ -24,6 +27,7 @@ export default function TransferPage() {
   const [allFiles, setAllFiles] = useState<TransferFile[]>([]); // All files for uploaded files table
   const [versions, setVersions] = useState<string[]>([]);
   const [agents, setAgents] = useState<any[]>([]);
+  const [filteredAgents, setFilteredAgents] = useState<any[]>([]);
   const [pushFileType, setPushFileType] = useState<'script' | 'artifact'>('script');
   const [pushVersion, setPushVersion] = useState('');
   const [pushFile, setPushFile] = useState('');
@@ -50,6 +54,17 @@ export default function TransferPage() {
     fetchPickups();
     fetchAllFiles(); // Load all files for the uploaded files table
   }, []);
+
+  // Filter agents by selected customer from global context
+  useEffect(() => {
+    if (selectedCustomer && agents.length > 0) {
+      const filtered = agents.filter(agent => agent.customerId === selectedCustomer.id);
+      setFilteredAgents(filtered);
+      setPushAgent(''); // Reset agent selection when customer changes
+    } else {
+      setFilteredAgents(agents);
+    }
+  }, [selectedCustomer, agents]);
 
   // When push file type or version changes, refresh file list
   useEffect(() => {
@@ -95,10 +110,12 @@ export default function TransferPage() {
     try {
       const data = await apiService.getAgents();
       setAgents(data);
+      setFilteredAgents(data); // Initially show all agents
     } catch (err) {
       console.error('Failed to fetch agents:', err);
     }
   };
+
 
   const fetchPickups = async () => {
     try {
@@ -467,12 +484,15 @@ export default function TransferPage() {
                 required
               >
                 <option value="">Select an agent...</option>
-                {agents && agents.map((agent, index) => (
+                {filteredAgents && filteredAgents.map((agent, index) => (
                   <option key={`agent-${agent.uuid}-${index}`} value={agent.uuid}>
                     {agent.name} ({agent.location}) - {agent.status}
                   </option>
                 ))}
               </select>
+              {selectedCustomer && filteredAgents.length === 0 && (
+                <p className="text-xs text-amber-600 mt-1">No agents found for selected customer</p>
+              )}
             </div>
 
             {/* Requested By */}

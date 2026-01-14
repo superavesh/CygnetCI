@@ -262,6 +262,7 @@ def format_agent(agent):
         "location": agent.location,
         "cpu": agent.cpu,
         "memory": agent.memory,
+        "customerId": agent.customer_id,
         "resourceData": []
     }
 

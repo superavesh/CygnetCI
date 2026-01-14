@@ -554,6 +554,20 @@ class ApiService {
 
     return await response.json();
   }
+
+  async getCustomers() {
+    const url = `${CONFIG.api.baseUrl}/customers`;
+    const response = await fetch(url, {
+      method: 'GET',
+      headers: CONFIG.api.headers
+    });
+
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
+
+    return await response.json();
+  }
 }
 
 export const apiService = new ApiService();
