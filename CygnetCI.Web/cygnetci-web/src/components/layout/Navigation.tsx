@@ -16,7 +16,8 @@ import {
   Upload,
   Users,
   Building2,
-  RotateCcw
+  RotateCcw,
+  Mail
 } from 'lucide-react';
 
 const navItems = [
@@ -27,6 +28,7 @@ const navItems = [
   { id: 'rollback', name: 'Rollback', icon: RotateCcw, href: '/rollback' },
   { id: 'agents', name: 'Agents', icon: Server, href: '/agents' },
   { id: 'monitoring', name: 'Monitoring', icon: Monitor, href: '/monitoring' },
+  { id: 'email-alerts', name: 'Email Alerts', icon: Mail, href: '/email-alerts' },
   { id: 'customers', name: 'Customers', icon: Building2, href: '/customers' },
   { id: 'users', name: 'Users', icon: Users, href: '/users' },
   { id: 'tasks', name: 'Tasks', icon: Activity, href: '/tasks' }

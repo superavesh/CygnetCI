@@ -568,6 +568,119 @@ class ApiService {
 
     return await response.json();
   }
+
+  // Email Alerts API
+  async getEmailAlerts(params?: { customerId?: number; category?: string; isRead?: boolean; isStarred?: boolean }) {
+    let url = `${CONFIG.api.baseUrl}/email-alerts`;
+    const queryParams = new URLSearchParams();
+
+    if (params?.customerId) queryParams.append('customer_id', params.customerId.toString());
+    if (params?.category) queryParams.append('category', params.category);
+    if (params?.isRead !== undefined) queryParams.append('is_read', params.isRead.toString());
+    if (params?.isStarred !== undefined) queryParams.append('is_starred', params.isStarred.toString());
+
+    if (queryParams.toString()) url += `?${queryParams.toString()}`;
+
+    const response = await fetch(url, {
+      method: 'GET',
+      headers: CONFIG.api.headers
+    });
+
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
+
+    return await response.json();
+  }
+
+  async getEmailAlert(emailId: number) {
+    const url = `${CONFIG.api.baseUrl}/email-alerts/${emailId}`;
+    const response = await fetch(url, {
+      method: 'GET',
+      headers: CONFIG.api.headers
+    });
+
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
+
+    return await response.json();
+  }
+
+  async createEmailAlert(data: {
+    subject: string;
+    sender: string;
+    sender_email: string;
+    preview?: string;
+    body?: string;
+    category?: string;
+    priority?: string;
+    has_attachment?: boolean;
+    customer_id?: number;
+  }) {
+    const url = `${CONFIG.api.baseUrl}/email-alerts`;
+    const response = await fetch(url, {
+      method: 'POST',
+      headers: CONFIG.api.headers,
+      body: JSON.stringify(data)
+    });
+
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
+
+    return await response.json();
+  }
+
+  async updateEmailAlert(emailId: number, data: {
+    category?: string;
+    is_read?: boolean;
+    is_starred?: boolean;
+    priority?: string;
+  }) {
+    const url = `${CONFIG.api.baseUrl}/email-alerts/${emailId}`;
+    const response = await fetch(url, {
+      method: 'PATCH',
+      headers: CONFIG.api.headers,
+      body: JSON.stringify(data)
+    });
+
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
+
+    return await response.json();
+  }
+
+  async deleteEmailAlert(emailId: number) {
+    const url = `${CONFIG.api.baseUrl}/email-alerts/${emailId}`;
+    const response = await fetch(url, {
+      method: 'DELETE',
+      headers: CONFIG.api.headers
+    });
+
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
+
+    return await response.json();
+  }
+
+  async getEmailAlertsStats(customerId?: number) {
+    let url = `${CONFIG.api.baseUrl}/email-alerts/stats/summary`;
+    if (customerId) url += `?customer_id=${customerId}`;
+
+    const response = await fetch(url, {
+      method: 'GET',
+      headers: CONFIG.api.headers
+    });
+
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
+
+    return await response.json();
+  }
 }
 
 export const apiService = new ApiService();

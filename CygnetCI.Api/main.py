@@ -4025,6 +4025,160 @@ def delete_rollback_script(script_id: int, db: Session = Depends(get_db)):
 
 
 # ==============================================
+# EMAIL ALERTS ENDPOINTS
+# ==============================================
+
+class EmailAlertCreate(BaseModel):
+    subject: str
+    sender: str
+    sender_email: str
+    preview: Optional[str] = None
+    body: Optional[str] = None
+    category: str = "inbox"
+    priority: str = "medium"
+    has_attachment: bool = False
+    customer_id: Optional[int] = None
+
+class EmailAlertUpdate(BaseModel):
+    category: Optional[str] = None
+    is_read: Optional[bool] = None
+    is_starred: Optional[bool] = None
+    priority: Optional[str] = None
+
+def format_email_alert(email):
+    """Format email alert for API response"""
+    return {
+        "id": email.id,
+        "subject": email.subject,
+        "sender": email.sender,
+        "senderEmail": email.sender_email,
+        "preview": email.preview,
+        "body": email.body,
+        "receivedAt": email.received_at.isoformat() if email.received_at else None,
+        "category": email.category,
+        "isRead": email.is_read,
+        "isStarred": email.is_starred,
+        "hasAttachment": email.has_attachment,
+        "priority": email.priority,
+        "customerId": email.customer_id
+    }
+
+@app.get("/email-alerts", tags=["📧 Email Alerts"])
+def get_email_alerts(
+    customer_id: Optional[int] = None,
+    category: Optional[str] = None,
+    is_read: Optional[bool] = None,
+    is_starred: Optional[bool] = None,
+    db: Session = Depends(get_db)
+):
+    """Get all email alerts with optional filters"""
+    query = db.query(models.EmailAlert)
+
+    if customer_id is not None:
+        query = query.filter(models.EmailAlert.customer_id == customer_id)
+    if category is not None:
+        query = query.filter(models.EmailAlert.category == category)
+    if is_read is not None:
+        query = query.filter(models.EmailAlert.is_read == is_read)
+    if is_starred is not None:
+        query = query.filter(models.EmailAlert.is_starred == is_starred)
+
+    emails = query.order_by(models.EmailAlert.received_at.desc()).all()
+    return [format_email_alert(email) for email in emails]
+
+@app.get("/email-alerts/{email_id}", tags=["📧 Email Alerts"])
+def get_email_alert(email_id: int, db: Session = Depends(get_db)):
+    """Get a specific email alert by ID"""
+    email = db.query(models.EmailAlert).filter(models.EmailAlert.id == email_id).first()
+    if not email:
+        raise HTTPException(status_code=404, detail="Email alert not found")
+    return format_email_alert(email)
+
+@app.post("/email-alerts", tags=["📧 Email Alerts"])
+def create_email_alert(email_data: EmailAlertCreate, db: Session = Depends(get_db)):
+    """Create a new email alert"""
+    email = models.EmailAlert(
+        subject=email_data.subject,
+        sender=email_data.sender,
+        sender_email=email_data.sender_email,
+        preview=email_data.preview,
+        body=email_data.body,
+        category=email_data.category,
+        priority=email_data.priority,
+        has_attachment=email_data.has_attachment,
+        customer_id=email_data.customer_id
+    )
+    db.add(email)
+    db.commit()
+    db.refresh(email)
+    return format_email_alert(email)
+
+@app.patch("/email-alerts/{email_id}", tags=["📧 Email Alerts"])
+def update_email_alert(email_id: int, email_data: EmailAlertUpdate, db: Session = Depends(get_db)):
+    """Update an email alert (category, read status, starred status, priority)"""
+    email = db.query(models.EmailAlert).filter(models.EmailAlert.id == email_id).first()
+    if not email:
+        raise HTTPException(status_code=404, detail="Email alert not found")
+
+    if email_data.category is not None:
+        if email_data.category not in ['inbox', 'ignorable', 'moderate', 'critical', 'resolved']:
+            raise HTTPException(status_code=400, detail="Invalid category")
+        email.category = email_data.category
+    if email_data.is_read is not None:
+        email.is_read = email_data.is_read
+    if email_data.is_starred is not None:
+        email.is_starred = email_data.is_starred
+    if email_data.priority is not None:
+        if email_data.priority not in ['low', 'medium', 'high']:
+            raise HTTPException(status_code=400, detail="Invalid priority")
+        email.priority = email_data.priority
+
+    db.commit()
+    db.refresh(email)
+    return format_email_alert(email)
+
+@app.delete("/email-alerts/{email_id}", tags=["📧 Email Alerts"])
+def delete_email_alert(email_id: int, db: Session = Depends(get_db)):
+    """Delete an email alert"""
+    email = db.query(models.EmailAlert).filter(models.EmailAlert.id == email_id).first()
+    if not email:
+        raise HTTPException(status_code=404, detail="Email alert not found")
+
+    db.delete(email)
+    db.commit()
+    return {"success": True, "message": "Email alert deleted"}
+
+@app.get("/email-alerts/stats/summary", tags=["📧 Email Alerts"])
+def get_email_alerts_stats(customer_id: Optional[int] = None, db: Session = Depends(get_db)):
+    """Get email alerts statistics summary"""
+    query = db.query(models.EmailAlert)
+    if customer_id is not None:
+        query = query.filter(models.EmailAlert.customer_id == customer_id)
+
+    emails = query.all()
+
+    stats = {
+        "total": len(emails),
+        "unread": sum(1 for e in emails if not e.is_read),
+        "starred": sum(1 for e in emails if e.is_starred),
+        "byCategory": {
+            "inbox": sum(1 for e in emails if e.category == "inbox"),
+            "ignorable": sum(1 for e in emails if e.category == "ignorable"),
+            "moderate": sum(1 for e in emails if e.category == "moderate"),
+            "critical": sum(1 for e in emails if e.category == "critical"),
+            "resolved": sum(1 for e in emails if e.category == "resolved")
+        },
+        "byPriority": {
+            "high": sum(1 for e in emails if e.priority == "high"),
+            "medium": sum(1 for e in emails if e.priority == "medium"),
+            "low": sum(1 for e in emails if e.priority == "low")
+        }
+    }
+
+    return stats
+
+
+# ==============================================
 # RUN SERVER
 # ==============================================
 

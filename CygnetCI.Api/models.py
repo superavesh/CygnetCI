@@ -855,3 +855,34 @@ class RollbackDatabaseObject(Base):
 
     # Relationships
     script = relationship("RollbackScript", back_populates="database_objects")
+
+
+# ==================== EMAIL ALERTS MODELS ====================
+
+class EmailAlert(Base):
+    """
+    Email alerts for monitoring and notifications
+    Supports categorization: inbox, ignorable, moderate, critical, resolved
+    """
+    __tablename__ = "email_alerts"
+
+    id = Column(Integer, primary_key=True, index=True)
+    subject = Column(String(500), nullable=False)
+    sender = Column(String(255), nullable=False)
+    sender_email = Column(String(255), nullable=False)
+    preview = Column(String(500))
+    body = Column(Text)
+    received_at = Column(TIMESTAMP, server_default=func.now(), nullable=False, index=True)
+    category = Column(String(50), nullable=False, default='inbox', index=True)  # inbox, ignorable, moderate, critical, resolved
+    is_read = Column(Boolean, default=False, nullable=False)
+    is_starred = Column(Boolean, default=False, nullable=False)
+    has_attachment = Column(Boolean, default=False, nullable=False)
+    priority = Column(String(20), default='medium', nullable=False)  # low, medium, high
+    customer_id = Column(Integer, ForeignKey("customers.id", ondelete="CASCADE"), index=True)
+    created_at = Column(TIMESTAMP, server_default=func.now(), nullable=False)
+    updated_at = Column(TIMESTAMP, server_default=func.now(), onupdate=func.now(), nullable=False)
+
+    __table_args__ = (
+        CheckConstraint("category IN ('inbox', 'ignorable', 'moderate', 'critical', 'resolved')", name="check_email_category"),
+        CheckConstraint("priority IN ('low', 'medium', 'high')", name="check_email_priority"),
+    )
