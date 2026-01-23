@@ -1,35 +1,37 @@
 // src/lib/config.ts
 
-export const CONFIG = {
-  // API Configuration - Change these for your API
-  api: {
-    baseUrl: 'http://127.0.0.1:8000', // Your API server URL
+import { getApiBaseUrl, getPollingInterval, getRuntimeConfig } from './runtimeConfig';
 
-    // Endpoints - modify these to match your API
-    endpoints: {
-      // For single endpoint that returns all data:
-      allData: '/data',
-      
-      // Or for separate endpoints:
-      // agents: '/agents',
-      // pipelines: '/pipelines',
-      // tasks: '/tasks',
-      // stats: '/stats',
-      // services: '/services'
+// Dynamic CONFIG that reads from runtime configuration
+// The API URL can be changed in public/system.config.js after build
+export const CONFIG = {
+  // API Configuration
+  api: {
+    get baseUrl() {
+      return getApiBaseUrl();
     },
 
-    // Request headers - add your auth tokens here
+    // Endpoints - these are relative paths
+    endpoints: {
+      allData: '/data',
+    },
+
+    // Request headers
     headers: {
       'Content-Type': 'application/json',
-      // 'Authorization': 'Bearer YOUR_TOKEN_HERE',
-      // 'X-API-Key': 'your-api-key'
-    }
+    } as Record<string, string>
   },
 
   // App settings
   app: {
-    name: 'CygnetCI',
-    version: '1.0.0',
-    pollingInterval: 30000 // 30 seconds
+    get name() {
+      return getRuntimeConfig().app.name;
+    },
+    get version() {
+      return getRuntimeConfig().app.version;
+    },
+    get pollingInterval() {
+      return getPollingInterval();
+    }
   }
 };

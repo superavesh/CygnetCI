@@ -681,6 +681,143 @@ class ApiService {
 
     return await response.json();
   }
+
+  // Email Configuration API
+  async getEmailConfigs(customerId?: number) {
+    let url = `${CONFIG.api.baseUrl}/email-configs`;
+    if (customerId) url += `?customer_id=${customerId}`;
+
+    const response = await fetch(url, {
+      method: 'GET',
+      headers: CONFIG.api.headers
+    });
+
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
+
+    return await response.json();
+  }
+
+  async createEmailConfig(data: {
+    name: string;
+    email_address: string;
+    server_type: string;
+    server_host: string;
+    server_port: number;
+    username: string;
+    password: string;
+    use_ssl: boolean;
+    folder: string;
+    customer_id?: number;
+  }) {
+    const url = `${CONFIG.api.baseUrl}/email-configs`;
+    const response = await fetch(url, {
+      method: 'POST',
+      headers: CONFIG.api.headers,
+      body: JSON.stringify(data)
+    });
+
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
+
+    return await response.json();
+  }
+
+  async updateEmailConfig(configId: number, data: {
+    name?: string;
+    email_address?: string;
+    server_type?: string;
+    server_host?: string;
+    server_port?: number;
+    username?: string;
+    password?: string;
+    use_ssl?: boolean;
+    folder?: string;
+    is_active?: boolean;
+  }) {
+    const url = `${CONFIG.api.baseUrl}/email-configs/${configId}`;
+    const response = await fetch(url, {
+      method: 'PUT',
+      headers: CONFIG.api.headers,
+      body: JSON.stringify(data)
+    });
+
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
+
+    return await response.json();
+  }
+
+  async deleteEmailConfig(configId: number) {
+    const url = `${CONFIG.api.baseUrl}/email-configs/${configId}`;
+    const response = await fetch(url, {
+      method: 'DELETE',
+      headers: CONFIG.api.headers
+    });
+
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
+
+    return await response.json();
+  }
+
+  async testEmailConnection(data: {
+    name: string;
+    email_address: string;
+    server_type: string;
+    server_host: string;
+    server_port: number;
+    username: string;
+    password: string;
+    use_ssl: boolean;
+    folder: string;
+  }) {
+    const url = `${CONFIG.api.baseUrl}/email-configs/test-connection`;
+    const response = await fetch(url, {
+      method: 'POST',
+      headers: CONFIG.api.headers,
+      body: JSON.stringify(data)
+    });
+
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
+
+    return await response.json();
+  }
+
+  async syncEmails(configId: number, limit: number = 50) {
+    const url = `${CONFIG.api.baseUrl}/email-configs/${configId}/sync?limit=${limit}`;
+    const response = await fetch(url, {
+      method: 'POST',
+      headers: CONFIG.api.headers
+    });
+
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(error.detail || `HTTP error! status: ${response.status}`);
+    }
+
+    return await response.json();
+  }
+
+  async getEmailPresets() {
+    const url = `${CONFIG.api.baseUrl}/email-configs/presets/common`;
+    const response = await fetch(url, {
+      method: 'GET',
+      headers: CONFIG.api.headers
+    });
+
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
+
+    return await response.json();
+  }
 }
 
 export const apiService = new ApiService();

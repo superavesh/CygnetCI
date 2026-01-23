@@ -886,3 +886,33 @@ class EmailAlert(Base):
         CheckConstraint("category IN ('inbox', 'ignorable', 'moderate', 'critical', 'resolved')", name="check_email_category"),
         CheckConstraint("priority IN ('low', 'medium', 'high')", name="check_email_priority"),
     )
+
+
+class EmailConfig(Base):
+    """
+    Email server configuration for fetching emails
+    Stores IMAP/POP3 credentials securely
+    """
+    __tablename__ = "email_configs"
+
+    id = Column(Integer, primary_key=True, index=True)
+    name = Column(String(255), nullable=False)  # Config name (e.g., "Work Email", "Alerts Inbox")
+    email_address = Column(String(255), nullable=False)
+    server_type = Column(String(20), nullable=False, default='imap')  # imap, pop3
+    server_host = Column(String(255), nullable=False)
+    server_port = Column(Integer, nullable=False, default=993)
+    username = Column(String(255), nullable=False)
+    password_encrypted = Column(Text, nullable=False)  # Encrypted password
+    use_ssl = Column(Boolean, default=True, nullable=False)
+    folder = Column(String(255), default='INBOX')  # Folder to fetch from
+    is_active = Column(Boolean, default=True, nullable=False)
+    last_sync_at = Column(TIMESTAMP)
+    last_sync_status = Column(String(50))  # success, failed
+    last_sync_message = Column(Text)
+    customer_id = Column(Integer, ForeignKey("customers.id", ondelete="CASCADE"), index=True)
+    created_at = Column(TIMESTAMP, server_default=func.now(), nullable=False)
+    updated_at = Column(TIMESTAMP, server_default=func.now(), onupdate=func.now(), nullable=False)
+
+    __table_args__ = (
+        CheckConstraint("server_type IN ('imap', 'pop3')", name="check_server_type"),
+    )

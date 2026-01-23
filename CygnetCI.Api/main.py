@@ -4179,6 +4179,340 @@ def get_email_alerts_stats(customer_id: Optional[int] = None, db: Session = Depe
 
 
 # ==============================================
+# EMAIL CONFIGURATION ENDPOINTS
+# ==============================================
+
+from email_service import (
+    encrypt_password, decrypt_password, test_email_connection,
+    fetch_emails_imap, fetch_emails_pop3
+)
+
+class EmailConfigCreate(BaseModel):
+    name: str
+    email_address: str
+    server_type: str = "imap"
+    server_host: str
+    server_port: int = 993
+    username: str
+    password: str
+    use_ssl: bool = True
+    folder: str = "INBOX"
+    customer_id: Optional[int] = None
+
+class EmailConfigUpdate(BaseModel):
+    name: Optional[str] = None
+    email_address: Optional[str] = None
+    server_type: Optional[str] = None
+    server_host: Optional[str] = None
+    server_port: Optional[int] = None
+    username: Optional[str] = None
+    password: Optional[str] = None
+    use_ssl: Optional[bool] = None
+    folder: Optional[str] = None
+    is_active: Optional[bool] = None
+
+def format_email_config(config, include_password: bool = False):
+    """Format email config for API response"""
+    result = {
+        "id": config.id,
+        "name": config.name,
+        "emailAddress": config.email_address,
+        "serverType": config.server_type,
+        "serverHost": config.server_host,
+        "serverPort": config.server_port,
+        "username": config.username,
+        "useSsl": config.use_ssl,
+        "folder": config.folder,
+        "isActive": config.is_active,
+        "lastSyncAt": config.last_sync_at.isoformat() if config.last_sync_at else None,
+        "lastSyncStatus": config.last_sync_status,
+        "lastSyncMessage": config.last_sync_message,
+        "customerId": config.customer_id,
+        "createdAt": config.created_at.isoformat() if config.created_at else None
+    }
+    if include_password:
+        result["password"] = "********"  # Never expose actual password
+    return result
+
+@app.get("/email-configs", tags=["📧 Email Configuration"])
+def get_email_configs(customer_id: Optional[int] = None, db: Session = Depends(get_db)):
+    """Get all email configurations"""
+    query = db.query(models.EmailConfig)
+    if customer_id is not None:
+        query = query.filter(models.EmailConfig.customer_id == customer_id)
+    configs = query.all()
+    return [format_email_config(c) for c in configs]
+
+@app.get("/email-configs/{config_id}", tags=["📧 Email Configuration"])
+def get_email_config(config_id: int, db: Session = Depends(get_db)):
+    """Get a specific email configuration"""
+    config = db.query(models.EmailConfig).filter(models.EmailConfig.id == config_id).first()
+    if not config:
+        raise HTTPException(status_code=404, detail="Email configuration not found")
+    return format_email_config(config)
+
+@app.post("/email-configs", tags=["📧 Email Configuration"])
+def create_email_config(config_data: EmailConfigCreate, db: Session = Depends(get_db)):
+    """Create a new email configuration"""
+    # Encrypt password before storing
+    encrypted_password = encrypt_password(config_data.password)
+
+    config = models.EmailConfig(
+        name=config_data.name,
+        email_address=config_data.email_address,
+        server_type=config_data.server_type,
+        server_host=config_data.server_host,
+        server_port=config_data.server_port,
+        username=config_data.username,
+        password_encrypted=encrypted_password,
+        use_ssl=config_data.use_ssl,
+        folder=config_data.folder,
+        customer_id=config_data.customer_id
+    )
+    db.add(config)
+    db.commit()
+    db.refresh(config)
+    return format_email_config(config)
+
+@app.put("/email-configs/{config_id}", tags=["📧 Email Configuration"])
+def update_email_config(config_id: int, config_data: EmailConfigUpdate, db: Session = Depends(get_db)):
+    """Update an email configuration"""
+    config = db.query(models.EmailConfig).filter(models.EmailConfig.id == config_id).first()
+    if not config:
+        raise HTTPException(status_code=404, detail="Email configuration not found")
+
+    if config_data.name is not None:
+        config.name = config_data.name
+    if config_data.email_address is not None:
+        config.email_address = config_data.email_address
+    if config_data.server_type is not None:
+        config.server_type = config_data.server_type
+    if config_data.server_host is not None:
+        config.server_host = config_data.server_host
+    if config_data.server_port is not None:
+        config.server_port = config_data.server_port
+    if config_data.username is not None:
+        config.username = config_data.username
+    if config_data.password is not None:
+        config.password_encrypted = encrypt_password(config_data.password)
+    if config_data.use_ssl is not None:
+        config.use_ssl = config_data.use_ssl
+    if config_data.folder is not None:
+        config.folder = config_data.folder
+    if config_data.is_active is not None:
+        config.is_active = config_data.is_active
+
+    db.commit()
+    db.refresh(config)
+    return format_email_config(config)
+
+@app.delete("/email-configs/{config_id}", tags=["📧 Email Configuration"])
+def delete_email_config(config_id: int, db: Session = Depends(get_db)):
+    """Delete an email configuration"""
+    config = db.query(models.EmailConfig).filter(models.EmailConfig.id == config_id).first()
+    if not config:
+        raise HTTPException(status_code=404, detail="Email configuration not found")
+
+    db.delete(config)
+    db.commit()
+    return {"success": True, "message": "Email configuration deleted"}
+
+@app.post("/email-configs/test-connection", tags=["📧 Email Configuration"])
+def test_email_config_connection(config_data: EmailConfigCreate):
+    """Test email server connection without saving"""
+    result = test_email_connection(
+        server_type=config_data.server_type,
+        host=config_data.server_host,
+        port=config_data.server_port,
+        username=config_data.username,
+        password=config_data.password,
+        use_ssl=config_data.use_ssl
+    )
+    return result
+
+@app.post("/email-configs/{config_id}/test", tags=["📧 Email Configuration"])
+def test_saved_email_config(config_id: int, db: Session = Depends(get_db)):
+    """Test a saved email configuration"""
+    config = db.query(models.EmailConfig).filter(models.EmailConfig.id == config_id).first()
+    if not config:
+        raise HTTPException(status_code=404, detail="Email configuration not found")
+
+    # Decrypt password for testing
+    password = decrypt_password(config.password_encrypted)
+
+    result = test_email_connection(
+        server_type=config.server_type,
+        host=config.server_host,
+        port=config.server_port,
+        username=config.username,
+        password=password,
+        use_ssl=config.use_ssl
+    )
+    return result
+
+@app.post("/email-configs/{config_id}/sync", tags=["📧 Email Configuration"])
+def sync_emails_from_config(
+    config_id: int,
+    limit: int = Query(50, description="Maximum number of emails to fetch"),
+    db: Session = Depends(get_db)
+):
+    """Fetch emails from configured email server and store them"""
+    config = db.query(models.EmailConfig).filter(models.EmailConfig.id == config_id).first()
+    if not config:
+        raise HTTPException(status_code=404, detail="Email configuration not found")
+
+    if not config.is_active:
+        raise HTTPException(status_code=400, detail="Email configuration is not active")
+
+    try:
+        # Decrypt password
+        password = decrypt_password(config.password_encrypted)
+
+        # Fetch emails based on server type
+        if config.server_type == 'imap':
+            emails = fetch_emails_imap(
+                host=config.server_host,
+                port=config.server_port,
+                username=config.username,
+                password=password,
+                use_ssl=config.use_ssl,
+                folder=config.folder,
+                limit=limit
+            )
+        else:
+            emails = fetch_emails_pop3(
+                host=config.server_host,
+                port=config.server_port,
+                username=config.username,
+                password=password,
+                use_ssl=config.use_ssl,
+                limit=limit
+            )
+
+        # Store emails in database
+        new_count = 0
+        updated_count = 0
+
+        for email_data in emails:
+            # Check if email already exists (by message_id or subject+sender+date)
+            existing = db.query(models.EmailAlert).filter(
+                models.EmailAlert.subject == email_data['subject'],
+                models.EmailAlert.sender_email == email_data['sender_email'],
+                models.EmailAlert.customer_id == config.customer_id
+            ).first()
+
+            if existing:
+                # Update existing email if needed
+                if not existing.body and email_data['body']:
+                    existing.body = email_data['body']
+                    updated_count += 1
+            else:
+                # Create new email alert
+                new_email = models.EmailAlert(
+                    subject=email_data['subject'],
+                    sender=email_data['sender'],
+                    sender_email=email_data['sender_email'],
+                    preview=email_data['preview'],
+                    body=email_data['body'],
+                    received_at=datetime.fromisoformat(email_data['received_at'].replace('Z', '+00:00')) if email_data['received_at'] else datetime.now(),
+                    category='inbox',
+                    is_read=email_data['is_read'],
+                    is_starred=False,
+                    has_attachment=email_data['has_attachment'],
+                    priority=email_data['priority'],
+                    customer_id=config.customer_id
+                )
+                db.add(new_email)
+                new_count += 1
+
+        # Update sync status
+        config.last_sync_at = datetime.now()
+        config.last_sync_status = 'success'
+        config.last_sync_message = f'Fetched {len(emails)} emails. {new_count} new, {updated_count} updated.'
+
+        db.commit()
+
+        return {
+            "success": True,
+            "message": config.last_sync_message,
+            "totalFetched": len(emails),
+            "newEmails": new_count,
+            "updatedEmails": updated_count
+        }
+
+    except Exception as e:
+        # Update sync status with error
+        config.last_sync_at = datetime.now()
+        config.last_sync_status = 'failed'
+        config.last_sync_message = str(e)
+        db.commit()
+
+        raise HTTPException(status_code=500, detail=f"Failed to sync emails: {str(e)}")
+
+@app.get("/email-configs/presets/common", tags=["📧 Email Configuration"])
+def get_common_email_presets():
+    """Get common email server presets for easy configuration"""
+    return [
+        {
+            "name": "Gmail",
+            "serverType": "imap",
+            "serverHost": "imap.gmail.com",
+            "serverPort": 993,
+            "useSsl": True,
+            "note": "Enable 'Less secure app access' or use App Password"
+        },
+        {
+            "name": "Outlook/Office 365",
+            "serverType": "imap",
+            "serverHost": "outlook.office365.com",
+            "serverPort": 993,
+            "useSsl": True,
+            "note": "Use your Microsoft account credentials"
+        },
+        {
+            "name": "Yahoo Mail",
+            "serverType": "imap",
+            "serverHost": "imap.mail.yahoo.com",
+            "serverPort": 993,
+            "useSsl": True,
+            "note": "Generate an App Password in Yahoo settings"
+        },
+        {
+            "name": "iCloud Mail",
+            "serverType": "imap",
+            "serverHost": "imap.mail.me.com",
+            "serverPort": 993,
+            "useSsl": True,
+            "note": "Generate an App-Specific Password"
+        },
+        {
+            "name": "Zoho Mail",
+            "serverType": "imap",
+            "serverHost": "imap.zoho.com",
+            "serverPort": 993,
+            "useSsl": True,
+            "note": "Enable IMAP in Zoho settings"
+        },
+        {
+            "name": "Custom IMAP",
+            "serverType": "imap",
+            "serverHost": "",
+            "serverPort": 993,
+            "useSsl": True,
+            "note": "Enter your custom IMAP server details"
+        },
+        {
+            "name": "Custom POP3",
+            "serverType": "pop3",
+            "serverHost": "",
+            "serverPort": 995,
+            "useSsl": True,
+            "note": "Enter your custom POP3 server details"
+        }
+    ]
+
+
+# ==============================================
 # RUN SERVER
 # ==============================================
 

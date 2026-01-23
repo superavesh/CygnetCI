@@ -6,10 +6,11 @@ import React, { useState, useEffect, useCallback } from 'react';
 import {
   Mail, Inbox, AlertTriangle, AlertCircle, CheckCircle, Trash2,
   RefreshCw, Search, Filter, Clock, User, Paperclip, Star,
-  ChevronDown, GripVertical, X, Settings
+  ChevronDown, GripVertical, X, Settings, Plus
 } from 'lucide-react';
 import { apiService } from '@/lib/api/apiService';
 import { useCustomer } from '@/lib/contexts/CustomerContext';
+import { EmailSettingsModal } from '@/components/email/EmailSettingsModal';
 
 interface EmailAlert {
   id: number;
@@ -163,8 +164,20 @@ export default function EmailAlertsPage() {
   const [viewMode, setViewMode] = useState<'kanban' | 'list'>('kanban');
   const [collapsedColumns, setCollapsedColumns] = useState<Set<Category>>(new Set());
   const [useMockData, setUseMockData] = useState(false);
+  const [showSettings, setShowSettings] = useState(false);
+  const [hasEmailConfig, setHasEmailConfig] = useState(false);
 
   const categories: Category[] = ['inbox', 'ignorable', 'moderate', 'critical', 'resolved'];
+
+  const checkEmailConfig = useCallback(async () => {
+    try {
+      const configs = await apiService.getEmailConfigs(selectedCustomer?.id);
+      setHasEmailConfig(configs && configs.length > 0);
+    } catch (error) {
+      console.error('Failed to check email configs:', error);
+      setHasEmailConfig(false);
+    }
+  }, [selectedCustomer]);
 
   const fetchEmails = useCallback(async () => {
     setLoading(true);
@@ -192,7 +205,8 @@ export default function EmailAlertsPage() {
 
   useEffect(() => {
     fetchEmails();
-  }, [fetchEmails]);
+    checkEmailConfig();
+  }, [fetchEmails, checkEmailConfig]);
 
   const getEmailsByCategory = useCallback((category: Category) => {
     return emails.filter(email => {
@@ -395,8 +409,12 @@ export default function EmailAlertsPage() {
             >
               {viewMode === 'kanban' ? 'List View' : 'Kanban View'}
             </button>
-            <button className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors text-gray-700">
+            <button
+              onClick={() => setShowSettings(true)}
+              className="flex items-center gap-2 px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors text-gray-700"
+            >
               <Settings className="h-4 w-4" />
+              Configure
             </button>
             <button
               onClick={fetchEmails}
@@ -731,6 +749,41 @@ export default function EmailAlertsPage() {
                   })}
                 </div>
               </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Email Settings Modal */}
+      <EmailSettingsModal
+        isOpen={showSettings}
+        onClose={() => setShowSettings(false)}
+        customerId={selectedCustomer?.id}
+        onSyncComplete={() => {
+          fetchEmails();
+          checkEmailConfig();
+        }}
+      />
+
+      {/* No Email Config Prompt */}
+      {!loading && !hasEmailConfig && useMockData && (
+        <div className="fixed bottom-6 right-6 bg-white rounded-lg shadow-lg border border-gray-200 p-4 max-w-sm z-40">
+          <div className="flex items-start gap-3">
+            <div className="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center flex-shrink-0">
+              <Mail className="h-5 w-5 text-blue-600" />
+            </div>
+            <div>
+              <h4 className="font-medium text-gray-900">Connect Your Email</h4>
+              <p className="text-sm text-gray-500 mt-1">
+                Configure an email account to fetch real alerts from your inbox.
+              </p>
+              <button
+                onClick={() => setShowSettings(true)}
+                className="mt-3 flex items-center gap-2 px-3 py-1.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm"
+              >
+                <Plus className="h-4 w-4" />
+                Configure Email
+              </button>
             </div>
           </div>
         </div>
