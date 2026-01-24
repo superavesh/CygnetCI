@@ -1,0 +1,44 @@
+# CygnetCI Configuration File
+# IMPORTANT: Update these settings for your production environment
+
+[database]
+# PostgreSQL Database Configuration
+host = localhost
+port = 5432
+database = CygnetCI
+username = cygnetci_user
+password = YOUR_SECURE_PASSWORD_HERE
+
+[paths]
+# File Storage Paths - Update for your server
+nfs_shared_root = C:\CygnetCI\Shared
+scripts_folder = scripts
+artifacts_folder = artifacts
+rollback_scripts_folder = rollback
+
+[server]
+# FastAPI Server Configuration
+host = 127.0.0.1
+port = 8000
+reload = false
+debug = false
+
+[cors]
+# CORS Configuration - Update with your web server URL
+allowed_origins = http://localhost,http://your-web-server
+allow_credentials = true
+
+[file_transfer]
+# File Transfer Settings
+max_file_size_mb = 500
+allowed_script_extensions = .sh,.ps1,.py,.bat,.cmd
+allowed_artifact_extensions = .zip,.tar,.gz,.jar,.war,.exe,.msi
+calculate_checksum = true
+
+[claude_ai]
+# Claude AI API Configuration (optional)
+api_url = https://api.anthropic.com/v1/messages
+api_key = YOUR_API_KEY_HERE
+model = claude-3-5-sonnet-20241022
+max_tokens = 4096
+temperature = 0

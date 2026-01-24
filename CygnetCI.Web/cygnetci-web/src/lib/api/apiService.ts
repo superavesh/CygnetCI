@@ -736,6 +736,7 @@ class ApiService {
     use_ssl?: boolean;
     folder?: string;
     is_active?: boolean;
+    customer_id?: number;
   }) {
     const url = `${CONFIG.api.baseUrl}/email-configs/${configId}`;
     const response = await fetch(url, {
