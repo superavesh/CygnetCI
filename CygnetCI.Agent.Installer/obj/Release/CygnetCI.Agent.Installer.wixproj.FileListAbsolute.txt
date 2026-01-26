@@ -1,0 +1,6 @@
+D:\Avesh\CygnetCI\SourceCode\CygnetCI\CygnetCI.Agent.Installer\bin\Release\CygnetCI.Agent.Setup.msi
+D:\Avesh\CygnetCI\SourceCode\CygnetCI\CygnetCI.Agent.Installer\bin\Release\CygnetCI.Agent.Setup.wixpdb
+D:\Avesh\CygnetCI\SourceCode\CygnetCI\CygnetCI.Agent.Installer\obj\Release\CygnetCI.Agent.Installer.wixproj.CoreCompileInputs.cache
+D:\Avesh\CygnetCI\SourceCode\CygnetCI\CygnetCI.Agent.Installer\obj\Release\CygnetCI.Agent.Setup.msi
+D:\Avesh\CygnetCI\SourceCode\CygnetCI\CygnetCI.Agent.Installer\obj\Release\CygnetCI.Agent.Setup.wixpdb
+D:\Avesh\CygnetCI\SourceCode\CygnetCI\CygnetCI.Agent.Installer\obj\Release\CygnetCI.Agent.Installer.wixproj.BindTracking-neutral.txt

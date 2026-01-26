@@ -1,0 +1,22 @@
+<Project Sdk="WixToolset.Sdk/6.0.2">
+  <PropertyGroup>
+    <OutputType>Package</OutputType>
+    <DefaultLanguage>en-US</DefaultLanguage>
+    <InstallerPlatform>x64</InstallerPlatform>
+    <OutputName>CygnetCI.Agent.Setup</OutputName>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\CygnetCI.Agent\CygnetCI.Agent.csproj" PublishSelfContained="true" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="WixToolset.UI.wixext" Version="6.0.2" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Content Include="Configure-Agent.ps1" />
+    <Content Include="ConfigureAndStart.bat" />
+    <Content Include="ConfigDialog.wxs" />
+  </ItemGroup>
+</Project>

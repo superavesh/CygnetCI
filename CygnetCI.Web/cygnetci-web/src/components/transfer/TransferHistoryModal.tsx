@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { X, Clock, CheckCircle, XCircle, AlertCircle, Download, History } from 'lucide-react';
+import { CONFIG } from '@/lib/config';
 
 interface TransferHistoryModalProps {
   isOpen: boolean;
@@ -56,7 +57,7 @@ export const TransferHistoryModal: React.FC<TransferHistoryModalProps> = ({
       setError(null);
 
       try {
-        const response = await fetch(`http://127.0.0.1:8000/transfer/files/${fileId}/history?limit=50`);
+        const response = await fetch(`${CONFIG.api.baseUrl}/transfer/files/${fileId}/history?limit=50`);
         if (response.ok) {
           const historyData = await response.json();
           setData(historyData);

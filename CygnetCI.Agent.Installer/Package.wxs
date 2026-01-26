@@ -1,0 +1,97 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Wix xmlns="http://wixtoolset.org/schemas/v4/wxs"
+     xmlns:ui="http://wixtoolset.org/schemas/v4/wxs/ui">
+
+  <Package Name="CygnetCI Agent"
+           Manufacturer="Cygnet Infotech"
+           Version="1.0.0.0"
+           UpgradeCode="A1B2C3D4-E5F6-7890-ABCD-EF1234567890"
+           Scope="perMachine"
+           Language="1033"
+           Codepage="1252">
+
+    <SummaryInformation Description="CygnetCI Monitoring and Deployment Agent" />
+
+    <MajorUpgrade DowngradeErrorMessage="A newer version of [ProductName] is already installed."
+                  Schedule="afterInstallInitialize" />
+
+    <MediaTemplate EmbedCab="yes" CompressionLevel="high" />
+
+    <!-- Custom Properties for Agent Configuration -->
+    <Property Id="API_URL" Value="http://localhost:8000" />
+    <Property Id="AGENT_UUID" Secure="yes" />
+    <Property Id="AGENT_NAME" Secure="yes" />
+
+    <Feature Id="ProductFeature" Title="CygnetCI Agent" Level="1">
+      <ComponentGroupRef Id="PublishedComponents" />
+      <ComponentGroupRef Id="ServiceComponents" />
+      <ComponentGroupRef Id="FolderComponents" />
+      <ComponentRef Id="ConfigScriptComp" />
+    </Feature>
+
+    <ui:WixUI Id="WixUI_InstallDir" InstallDirectory="INSTALLFOLDER" />
+
+    <WixVariable Id="WixUILicenseRtf" Value="License.rtf" />
+
+  </Package>
+
+  <!-- Directory Structure -->
+  <Fragment>
+    <StandardDirectory Id="ProgramFiles64Folder">
+      <Directory Id="INSTALLFOLDER" Name="CygnetCI Agent">
+        <Directory Id="LogsFolder" Name="logs" />
+        <Directory Id="WorkFolder" Name="work" />
+        <Directory Id="DownloadsFolder" Name="downloads" />
+      </Directory>
+    </StandardDirectory>
+  </Fragment>
+
+  <!-- Create Folders -->
+  <Fragment>
+    <ComponentGroup Id="FolderComponents" Directory="INSTALLFOLDER">
+      <Component Id="LogsFolderComp" Guid="D4E5F6A7-B8C9-0123-DEF0-234567890123" Directory="LogsFolder">
+        <CreateFolder />
+      </Component>
+      <Component Id="WorkFolderComp" Guid="E5F6A7B8-C9D0-1234-EF01-345678901234" Directory="WorkFolder">
+        <CreateFolder />
+      </Component>
+      <Component Id="DownloadsFolderComp" Guid="F6A7B8C9-D0E1-2345-F012-456789012345" Directory="DownloadsFolder">
+        <CreateFolder />
+      </Component>
+    </ComponentGroup>
+  </Fragment>
+
+  <!-- Windows Service Installation -->
+  <Fragment>
+    <ComponentGroup Id="ServiceComponents" Directory="INSTALLFOLDER">
+      <Component Id="ServiceComp" Guid="B8C9D0E1-F2A3-4567-1234-678901234567">
+        <File Id="ServiceExe" Source="$(CygnetCI.Agent.TargetDir)\CygnetCI.Agent.exe" KeyPath="yes" />
+
+        <ServiceInstall Id="ServiceInstaller"
+                        Type="ownProcess"
+                        Name="CygnetCI.Agent"
+                        DisplayName="CygnetCI Agent Service"
+                        Description="CygnetCI Monitoring and Deployment Agent - Collects metrics and executes deployment tasks"
+                        Start="demand"
+                        Account="LocalSystem"
+                        ErrorControl="normal" />
+
+        <!-- Service Control: Do NOT start on install - we start manually after config -->
+        <ServiceControl Id="ServiceControl"
+                        Stop="both"
+                        Remove="uninstall"
+                        Name="CygnetCI.Agent"
+                        Wait="yes" />
+      </Component>
+    </ComponentGroup>
+  </Fragment>
+
+  <!-- Configuration Scripts -->
+  <Fragment>
+    <Component Id="ConfigScriptComp" Guid="C1D2E3F4-A5B6-7890-CDEF-123456789ABC" Directory="INSTALLFOLDER">
+      <File Id="ConfigScript" Source="Configure-Agent.ps1" KeyPath="yes" />
+      <File Id="ConfigBatch" Source="ConfigureAndStart.bat" />
+    </Component>
+  </Fragment>
+
+</Wix>

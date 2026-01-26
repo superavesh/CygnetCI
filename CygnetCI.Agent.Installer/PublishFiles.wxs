@@ -1,0 +1,1622 @@
+﻿<?xml version="1.0" encoding="UTF-8"?>
+<Wix xmlns="http://wixtoolset.org/schemas/v4/wxs">
+  <Fragment>
+    <ComponentGroup Id="PublishFiles" Directory="INSTALLFOLDER">
+      <Component Id="Comp_1" Guid="40CB3675-8E15-4DF1-B086-17BDE1C5C4FF">
+        <File Id="File_1" Source="D:\Avesh\CygnetCI\SourceCode\CygnetCI\CygnetCI.Agent.Installer\publish\appsettings.Development.json" KeyPath="yes" />
+      </Component>
+      <Component Id="Comp_2" Guid="54A731FB-38B9-4C51-A91D-CEF35449B270">
+        <File Id="File_2" Source="D:\Avesh\CygnetCI\SourceCode\CygnetCI\CygnetCI.Agent.Installer\publish\appsettings.json" KeyPath="yes" />
+      </Component>
+      <Component Id="Comp_3" Guid="9E199A2F-7AF6-4279-95A0-226712F4D932">
+        <File Id="File_3" Source="D:\Avesh\CygnetCI\SourceCode\CygnetCI\CygnetCI.Agent.Installer\publish\clretwrc.dll" KeyPath="yes" />
+      </Component>
+      <Component Id="Comp_4" Guid="89EE6D5B-BB6F-4EE7-AA32-11BAA6562EAA">
+        <File Id="File_4" Source="D:\Avesh\CygnetCI\SourceCode\CygnetCI\CygnetCI.Agent.Installer\publish\clrgc.dll" KeyPath="yes" />
+      </Component>
+      <Component Id="Comp_5" Guid="1FC0E520-87C5-4104-AF62-63A84F49746C">
+        <File Id="File_5" Source="D:\Avesh\CygnetCI\SourceCode\CygnetCI\CygnetCI.Agent.Installer\publish\clrgcexp.dll" KeyPath="yes" />
+      </Component>
+      <Component Id="Comp_6" Guid="837F2623-8B77-4F13-97D9-B6541AE8AB25">
+        <File Id="File_6" Source="D:\Avesh\CygnetCI\SourceCode\CygnetCI\CygnetCI.Agent.Installer\publish\clrjit.dll" KeyPath="yes" />
+      </Component>
+      <Component Id="Comp_7" Guid="83B92E6A-6804-48AC-AE71-7F86AF120D6F">
+        <File Id="File_7" Source="D:\Avesh\CygnetCI\SourceCode\CygnetCI\CygnetCI.Agent.Installer\publish\coreclr.dll" KeyPath="yes" />
+      </Component>
+      <Component Id="Comp_8" Guid="9E42F905-D2F2-444B-85D8-C84F31AEBEF6">
+        <File Id="File_8" Source="D:\Avesh\CygnetCI\SourceCode\CygnetCI\CygnetCI.Agent.Installer\publish\createdump.exe" KeyPath="yes" />
+      </Component>
+      <Component Id="Comp_9" Guid="ED3B4465-7FE1-4260-A2FE-C94B414C4D54">
+        <File Id="File_9" Source="D:\Avesh\CygnetCI\SourceCode\CygnetCI\CygnetCI.Agent.Installer\publish\CygnetCI.Agent.deps.json" KeyPath="yes" />
+      </Component>
+      <Component Id="Comp_10" Guid="ED53265D-1B3F-4D4B-8811-988BE3AE9821">
+        <File Id="File_10" Source="D:\Avesh\CygnetCI\SourceCode\CygnetCI\CygnetCI.Agent.Installer\publish\CygnetCI.Agent.dll" KeyPath="yes" />
+      </Component>
+      <Component Id="Comp_12" Guid="0F0A0486-6D7D-487D-A5AA-827DB23958B5">
+        <File Id="File_12" Source="D:\Avesh\CygnetCI\SourceCode\CygnetCI\CygnetCI.Agent.Installer\publish\CygnetCI.Agent.pdb" KeyPath="yes" />
+      </Component>
+      <Component Id="Comp_13" Guid="F1CE13AF-F7BF-470F-AD1B-3E869675EFF7">
+        <File Id="File_13" Source="D:\Avesh\CygnetCI\SourceCode\CygnetCI\CygnetCI.Agent.Installer\publish\CygnetCI.Agent.runtimeconfig.json" KeyPath="yes" />
+      </Component>
+      <Component Id="Comp_14" Guid="DA211B1B-FD21-4663-8038-532361932148">
+        <File Id="File_14" Source="D:\Avesh\CygnetCI\SourceCode\CygnetCI\CygnetCI.Agent.Installer\publish\getfilesiginforedist.dll" KeyPath="yes" />
+      </Component>
+      <Component Id="Comp_15" Guid="C2CFB9AE-1370-4A29-A57E-A5E0C4DE0EC7">
+        <File Id="File_15" Source="D:\Avesh\CygnetCI\SourceCode\CygnetCI\CygnetCI.Agent.Installer\publish\getfilesiginforedistwrapper.dll" KeyPath="yes" />
+      </Component>
+      <Component Id="Comp_16" Guid="397D29A3-3F44-4264-9088-462DD5D70224">
+        <File Id="File_16" Source="D:\Avesh\CygnetCI\SourceCode\CygnetCI\CygnetCI.Agent.Installer\publish\hostfxr.dll" KeyPath="yes" />
+      </Component>
+      <Component Id="Comp_17" Guid="8210A3F7-56BE-41D8-B642-7884CCC30B8B">
+        <File Id="File_17" Source="D:\Avesh\CygnetCI\SourceCode\CygnetCI\CygnetCI.Agent.Installer\publish\hostpolicy.dll" KeyPath="yes" />
+      </Component>
+      <Component Id="Comp_18" Guid="B01213FD-9AC1-4668-BE1C-16C45EBE216A">
+        <File Id="File_18" Source="D:\Avesh\CygnetCI\SourceCode\CygnetCI\CygnetCI.Agent.Installer\publish\Humanizer.dll" KeyPath="yes" />
+      </Component>
+      <Component Id="Comp_19" Guid="BECD4027-A9EA-483D-A177-D25606128155">
+        <File Id="File_19" Source="D:\Avesh\CygnetCI\SourceCode\CygnetCI\CygnetCI.Agent.Installer\publish\Json.More.dll" KeyPath="yes" />
+      </Component>
+      <Component Id="Comp_20" Guid="7748C6E0-4E4F-4B60-A24A-24B1FB573F25">
+        <File Id="File_20" Source="D:\Avesh\CygnetCI\SourceCode\CygnetCI\CygnetCI.Agent.Installer\publish\JsonPointer.Net.dll" KeyPath="yes" />
+      </Component>
+      <Component Id="Comp_21" Guid="900E1F06-0E9C-47D5-9606-08DB3E1CED95">
+        <File Id="File_21" Source="D:\Avesh\CygnetCI\SourceCode\CygnetCI\CygnetCI.Agent.Installer\publish\JsonSchema.Net.dll" KeyPath="yes" />
+      </Component>
+      <Component Id="Comp_22" Guid="CFEF6BB2-AEE3-4189-97FD-2E6D546EFE02">
+        <File Id="File_22" Source="D:\Avesh\CygnetCI\SourceCode\CygnetCI\CygnetCI.Agent.Installer\publish\Markdig.Signed.dll" KeyPath="yes" />
+      </Component>
+      <Component Id="Comp_23" Guid="A3504B41-B557-4966-A2AB-586E8DFFBC7A">
+        <File Id="File_23" Source="D:\Avesh\CygnetCI\SourceCode\CygnetCI\CygnetCI.Agent.Installer\publish\Microsoft.ApplicationInsights.dll" KeyPath="yes" />
+      </Component>
+      <Component Id="Comp_24" Guid="EDB3219C-9A31-4C36-8FF9-F56DAF3CC9C6">
+        <File Id="File_24" Source="D:\Avesh\CygnetCI\SourceCode\CygnetCI\CygnetCI.Agent.Installer\publish\Microsoft.Bcl.AsyncInterfaces.dll" KeyPath="yes" />
+      </Component>
+      <Component Id="Comp_25" Guid="08C1CDA3-C0B2-41B3-8D9B-8CF84FB52C20">
+        <File Id="File_25" Source="D:\Avesh\CygnetCI\SourceCode\CygnetCI\CygnetCI.Agent.Installer\publish\Microsoft.CodeAnalysis.CSharp.dll" KeyPath="yes" />
+      </Component>
+      <Component Id="Comp_26" Guid="2EB57992-80A7-489E-93F1-DCC4F27D5A7F">
+        <File Id="File_26" Source="D:\Avesh\CygnetCI\SourceCode\CygnetCI\CygnetCI.Agent.Installer\publish\Microsoft.CodeAnalysis.dll" KeyPath="yes" />
+      </Component>
+      <Component Id="Comp_27" Guid="95373844-A952-48F4-8A7B-2A1939591BAD">
+        <File Id="File_27" Source="D:\Avesh\CygnetCI\SourceCode\CygnetCI\CygnetCI.Agent.Installer\publish\Microsoft.CSharp.dll" KeyPath="yes" />
+      </Component>
+      <Component Id="Comp_28" Guid="B2C1A848-38CB-48D7-A096-3FBD911061B1">
+        <File Id="File_28" Source="D:\Avesh\CygnetCI\SourceCode\CygnetCI\CygnetCI.Agent.Installer\publish\Microsoft.DiaSymReader.Native.amd64.dll" KeyPath="yes" />
+      </Component>
+      <Component Id="Comp_29" Guid="A9BB5167-3E9D-4745-8D09-AFD0BE431654">
+        <File Id="File_29" Source="D:\Avesh\CygnetCI\SourceCode\CygnetCI\CygnetCI.Agent.Installer\publish\Microsoft.Extensions.Configuration.Abstractions.dll" KeyPath="yes" />
+      </Component>
+      <Component Id="Comp_30" Guid="C4C686EC-681D-49D0-B2F6-3D1341FF436A">
+        <File Id="File_30" Source="D:\Avesh\CygnetCI\SourceCode\CygnetCI\CygnetCI.Agent.Installer\publish\Microsoft.Extensions.Configuration.Binder.dll" KeyPath="yes" />
+      </Component>
+      <Component Id="Comp_31" Guid="9081DE72-F415-44D5-A120-F66633E26698">
+        <File Id="File_31" Source="D:\Avesh\CygnetCI\SourceCode\CygnetCI\CygnetCI.Agent.Installer\publish\Microsoft.Extensions.Configuration.CommandLine.dll" KeyPath="yes" />
+      </Component>
+      <Component Id="Comp_32" Guid="76FCD3D5-E3EF-4DC8-BCBE-A1754654664D">
+        <File Id="File_32" Source="D:\Avesh\CygnetCI\SourceCode\CygnetCI\CygnetCI.Agent.Installer\publish\Microsoft.Extensions.Configuration.dll" KeyPath="yes" />
+      </Component>
+      <Component Id="Comp_33" Guid="0033108B-0D03-49E0-8D13-FFF09C7C87E4">
+        <File Id="File_33" Source="D:\Avesh\CygnetCI\SourceCode\CygnetCI\CygnetCI.Agent.Installer\publish\Microsoft.Extensions.Configuration.EnvironmentVariables.dll" KeyPath="yes" />
+      </Component>
+      <Component Id="Comp_34" Guid="0A380C64-794D-4C84-BEAA-134A124A8991">
+        <File Id="File_34" Source="D:\Avesh\CygnetCI\SourceCode\CygnetCI\CygnetCI.Agent.Installer\publish\Microsoft.Extensions.Configuration.FileExtensions.dll" KeyPath="yes" />
+      </Component>
+      <Component Id="Comp_35" Guid="4B23B725-31B7-41C8-8189-9341FB45F3CE">
+        <File Id="File_35" Source="D:\Avesh\CygnetCI\SourceCode\CygnetCI\CygnetCI.Agent.Installer\publish\Microsoft.Extensions.Configuration.Json.dll" KeyPath="yes" />
+      </Component>
+      <Component Id="Comp_36" Guid="3EEF41FB-70E1-46A7-971E-873E18C1CDD0">
+        <File Id="File_36" Source="D:\Avesh\CygnetCI\SourceCode\CygnetCI\CygnetCI.Agent.Installer\publish\Microsoft.Extensions.Configuration.UserSecrets.dll" KeyPath="yes" />
+      </Component>
+      <Component Id="Comp_37" Guid="2810EF51-9BD2-4591-9A60-B64BAF316E73">
+        <File Id="File_37" Source="D:\Avesh\CygnetCI\SourceCode\CygnetCI\CygnetCI.Agent.Installer\publish\Microsoft.Extensions.DependencyInjection.Abstractions.dll" KeyPath="yes" />
+      </Component>
+      <Component Id="Comp_38" Guid="08B7C688-AF82-4471-908C-607545D25877">
+        <File Id="File_38" Source="D:\Avesh\CygnetCI\SourceCode\CygnetCI\CygnetCI.Agent.Installer\publish\Microsoft.Extensions.DependencyInjection.dll" KeyPath="yes" />
+      </Component>
+      <Component Id="Comp_39" Guid="B252DDCA-BBD6-4369-B2C7-630294A1B65E">
+        <File Id="File_39" Source="D:\Avesh\CygnetCI\SourceCode\CygnetCI\CygnetCI.Agent.Installer\publish\Microsoft.Extensions.Diagnostics.Abstractions.dll" KeyPath="yes" />
+      </Component>
+      <Component Id="Comp_40" Guid="081690EA-8C4A-4B6C-9B7E-7C3B46E5FAA4">
+        <File Id="File_40" Source="D:\Avesh\CygnetCI\SourceCode\CygnetCI\CygnetCI.Agent.Installer\publish\Microsoft.Extensions.Diagnostics.dll" KeyPath="yes" />
+      </Component>
+      <Component Id="Comp_41" Guid="B6550020-39A4-4C4F-A030-7CADE4CCAF87">
+        <File Id="File_41" Source="D:\Avesh\CygnetCI\SourceCode\CygnetCI\CygnetCI.Agent.Installer\publish\Microsoft.Extensions.FileProviders.Abstractions.dll" KeyPath="yes" />
+      </Component>
+      <Component Id="Comp_42" Guid="677214A0-5C1C-4090-BC41-BC8A27AED1F6">
+        <File Id="File_42" Source="D:\Avesh\CygnetCI\SourceCode\CygnetCI\CygnetCI.Agent.Installer\publish\Microsoft.Extensions.FileProviders.Physical.dll" KeyPath="yes" />
+      </Component>
+      <Component Id="Comp_43" Guid="782CDF7E-1FF3-4E45-AD4B-39CA7D122376">
+        <File Id="File_43" Source="D:\Avesh\CygnetCI\SourceCode\CygnetCI\CygnetCI.Agent.Installer\publish\Microsoft.Extensions.FileSystemGlobbing.dll" KeyPath="yes" />
+      </Component>
+      <Component Id="Comp_44" Guid="8FB0C553-0FD8-4076-8DC2-43DD827E8A9F">
+        <File Id="File_44" Source="D:\Avesh\CygnetCI\SourceCode\CygnetCI\CygnetCI.Agent.Installer\publish\Microsoft.Extensions.Hosting.Abstractions.dll" KeyPath="yes" />
+      </Component>
+      <Component Id="Comp_45" Guid="8905CCAF-4955-470B-9593-CB91F6753CFF">
+        <File Id="File_45" Source="D:\Avesh\CygnetCI\SourceCode\CygnetCI\CygnetCI.Agent.Installer\publish\Microsoft.Extensions.Hosting.dll" KeyPath="yes" />
+      </Component>
+      <Component Id="Comp_46" Guid="0197DA0A-F12A-4BBA-B23E-4E1DBB5AE92F">
+        <File Id="File_46" Source="D:\Avesh\CygnetCI\SourceCode\CygnetCI\CygnetCI.Agent.Installer\publish\Microsoft.Extensions.Hosting.Systemd.dll" KeyPath="yes" />
+      </Component>
+      <Component Id="Comp_47" Guid="5CCEC50E-52FE-4FC8-ACED-15944579CB6A">
+        <File Id="File_47" Source="D:\Avesh\CygnetCI\SourceCode\CygnetCI\CygnetCI.Agent.Installer\publish\Microsoft.Extensions.Hosting.WindowsServices.dll" KeyPath="yes" />
+      </Component>
+      <Component Id="Comp_48" Guid="1F8BCE60-5D5B-48B7-9737-6F3DD600B927">
+        <File Id="File_48" Source="D:\Avesh\CygnetCI\SourceCode\CygnetCI\CygnetCI.Agent.Installer\publish\Microsoft.Extensions.Http.dll" KeyPath="yes" />
+      </Component>
+      <Component Id="Comp_49" Guid="9C0B0DC6-4744-48A8-A81C-01BBD3B1FA69">
+        <File Id="File_49" Source="D:\Avesh\CygnetCI\SourceCode\CygnetCI\CygnetCI.Agent.Installer\publish\Microsoft.Extensions.Logging.Abstractions.dll" KeyPath="yes" />
+      </Component>
+      <Component Id="Comp_50" Guid="0FF171D6-BF77-46D4-A67E-E52B7A4371E8">
+        <File Id="File_50" Source="D:\Avesh\CygnetCI\SourceCode\CygnetCI\CygnetCI.Agent.Installer\publish\Microsoft.Extensions.Logging.Configuration.dll" KeyPath="yes" />
+      </Component>
+      <Component Id="Comp_51" Guid="96C98BB6-14A3-439D-ABAE-6B94AD57C22A">
+        <File Id="File_51" Source="D:\Avesh\CygnetCI\SourceCode\CygnetCI\CygnetCI.Agent.Installer\publish\Microsoft.Extensions.Logging.Console.dll" KeyPath="yes" />
+      </Component>
+      <Component Id="Comp_52" Guid="A7770F22-23F2-4D52-B2C4-5952E92CF842">
+        <File Id="File_52" Source="D:\Avesh\CygnetCI\SourceCode\CygnetCI\CygnetCI.Agent.Installer\publish\Microsoft.Extensions.Logging.Debug.dll" KeyPath="yes" />
+      </Component>
+      <Component Id="Comp_53" Guid="1293AE76-BC1E-46B9-B67B-12142467DCF8">
+        <File Id="File_53" Source="D:\Avesh\CygnetCI\SourceCode\CygnetCI\CygnetCI.Agent.Installer\publish\Microsoft.Extensions.Logging.dll" KeyPath="yes" />
+      </Component>
+      <Component Id="Comp_54" Guid="BD3AC40B-A397-42BC-B3EB-6AE0A84E45CE">
+        <File Id="File_54" Source="D:\Avesh\CygnetCI\SourceCode\CygnetCI\CygnetCI.Agent.Installer\publish\Microsoft.Extensions.Logging.EventLog.dll" KeyPath="yes" />
+      </Component>
+      <Component Id="Comp_55" Guid="D6430491-08BE-44AD-B370-744842262A7F">
+        <File Id="File_55" Source="D:\Avesh\CygnetCI\SourceCode\CygnetCI\CygnetCI.Agent.Installer\publish\Microsoft.Extensions.Logging.EventSource.dll" KeyPath="yes" />
+      </Component>
+      <Component Id="Comp_56" Guid="F14479D6-EC3F-443F-9A3C-6BBBE9DD0815">
+        <File Id="File_56" Source="D:\Avesh\CygnetCI\SourceCode\CygnetCI\CygnetCI.Agent.Installer\publish\Microsoft.Extensions.ObjectPool.dll" KeyPath="yes" />
+      </Component>
+      <Component Id="Comp_57" Guid="E91E92DF-196D-4147-93FF-B8C9DECE94D3">
+        <File Id="File_57" Source="D:\Avesh\CygnetCI\SourceCode\CygnetCI\CygnetCI.Agent.Installer\publish\Microsoft.Extensions.Options.ConfigurationExtensions.dll" KeyPath="yes" />
+      </Component>
+      <Component Id="Comp_58" Guid="B3F6F14D-4D07-4E91-8DD5-37B82AD82106">
+        <File Id="File_58" Source="D:\Avesh\CygnetCI\SourceCode\CygnetCI\CygnetCI.Agent.Installer\publish\Microsoft.Extensions.Options.dll" KeyPath="yes" />
+      </Component>
+      <Component Id="Comp_59" Guid="95729FCF-4E71-42B2-B991-3B122856498A">
+        <File Id="File_59" Source="D:\Avesh\CygnetCI\SourceCode\CygnetCI\CygnetCI.Agent.Installer\publish\Microsoft.Extensions.Primitives.dll" KeyPath="yes" />
+      </Component>
+      <Component Id="Comp_60" Guid="F4C5EA1F-083D-4759-A116-D7A3CC21E4A4">
+        <File Id="File_60" Source="D:\Avesh\CygnetCI\SourceCode\CygnetCI\CygnetCI.Agent.Installer\publish\Microsoft.Management.Infrastructure.CimCmdlets.dll" KeyPath="yes" />
+      </Component>
+      <Component Id="Comp_61" Guid="3CB1C64C-A7D1-4854-B98C-AB05DD04AE7A">
+        <File Id="File_61" Source="D:\Avesh\CygnetCI\SourceCode\CygnetCI\CygnetCI.Agent.Installer\publish\microsoft.management.infrastructure.dll" KeyPath="yes" />
+      </Component>
+      <Component Id="Comp_62" Guid="95B6140B-CAF2-4ED2-8539-7AF6283D55C9">
+        <File Id="File_62" Source="D:\Avesh\CygnetCI\SourceCode\CygnetCI\CygnetCI.Agent.Installer\publish\microsoft.management.infrastructure.native.dll" KeyPath="yes" />
+      </Component>
+      <Component Id="Comp_63" Guid="86B79C51-94E7-4EBD-A212-DF2D48F24160">
+        <File Id="File_63" Source="D:\Avesh\CygnetCI\SourceCode\CygnetCI\CygnetCI.Agent.Installer\publish\microsoft.management.infrastructure.native.unmanaged.dll" KeyPath="yes" />
+      </Component>
+      <Component Id="Comp_64" Guid="D7813A95-8E33-4EF4-85A4-3666AA461266">
+        <File Id="File_64" Source="D:\Avesh\CygnetCI\SourceCode\CygnetCI\CygnetCI.Agent.Installer\publish\Microsoft.PowerShell.Commands.Diagnostics.dll" KeyPath="yes" />
+      </Component>
+      <Component Id="Comp_65" Guid="FF245FDC-F7BC-4373-88A5-566B78863AED">
+        <File Id="File_65" Source="D:\Avesh\CygnetCI\SourceCode\CygnetCI\CygnetCI.Agent.Installer\publish\Microsoft.PowerShell.Commands.Management.dll" KeyPath="yes" />
+      </Component>
+      <Component Id="Comp_66" Guid="F732DD39-8853-4323-9DB5-4C3BF5BDA84F">
+        <File Id="File_66" Source="D:\Avesh\CygnetCI\SourceCode\CygnetCI\CygnetCI.Agent.Installer\publish\Microsoft.PowerShell.Commands.Utility.dll" KeyPath="yes" />
+      </Component>
+      <Component Id="Comp_67" Guid="4D3AB6C9-8BE9-4A81-BB22-62E0F60E9280">
+        <File Id="File_67" Source="D:\Avesh\CygnetCI\SourceCode\CygnetCI\CygnetCI.Agent.Installer\publish\Microsoft.PowerShell.ConsoleHost.dll" KeyPath="yes" />
+      </Component>
+      <Component Id="Comp_68" Guid="F685F046-0855-4B54-A773-3E895C4B8E24">
+        <File Id="File_68" Source="D:\Avesh\CygnetCI\SourceCode\CygnetCI\CygnetCI.Agent.Installer\publish\Microsoft.PowerShell.CoreCLR.Eventing.dll" KeyPath="yes" />
+      </Component>
+      <Component Id="Comp_69" Guid="D7084341-6808-4405-894A-1F1275613F60">
+        <File Id="File_69" Source="D:\Avesh\CygnetCI\SourceCode\CygnetCI\CygnetCI.Agent.Installer\publish\Microsoft.PowerShell.MarkdownRender.dll" KeyPath="yes" />
+      </Component>
+      <Component Id="Comp_70" Guid="6886B7CD-A8AF-41ED-9BD0-4FE0BB69370B">
+        <File Id="File_70" Source="D:\Avesh\CygnetCI\SourceCode\CygnetCI\CygnetCI.Agent.Installer\publish\Microsoft.PowerShell.SDK.dll" KeyPath="yes" />
+      </Component>
+      <Component Id="Comp_71" Guid="24C97473-D479-4686-AC8B-D0DD9EEC4987">
+        <File Id="File_71" Source="D:\Avesh\CygnetCI\SourceCode\CygnetCI\CygnetCI.Agent.Installer\publish\Microsoft.PowerShell.Security.dll" KeyPath="yes" />
+      </Component>
+      <Component Id="Comp_72" Guid="FA22FCB5-9E20-4861-98E3-35775450686E">
+        <File Id="File_72" Source="D:\Avesh\CygnetCI\SourceCode\CygnetCI\CygnetCI.Agent.Installer\publish\Microsoft.VisualBasic.Core.dll" KeyPath="yes" />
+      </Component>
+      <Component Id="Comp_73" Guid="5F7474DF-7589-4DF4-BABC-C60375AADD55">
+        <File Id="File_73" Source="D:\Avesh\CygnetCI\SourceCode\CygnetCI\CygnetCI.Agent.Installer\publish\Microsoft.VisualBasic.dll" KeyPath="yes" />
+      </Component>
+      <Component Id="Comp_74" Guid="2DD2360A-C3FD-4F82-BCD3-9B56A287B826">
+        <File Id="File_74" Source="D:\Avesh\CygnetCI\SourceCode\CygnetCI\CygnetCI.Agent.Installer\publish\Microsoft.Win32.Primitives.dll" KeyPath="yes" />
+      </Component>
+      <Component Id="Comp_75" Guid="2AA38092-FABA-4E48-AD38-6EC8EE740155">
+        <File Id="File_75" Source="D:\Avesh\CygnetCI\SourceCode\CygnetCI\CygnetCI.Agent.Installer\publish\Microsoft.Win32.Registry.AccessControl.dll" KeyPath="yes" />
+      </Component>
+      <Component Id="Comp_76" Guid="A3B9EDF6-4270-451A-A3E6-4593DC684DE2">
+        <File Id="File_76" Source="D:\Avesh\CygnetCI\SourceCode\CygnetCI\CygnetCI.Agent.Installer\publish\Microsoft.Win32.Registry.dll" KeyPath="yes" />
+      </Component>
+      <Component Id="Comp_77" Guid="783740D6-C6DB-4446-A628-5BC635D24240">
+        <File Id="File_77" Source="D:\Avesh\CygnetCI\SourceCode\CygnetCI\CygnetCI.Agent.Installer\publish\Microsoft.Win32.SystemEvents.dll" KeyPath="yes" />
+      </Component>
+      <Component Id="Comp_78" Guid="C9EEFDD6-91DE-4951-B0EC-ED965F07A100">
+        <File Id="File_78" Source="D:\Avesh\CygnetCI\SourceCode\CygnetCI\CygnetCI.Agent.Installer\publish\Microsoft.WSMan.Management.dll" KeyPath="yes" />
+      </Component>
+      <Component Id="Comp_79" Guid="82C31671-0BE2-47FC-AAAC-45D4F24EFA89">
+        <File Id="File_79" Source="D:\Avesh\CygnetCI\SourceCode\CygnetCI\CygnetCI.Agent.Installer\publish\Microsoft.WSMan.Runtime.dll" KeyPath="yes" />
+      </Component>
+      <Component Id="Comp_80" Guid="23C9146A-0692-432F-82FF-758369A73DFA">
+        <File Id="File_80" Source="D:\Avesh\CygnetCI\SourceCode\CygnetCI\CygnetCI.Agent.Installer\publish\mscordaccore.dll" KeyPath="yes" />
+      </Component>
+      <Component Id="Comp_81" Guid="20C3048F-90A9-4504-8EC6-151729FA0DF4">
+        <File Id="File_81" Source="D:\Avesh\CygnetCI\SourceCode\CygnetCI\CygnetCI.Agent.Installer\publish\mscordaccore_amd64_amd64_9.0.1125.51716.dll" KeyPath="yes" />
+      </Component>
+      <Component Id="Comp_82" Guid="A1FEABF9-F7D1-49D2-BF8B-331D63F75506">
+        <File Id="File_82" Source="D:\Avesh\CygnetCI\SourceCode\CygnetCI\CygnetCI.Agent.Installer\publish\mscordbi.dll" KeyPath="yes" />
+      </Component>
+      <Component Id="Comp_83" Guid="AD9E2924-CBCD-450A-94E8-D771025BAAE2">
+        <File Id="File_83" Source="D:\Avesh\CygnetCI\SourceCode\CygnetCI\CygnetCI.Agent.Installer\publish\mscorlib.dll" KeyPath="yes" />
+      </Component>
+      <Component Id="Comp_84" Guid="D24C6EE0-166D-4742-86DD-B0B217DFE1A2">
+        <File Id="File_84" Source="D:\Avesh\CygnetCI\SourceCode\CygnetCI\CygnetCI.Agent.Installer\publish\mscorrc.dll" KeyPath="yes" />
+      </Component>
+      <Component Id="Comp_85" Guid="5A82E6E1-FB55-4D2A-AC06-0B26879D992B">
+        <File Id="File_85" Source="D:\Avesh\CygnetCI\SourceCode\CygnetCI\CygnetCI.Agent.Installer\publish\msquic.dll" KeyPath="yes" />
+      </Component>
+      <Component Id="Comp_86" Guid="FF3AA3C4-87C6-4E7D-AC41-9C0D0B213524">
+        <File Id="File_86" Source="D:\Avesh\CygnetCI\SourceCode\CygnetCI\CygnetCI.Agent.Installer\publish\netstandard.dll" KeyPath="yes" />
+      </Component>
+      <Component Id="Comp_87" Guid="F575BFBB-37D3-40F8-823E-2E90636CB64C">
+        <File Id="File_87" Source="D:\Avesh\CygnetCI\SourceCode\CygnetCI\CygnetCI.Agent.Installer\publish\Newtonsoft.Json.dll" KeyPath="yes" />
+      </Component>
+      <Component Id="Comp_88" Guid="61362654-AA83-470C-9F19-0C1D41ED526C">
+        <File Id="File_88" Source="D:\Avesh\CygnetCI\SourceCode\CygnetCI\CygnetCI.Agent.Installer\publish\PowerShell.Core.Instrumentation.dll" KeyPath="yes" />
+      </Component>
+      <Component Id="Comp_89" Guid="A9143BCE-5B37-4FBE-B395-70868EB6BCEB">
+        <File Id="File_89" Source="D:\Avesh\CygnetCI\SourceCode\CygnetCI\CygnetCI.Agent.Installer\publish\pwrshplugin.dll" KeyPath="yes" />
+      </Component>
+      <Component Id="Comp_90" Guid="C8FA7212-FC18-4891-BC53-49890FE8C388">
+        <File Id="File_90" Source="D:\Avesh\CygnetCI\SourceCode\CygnetCI\CygnetCI.Agent.Installer\publish\sni.dll" KeyPath="yes" />
+      </Component>
+      <Component Id="Comp_91" Guid="311F1EAA-16A3-49D2-A7A5-0653F1298088">
+        <File Id="File_91" Source="D:\Avesh\CygnetCI\SourceCode\CygnetCI\CygnetCI.Agent.Installer\publish\System.AppContext.dll" KeyPath="yes" />
+      </Component>
+      <Component Id="Comp_92" Guid="C70D67D4-A71D-47D8-BD01-FB6B8B79CA96">
+        <File Id="File_92" Source="D:\Avesh\CygnetCI\SourceCode\CygnetCI\CygnetCI.Agent.Installer\publish\System.Buffers.dll" KeyPath="yes" />
+      </Component>
+      <Component Id="Comp_93" Guid="BD008234-A72C-492C-8F6B-B8942C702184">
+        <File Id="File_93" Source="D:\Avesh\CygnetCI\SourceCode\CygnetCI\CygnetCI.Agent.Installer\publish\System.CodeDom.dll" KeyPath="yes" />
+      </Component>
+      <Component Id="Comp_94" Guid="F49408D0-4F30-41B5-8F55-C59CC883C350">
+        <File Id="File_94" Source="D:\Avesh\CygnetCI\SourceCode\CygnetCI\CygnetCI.Agent.Installer\publish\System.Collections.Concurrent.dll" KeyPath="yes" />
+      </Component>
+      <Component Id="Comp_95" Guid="C5CFEAFD-3246-4E3F-ABB7-69C7EBDF96C6">
+        <File Id="File_95" Source="D:\Avesh\CygnetCI\SourceCode\CygnetCI\CygnetCI.Agent.Installer\publish\System.Collections.dll" KeyPath="yes" />
+      </Component>
+      <Component Id="Comp_96" Guid="B39B6948-59A5-4444-81B7-68051EB62195">
+        <File Id="File_96" Source="D:\Avesh\CygnetCI\SourceCode\CygnetCI\CygnetCI.Agent.Installer\publish\System.Collections.Immutable.dll" KeyPath="yes" />
+      </Component>
+      <Component Id="Comp_97" Guid="70B68D97-77A9-4378-ADE3-224D93086D63">
+        <File Id="File_97" Source="D:\Avesh\CygnetCI\SourceCode\CygnetCI\CygnetCI.Agent.Installer\publish\System.Collections.NonGeneric.dll" KeyPath="yes" />
+      </Component>
+      <Component Id="Comp_98" Guid="3896FF53-5F7C-498C-B602-5B40416054F1">
+        <File Id="File_98" Source="D:\Avesh\CygnetCI\SourceCode\CygnetCI\CygnetCI.Agent.Installer\publish\System.Collections.Specialized.dll" KeyPath="yes" />
+      </Component>
+      <Component Id="Comp_99" Guid="B747667E-4ABD-4FBE-911F-73D4845E2951">
+        <File Id="File_99" Source="D:\Avesh\CygnetCI\SourceCode\CygnetCI\CygnetCI.Agent.Installer\publish\System.ComponentModel.Annotations.dll" KeyPath="yes" />
+      </Component>
+      <Component Id="Comp_100" Guid="5525D6EF-59C0-4291-B156-C24332B02407">
+        <File Id="File_100" Source="D:\Avesh\CygnetCI\SourceCode\CygnetCI\CygnetCI.Agent.Installer\publish\System.ComponentModel.Composition.dll" KeyPath="yes" />
+      </Component>
+      <Component Id="Comp_101" Guid="C4C7DA48-CAFE-4B34-A81E-13A8E2C6D831">
+        <File Id="File_101" Source="D:\Avesh\CygnetCI\SourceCode\CygnetCI\CygnetCI.Agent.Installer\publish\System.ComponentModel.Composition.Registration.dll" KeyPath="yes" />
+      </Component>
+      <Component Id="Comp_102" Guid="B99D9846-FCE6-4A63-8A06-9326B516FA79">
+        <File Id="File_102" Source="D:\Avesh\CygnetCI\SourceCode\CygnetCI\CygnetCI.Agent.Installer\publish\System.ComponentModel.DataAnnotations.dll" KeyPath="yes" />
+      </Component>
+      <Component Id="Comp_103" Guid="0C4CCF82-B00B-41F6-83D8-2E10FE9AA0BD">
+        <File Id="File_103" Source="D:\Avesh\CygnetCI\SourceCode\CygnetCI\CygnetCI.Agent.Installer\publish\System.ComponentModel.dll" KeyPath="yes" />
+      </Component>
+      <Component Id="Comp_104" Guid="DDE38A87-55DF-41F4-88AC-16C48E8B3537">
+        <File Id="File_104" Source="D:\Avesh\CygnetCI\SourceCode\CygnetCI\CygnetCI.Agent.Installer\publish\System.ComponentModel.EventBasedAsync.dll" KeyPath="yes" />
+      </Component>
+      <Component Id="Comp_105" Guid="ABC8883C-2FB1-4969-B008-3D688772B1BB">
+        <File Id="File_105" Source="D:\Avesh\CygnetCI\SourceCode\CygnetCI\CygnetCI.Agent.Installer\publish\System.ComponentModel.Primitives.dll" KeyPath="yes" />
+      </Component>
+      <Component Id="Comp_106" Guid="BCFC1AA2-0E26-4210-B224-D4CAF01BFF2E">
+        <File Id="File_106" Source="D:\Avesh\CygnetCI\SourceCode\CygnetCI\CygnetCI.Agent.Installer\publish\System.ComponentModel.TypeConverter.dll" KeyPath="yes" />
+      </Component>
+      <Component Id="Comp_107" Guid="F15803DE-E4A8-4333-BB1E-0B2EC7B9AA8A">
+        <File Id="File_107" Source="D:\Avesh\CygnetCI\SourceCode\CygnetCI\CygnetCI.Agent.Installer\publish\System.Configuration.ConfigurationManager.dll" KeyPath="yes" />
+      </Component>
+      <Component Id="Comp_108" Guid="333EADF0-5A17-4D4A-97E1-D0AC2D9BA10A">
+        <File Id="File_108" Source="D:\Avesh\CygnetCI\SourceCode\CygnetCI\CygnetCI.Agent.Installer\publish\System.Configuration.dll" KeyPath="yes" />
+      </Component>
+      <Component Id="Comp_109" Guid="A336D4B7-5438-4315-928E-AD746E9A43DC">
+        <File Id="File_109" Source="D:\Avesh\CygnetCI\SourceCode\CygnetCI\CygnetCI.Agent.Installer\publish\System.Console.dll" KeyPath="yes" />
+      </Component>
+      <Component Id="Comp_110" Guid="AA1F6046-0D86-4444-A3E8-3772FDB11ACF">
+        <File Id="File_110" Source="D:\Avesh\CygnetCI\SourceCode\CygnetCI\CygnetCI.Agent.Installer\publish\System.Core.dll" KeyPath="yes" />
+      </Component>
+      <Component Id="Comp_111" Guid="856349C5-09AD-4664-ABC7-A0D251CB5D2C">
+        <File Id="File_111" Source="D:\Avesh\CygnetCI\SourceCode\CygnetCI\CygnetCI.Agent.Installer\publish\System.Data.Common.dll" KeyPath="yes" />
+      </Component>
+      <Component Id="Comp_112" Guid="CC228F41-370B-4C36-9246-E2F3A64D4EA6">
+        <File Id="File_112" Source="D:\Avesh\CygnetCI\SourceCode\CygnetCI\CygnetCI.Agent.Installer\publish\System.Data.DataSetExtensions.dll" KeyPath="yes" />
+      </Component>
+      <Component Id="Comp_113" Guid="FB164B41-067A-438F-9416-6F1F3EB47302">
+        <File Id="File_113" Source="D:\Avesh\CygnetCI\SourceCode\CygnetCI\CygnetCI.Agent.Installer\publish\System.Data.dll" KeyPath="yes" />
+      </Component>
+      <Component Id="Comp_114" Guid="6091A2BC-4754-4840-90B0-96747FE17CA2">
+        <File Id="File_114" Source="D:\Avesh\CygnetCI\SourceCode\CygnetCI\CygnetCI.Agent.Installer\publish\System.Data.Odbc.dll" KeyPath="yes" />
+      </Component>
+      <Component Id="Comp_115" Guid="5E6C5241-0AFC-4CE6-A0D8-82B2936CC713">
+        <File Id="File_115" Source="D:\Avesh\CygnetCI\SourceCode\CygnetCI\CygnetCI.Agent.Installer\publish\System.Data.OleDb.dll" KeyPath="yes" />
+      </Component>
+      <Component Id="Comp_116" Guid="EB1F73E7-5515-4158-BF96-E777BCABEA54">
+        <File Id="File_116" Source="D:\Avesh\CygnetCI\SourceCode\CygnetCI\CygnetCI.Agent.Installer\publish\System.Data.SqlClient.dll" KeyPath="yes" />
+      </Component>
+      <Component Id="Comp_117" Guid="4FB8886A-C409-46CE-84B2-78277939F221">
+        <File Id="File_117" Source="D:\Avesh\CygnetCI\SourceCode\CygnetCI\CygnetCI.Agent.Installer\publish\System.Diagnostics.Contracts.dll" KeyPath="yes" />
+      </Component>
+      <Component Id="Comp_118" Guid="8B658B11-7490-47D2-B925-B25A0C62EB91">
+        <File Id="File_118" Source="D:\Avesh\CygnetCI\SourceCode\CygnetCI\CygnetCI.Agent.Installer\publish\System.Diagnostics.Debug.dll" KeyPath="yes" />
+      </Component>
+      <Component Id="Comp_119" Guid="044E863F-1A01-43F4-84B8-80CA13A3312C">
+        <File Id="File_119" Source="D:\Avesh\CygnetCI\SourceCode\CygnetCI\CygnetCI.Agent.Installer\publish\System.Diagnostics.DiagnosticSource.dll" KeyPath="yes" />
+      </Component>
+      <Component Id="Comp_120" Guid="A6B75197-8A42-41F7-9C2E-D1AE98AD825F">
+        <File Id="File_120" Source="D:\Avesh\CygnetCI\SourceCode\CygnetCI\CygnetCI.Agent.Installer\publish\System.Diagnostics.EventLog.dll" KeyPath="yes" />
+      </Component>
+      <Component Id="Comp_121" Guid="6F76ED50-B04B-42D1-96A8-9B2FB9CF076F">
+        <File Id="File_121" Source="D:\Avesh\CygnetCI\SourceCode\CygnetCI\CygnetCI.Agent.Installer\publish\System.Diagnostics.EventLog.Messages.dll" KeyPath="yes" />
+      </Component>
+      <Component Id="Comp_122" Guid="B131763F-2E9D-4E7D-90DB-970C17FDD3A8">
+        <File Id="File_122" Source="D:\Avesh\CygnetCI\SourceCode\CygnetCI\CygnetCI.Agent.Installer\publish\System.Diagnostics.FileVersionInfo.dll" KeyPath="yes" />
+      </Component>
+      <Component Id="Comp_123" Guid="05A7D143-71E5-49A5-9FE4-25976D328F3C">
+        <File Id="File_123" Source="D:\Avesh\CygnetCI\SourceCode\CygnetCI\CygnetCI.Agent.Installer\publish\System.Diagnostics.PerformanceCounter.dll" KeyPath="yes" />
+      </Component>
+      <Component Id="Comp_124" Guid="2C1353A0-27B9-49B6-A183-D8C1AC869A0E">
+        <File Id="File_124" Source="D:\Avesh\CygnetCI\SourceCode\CygnetCI\CygnetCI.Agent.Installer\publish\System.Diagnostics.Process.dll" KeyPath="yes" />
+      </Component>
+      <Component Id="Comp_125" Guid="5AAFD12D-4D37-4DAD-8E67-0FA173D79090">
+        <File Id="File_125" Source="D:\Avesh\CygnetCI\SourceCode\CygnetCI\CygnetCI.Agent.Installer\publish\System.Diagnostics.StackTrace.dll" KeyPath="yes" />
+      </Component>
+      <Component Id="Comp_126" Guid="7D0ACF45-111F-4457-BD7B-D05F35583273">
+        <File Id="File_126" Source="D:\Avesh\CygnetCI\SourceCode\CygnetCI\CygnetCI.Agent.Installer\publish\System.Diagnostics.TextWriterTraceListener.dll" KeyPath="yes" />
+      </Component>
+      <Component Id="Comp_127" Guid="66221584-61B7-4EBC-BC5A-277C077CB191">
+        <File Id="File_127" Source="D:\Avesh\CygnetCI\SourceCode\CygnetCI\CygnetCI.Agent.Installer\publish\System.Diagnostics.Tools.dll" KeyPath="yes" />
+      </Component>
+      <Component Id="Comp_128" Guid="D4ACC0F3-F69E-446A-8555-A1370543E641">
+        <File Id="File_128" Source="D:\Avesh\CygnetCI\SourceCode\CygnetCI\CygnetCI.Agent.Installer\publish\System.Diagnostics.TraceSource.dll" KeyPath="yes" />
+      </Component>
+      <Component Id="Comp_129" Guid="112E6620-57A9-464B-B546-EDD0229CC873">
+        <File Id="File_129" Source="D:\Avesh\CygnetCI\SourceCode\CygnetCI\CygnetCI.Agent.Installer\publish\System.Diagnostics.Tracing.dll" KeyPath="yes" />
+      </Component>
+      <Component Id="Comp_130" Guid="E68C7766-145F-4AC7-A5DF-4DEE3467F0E5">
+        <File Id="File_130" Source="D:\Avesh\CygnetCI\SourceCode\CygnetCI\CygnetCI.Agent.Installer\publish\System.DirectoryServices.AccountManagement.dll" KeyPath="yes" />
+      </Component>
+      <Component Id="Comp_131" Guid="D1DED266-CA02-4477-9B69-9DF0DB26E8DD">
+        <File Id="File_131" Source="D:\Avesh\CygnetCI\SourceCode\CygnetCI\CygnetCI.Agent.Installer\publish\System.DirectoryServices.dll" KeyPath="yes" />
+      </Component>
+      <Component Id="Comp_132" Guid="B89ACC28-2BB6-45BC-A6AE-302C6CE2F98B">
+        <File Id="File_132" Source="D:\Avesh\CygnetCI\SourceCode\CygnetCI\CygnetCI.Agent.Installer\publish\System.DirectoryServices.Protocols.dll" KeyPath="yes" />
+      </Component>
+      <Component Id="Comp_133" Guid="B7F5E15C-F35D-4E66-B9F2-9F3E7D7137B5">
+        <File Id="File_133" Source="D:\Avesh\CygnetCI\SourceCode\CygnetCI\CygnetCI.Agent.Installer\publish\System.dll" KeyPath="yes" />
+      </Component>
+      <Component Id="Comp_134" Guid="B8CBAAED-CCE6-4E54-82CD-F533373C3D25">
+        <File Id="File_134" Source="D:\Avesh\CygnetCI\SourceCode\CygnetCI\CygnetCI.Agent.Installer\publish\System.Drawing.Common.dll" KeyPath="yes" />
+      </Component>
+      <Component Id="Comp_135" Guid="F1496B19-8F5A-4459-9FD8-2829ABAE058D">
+        <File Id="File_135" Source="D:\Avesh\CygnetCI\SourceCode\CygnetCI\CygnetCI.Agent.Installer\publish\System.Drawing.dll" KeyPath="yes" />
+      </Component>
+      <Component Id="Comp_136" Guid="8AAD70A0-75C1-4249-845A-164D17C4FD4F">
+        <File Id="File_136" Source="D:\Avesh\CygnetCI\SourceCode\CygnetCI\CygnetCI.Agent.Installer\publish\System.Drawing.Primitives.dll" KeyPath="yes" />
+      </Component>
+      <Component Id="Comp_137" Guid="6D47A089-EA9A-4602-8587-851AF2E67543">
+        <File Id="File_137" Source="D:\Avesh\CygnetCI\SourceCode\CygnetCI\CygnetCI.Agent.Installer\publish\System.Dynamic.Runtime.dll" KeyPath="yes" />
+      </Component>
+      <Component Id="Comp_138" Guid="26A70687-23AE-4389-B424-691174A4C75E">
+        <File Id="File_138" Source="D:\Avesh\CygnetCI\SourceCode\CygnetCI\CygnetCI.Agent.Installer\publish\System.Formats.Asn1.dll" KeyPath="yes" />
+      </Component>
+      <Component Id="Comp_139" Guid="93048F5C-02B2-4585-8514-429727E77C4A">
+        <File Id="File_139" Source="D:\Avesh\CygnetCI\SourceCode\CygnetCI\CygnetCI.Agent.Installer\publish\System.Formats.Tar.dll" KeyPath="yes" />
+      </Component>
+      <Component Id="Comp_140" Guid="EB8FBC77-83D4-4926-B6B2-B129C47BF943">
+        <File Id="File_140" Source="D:\Avesh\CygnetCI\SourceCode\CygnetCI\CygnetCI.Agent.Installer\publish\System.Globalization.Calendars.dll" KeyPath="yes" />
+      </Component>
+      <Component Id="Comp_141" Guid="3B929BD0-573A-40B0-923C-26EDCA1C52C2">
+        <File Id="File_141" Source="D:\Avesh\CygnetCI\SourceCode\CygnetCI\CygnetCI.Agent.Installer\publish\System.Globalization.dll" KeyPath="yes" />
+      </Component>
+      <Component Id="Comp_142" Guid="3603EEA9-6A66-4AB2-924A-180999AB6FF9">
+        <File Id="File_142" Source="D:\Avesh\CygnetCI\SourceCode\CygnetCI\CygnetCI.Agent.Installer\publish\System.Globalization.Extensions.dll" KeyPath="yes" />
+      </Component>
+      <Component Id="Comp_143" Guid="38B38FE7-516C-45DB-8A52-DA956CB4FF67">
+        <File Id="File_143" Source="D:\Avesh\CygnetCI\SourceCode\CygnetCI\CygnetCI.Agent.Installer\publish\System.IO.Compression.Brotli.dll" KeyPath="yes" />
+      </Component>
+      <Component Id="Comp_144" Guid="FEB169AD-C384-4129-A7BF-FCD82ABC16D7">
+        <File Id="File_144" Source="D:\Avesh\CygnetCI\SourceCode\CygnetCI\CygnetCI.Agent.Installer\publish\System.IO.Compression.dll" KeyPath="yes" />
+      </Component>
+      <Component Id="Comp_145" Guid="ECD1A238-7D28-40B3-B083-98F288F685CB">
+        <File Id="File_145" Source="D:\Avesh\CygnetCI\SourceCode\CygnetCI\CygnetCI.Agent.Installer\publish\System.IO.Compression.FileSystem.dll" KeyPath="yes" />
+      </Component>
+      <Component Id="Comp_146" Guid="99D94113-A745-4A0A-884A-0CECD60096B1">
+        <File Id="File_146" Source="D:\Avesh\CygnetCI\SourceCode\CygnetCI\CygnetCI.Agent.Installer\publish\System.IO.Compression.Native.dll" KeyPath="yes" />
+      </Component>
+      <Component Id="Comp_147" Guid="E61DF922-15DA-48CA-B8FC-23D6AFA34604">
+        <File Id="File_147" Source="D:\Avesh\CygnetCI\SourceCode\CygnetCI\CygnetCI.Agent.Installer\publish\System.IO.Compression.ZipFile.dll" KeyPath="yes" />
+      </Component>
+      <Component Id="Comp_148" Guid="45001736-942A-4C24-B655-5D24CCFFC007">
+        <File Id="File_148" Source="D:\Avesh\CygnetCI\SourceCode\CygnetCI\CygnetCI.Agent.Installer\publish\System.IO.dll" KeyPath="yes" />
+      </Component>
+      <Component Id="Comp_149" Guid="5DC3CA9D-5C06-4108-8269-1CF4C6AD8BE3">
+        <File Id="File_149" Source="D:\Avesh\CygnetCI\SourceCode\CygnetCI\CygnetCI.Agent.Installer\publish\System.IO.FileSystem.AccessControl.dll" KeyPath="yes" />
+      </Component>
+      <Component Id="Comp_150" Guid="7E40541B-40BE-434C-BBBB-F1F964E0C0BC">
+        <File Id="File_150" Source="D:\Avesh\CygnetCI\SourceCode\CygnetCI\CygnetCI.Agent.Installer\publish\System.IO.FileSystem.dll" KeyPath="yes" />
+      </Component>
+      <Component Id="Comp_151" Guid="28AD7C6F-EE01-4786-825A-ED84EABF9763">
+        <File Id="File_151" Source="D:\Avesh\CygnetCI\SourceCode\CygnetCI\CygnetCI.Agent.Installer\publish\System.IO.FileSystem.DriveInfo.dll" KeyPath="yes" />
+      </Component>
+      <Component Id="Comp_152" Guid="9769361A-A3BE-44A6-877B-2B626A91EC07">
+        <File Id="File_152" Source="D:\Avesh\CygnetCI\SourceCode\CygnetCI\CygnetCI.Agent.Installer\publish\System.IO.FileSystem.Primitives.dll" KeyPath="yes" />
+      </Component>
+      <Component Id="Comp_153" Guid="D0AB345F-1340-4897-9008-D0E6A895CC06">
+        <File Id="File_153" Source="D:\Avesh\CygnetCI\SourceCode\CygnetCI\CygnetCI.Agent.Installer\publish\System.IO.FileSystem.Watcher.dll" KeyPath="yes" />
+      </Component>
+      <Component Id="Comp_154" Guid="BA79D87F-8D63-473C-8CC3-28FF0A6B746F">
+        <File Id="File_154" Source="D:\Avesh\CygnetCI\SourceCode\CygnetCI\CygnetCI.Agent.Installer\publish\System.IO.IsolatedStorage.dll" KeyPath="yes" />
+      </Component>
+      <Component Id="Comp_155" Guid="2211D92C-3FB0-4507-923F-0FD67E35112E">
+        <File Id="File_155" Source="D:\Avesh\CygnetCI\SourceCode\CygnetCI\CygnetCI.Agent.Installer\publish\System.IO.MemoryMappedFiles.dll" KeyPath="yes" />
+      </Component>
+      <Component Id="Comp_156" Guid="16607118-0B9C-4148-AFF9-BDBF42CE0F29">
+        <File Id="File_156" Source="D:\Avesh\CygnetCI\SourceCode\CygnetCI\CygnetCI.Agent.Installer\publish\System.IO.Packaging.dll" KeyPath="yes" />
+      </Component>
+      <Component Id="Comp_157" Guid="B1F65FC9-D582-484F-AF80-0E311C03D065">
+        <File Id="File_157" Source="D:\Avesh\CygnetCI\SourceCode\CygnetCI\CygnetCI.Agent.Installer\publish\System.IO.Pipelines.dll" KeyPath="yes" />
+      </Component>
+      <Component Id="Comp_158" Guid="8D1AA778-C589-4D40-B0D6-DD44A6B29267">
+        <File Id="File_158" Source="D:\Avesh\CygnetCI\SourceCode\CygnetCI\CygnetCI.Agent.Installer\publish\System.IO.Pipes.AccessControl.dll" KeyPath="yes" />
+      </Component>
+      <Component Id="Comp_159" Guid="E422057A-FA79-401A-BA8D-07EE96E7C3A0">
+        <File Id="File_159" Source="D:\Avesh\CygnetCI\SourceCode\CygnetCI\CygnetCI.Agent.Installer\publish\System.IO.Pipes.dll" KeyPath="yes" />
+      </Component>
+      <Component Id="Comp_160" Guid="BEAA3642-4398-4B99-A3D9-AED6FD51BD8E">
+        <File Id="File_160" Source="D:\Avesh\CygnetCI\SourceCode\CygnetCI\CygnetCI.Agent.Installer\publish\System.IO.Ports.dll" KeyPath="yes" />
+      </Component>
+      <Component Id="Comp_161" Guid="6CDD6499-5788-465C-91B4-86BE3F831465">
+        <File Id="File_161" Source="D:\Avesh\CygnetCI\SourceCode\CygnetCI\CygnetCI.Agent.Installer\publish\System.IO.UnmanagedMemoryStream.dll" KeyPath="yes" />
+      </Component>
+      <Component Id="Comp_162" Guid="6F78AEEA-464A-4D4F-AA36-CE9E38C5E913">
+        <File Id="File_162" Source="D:\Avesh\CygnetCI\SourceCode\CygnetCI\CygnetCI.Agent.Installer\publish\System.Linq.dll" KeyPath="yes" />
+      </Component>
+      <Component Id="Comp_163" Guid="8E05FB15-426F-4C66-B4BC-2966208DFE55">
+        <File Id="File_163" Source="D:\Avesh\CygnetCI\SourceCode\CygnetCI\CygnetCI.Agent.Installer\publish\System.Linq.Expressions.dll" KeyPath="yes" />
+      </Component>
+      <Component Id="Comp_164" Guid="23B4FC13-7623-40C2-B1B2-46292EB8363C">
+        <File Id="File_164" Source="D:\Avesh\CygnetCI\SourceCode\CygnetCI\CygnetCI.Agent.Installer\publish\System.Linq.Parallel.dll" KeyPath="yes" />
+      </Component>
+      <Component Id="Comp_165" Guid="75141014-48FE-4A9F-AE03-0D11135C84D6">
+        <File Id="File_165" Source="D:\Avesh\CygnetCI\SourceCode\CygnetCI\CygnetCI.Agent.Installer\publish\System.Linq.Queryable.dll" KeyPath="yes" />
+      </Component>
+      <Component Id="Comp_166" Guid="4C24FD8D-1917-4EF0-998F-81F0488269E4">
+        <File Id="File_166" Source="D:\Avesh\CygnetCI\SourceCode\CygnetCI\CygnetCI.Agent.Installer\publish\System.Management.Automation.dll" KeyPath="yes" />
+      </Component>
+      <Component Id="Comp_167" Guid="1D97FCAD-F3F0-46C6-9F65-4A69041AAF55">
+        <File Id="File_167" Source="D:\Avesh\CygnetCI\SourceCode\CygnetCI\CygnetCI.Agent.Installer\publish\System.Management.dll" KeyPath="yes" />
+      </Component>
+      <Component Id="Comp_168" Guid="7FF9CC01-B2B2-45D7-A27F-36323BD1E9EE">
+        <File Id="File_168" Source="D:\Avesh\CygnetCI\SourceCode\CygnetCI\CygnetCI.Agent.Installer\publish\System.Memory.dll" KeyPath="yes" />
+      </Component>
+      <Component Id="Comp_169" Guid="4D99F610-D33A-46F8-8741-93AAD4F63452">
+        <File Id="File_169" Source="D:\Avesh\CygnetCI\SourceCode\CygnetCI\CygnetCI.Agent.Installer\publish\System.Net.dll" KeyPath="yes" />
+      </Component>
+      <Component Id="Comp_170" Guid="743DCD75-391A-442B-9443-6A1E0EBCD296">
+        <File Id="File_170" Source="D:\Avesh\CygnetCI\SourceCode\CygnetCI\CygnetCI.Agent.Installer\publish\System.Net.Http.dll" KeyPath="yes" />
+      </Component>
+      <Component Id="Comp_171" Guid="BBDB1F38-D557-4580-9012-DA0702B7AD4F">
+        <File Id="File_171" Source="D:\Avesh\CygnetCI\SourceCode\CygnetCI\CygnetCI.Agent.Installer\publish\System.Net.Http.Json.dll" KeyPath="yes" />
+      </Component>
+      <Component Id="Comp_172" Guid="75BFF95E-1308-4FE4-A7CE-E503512FA258">
+        <File Id="File_172" Source="D:\Avesh\CygnetCI\SourceCode\CygnetCI\CygnetCI.Agent.Installer\publish\System.Net.Http.WinHttpHandler.dll" KeyPath="yes" />
+      </Component>
+      <Component Id="Comp_173" Guid="D4BAF412-28A0-44E8-9CEC-7DC4E5364202">
+        <File Id="File_173" Source="D:\Avesh\CygnetCI\SourceCode\CygnetCI\CygnetCI.Agent.Installer\publish\System.Net.HttpListener.dll" KeyPath="yes" />
+      </Component>
+      <Component Id="Comp_174" Guid="26A2D4A1-CCC6-4C01-8ED5-6BE557653291">
+        <File Id="File_174" Source="D:\Avesh\CygnetCI\SourceCode\CygnetCI\CygnetCI.Agent.Installer\publish\System.Net.Mail.dll" KeyPath="yes" />
+      </Component>
+      <Component Id="Comp_175" Guid="AD6F6493-0783-4989-BE4F-45C7DAD4CD7A">
+        <File Id="File_175" Source="D:\Avesh\CygnetCI\SourceCode\CygnetCI\CygnetCI.Agent.Installer\publish\System.Net.NameResolution.dll" KeyPath="yes" />
+      </Component>
+      <Component Id="Comp_176" Guid="E9D86745-2F78-437A-9EC1-89BD4931C1D2">
+        <File Id="File_176" Source="D:\Avesh\CygnetCI\SourceCode\CygnetCI\CygnetCI.Agent.Installer\publish\System.Net.NetworkInformation.dll" KeyPath="yes" />
+      </Component>
+      <Component Id="Comp_177" Guid="4E442484-F08C-4929-A739-84E7C22D7BB0">
+        <File Id="File_177" Source="D:\Avesh\CygnetCI\SourceCode\CygnetCI\CygnetCI.Agent.Installer\publish\System.Net.Ping.dll" KeyPath="yes" />
+      </Component>
+      <Component Id="Comp_178" Guid="AB380174-5E20-477F-99FB-2B1A85ECDDBA">
+        <File Id="File_178" Source="D:\Avesh\CygnetCI\SourceCode\CygnetCI\CygnetCI.Agent.Installer\publish\System.Net.Primitives.dll" KeyPath="yes" />
+      </Component>
+      <Component Id="Comp_179" Guid="93753BE5-FA03-4B29-8528-18A75EAFE2C0">
+        <File Id="File_179" Source="D:\Avesh\CygnetCI\SourceCode\CygnetCI\CygnetCI.Agent.Installer\publish\System.Net.Quic.dll" KeyPath="yes" />
+      </Component>
+      <Component Id="Comp_180" Guid="2469CFD1-BD39-4003-8A23-92496A1CE116">
+        <File Id="File_180" Source="D:\Avesh\CygnetCI\SourceCode\CygnetCI\CygnetCI.Agent.Installer\publish\System.Net.Requests.dll" KeyPath="yes" />
+      </Component>
+      <Component Id="Comp_181" Guid="291D38D0-97B4-4188-A6D6-D64AD6D762A3">
+        <File Id="File_181" Source="D:\Avesh\CygnetCI\SourceCode\CygnetCI\CygnetCI.Agent.Installer\publish\System.Net.Security.dll" KeyPath="yes" />
+      </Component>
+      <Component Id="Comp_182" Guid="450E5E63-D850-4269-AC7B-E8E5302A32B3">
+        <File Id="File_182" Source="D:\Avesh\CygnetCI\SourceCode\CygnetCI\CygnetCI.Agent.Installer\publish\System.Net.ServicePoint.dll" KeyPath="yes" />
+      </Component>
+      <Component Id="Comp_183" Guid="24062823-2906-47DF-815A-0167F7CDCB63">
+        <File Id="File_183" Source="D:\Avesh\CygnetCI\SourceCode\CygnetCI\CygnetCI.Agent.Installer\publish\System.Net.Sockets.dll" KeyPath="yes" />
+      </Component>
+      <Component Id="Comp_184" Guid="08703A70-24FD-45DB-BD7B-6B88A662765E">
+        <File Id="File_184" Source="D:\Avesh\CygnetCI\SourceCode\CygnetCI\CygnetCI.Agent.Installer\publish\System.Net.WebClient.dll" KeyPath="yes" />
+      </Component>
+      <Component Id="Comp_185" Guid="4727C176-66ED-43F5-A189-808E50C9D44D">
+        <File Id="File_185" Source="D:\Avesh\CygnetCI\SourceCode\CygnetCI\CygnetCI.Agent.Installer\publish\System.Net.WebHeaderCollection.dll" KeyPath="yes" />
+      </Component>
+      <Component Id="Comp_186" Guid="96DE6A6D-A565-4D6A-9435-55FF2F7C7119">
+        <File Id="File_186" Source="D:\Avesh\CygnetCI\SourceCode\CygnetCI\CygnetCI.Agent.Installer\publish\System.Net.WebProxy.dll" KeyPath="yes" />
+      </Component>
+      <Component Id="Comp_187" Guid="845565DF-413F-42AD-9528-0005E9250845">
+        <File Id="File_187" Source="D:\Avesh\CygnetCI\SourceCode\CygnetCI\CygnetCI.Agent.Installer\publish\System.Net.WebSockets.Client.dll" KeyPath="yes" />
+      </Component>
+      <Component Id="Comp_188" Guid="430B9538-E080-4F62-B39E-629133C20A78">
+        <File Id="File_188" Source="D:\Avesh\CygnetCI\SourceCode\CygnetCI\CygnetCI.Agent.Installer\publish\System.Net.WebSockets.dll" KeyPath="yes" />
+      </Component>
+      <Component Id="Comp_189" Guid="76B47545-A061-4301-8681-A8378461342A">
+        <File Id="File_189" Source="D:\Avesh\CygnetCI\SourceCode\CygnetCI\CygnetCI.Agent.Installer\publish\System.Numerics.dll" KeyPath="yes" />
+      </Component>
+      <Component Id="Comp_190" Guid="338708F8-6E08-4843-9419-448D85DF6661">
+        <File Id="File_190" Source="D:\Avesh\CygnetCI\SourceCode\CygnetCI\CygnetCI.Agent.Installer\publish\System.Numerics.Vectors.dll" KeyPath="yes" />
+      </Component>
+      <Component Id="Comp_191" Guid="7BED79F2-C40C-4E39-8BCB-3D5456E577E0">
+        <File Id="File_191" Source="D:\Avesh\CygnetCI\SourceCode\CygnetCI\CygnetCI.Agent.Installer\publish\System.ObjectModel.dll" KeyPath="yes" />
+      </Component>
+      <Component Id="Comp_192" Guid="BCAF31B5-0C74-42A9-AAFA-6727A976A349">
+        <File Id="File_192" Source="D:\Avesh\CygnetCI\SourceCode\CygnetCI\CygnetCI.Agent.Installer\publish\System.Private.CoreLib.dll" KeyPath="yes" />
+      </Component>
+      <Component Id="Comp_193" Guid="339406A4-7072-4C4F-A163-7E955A4DF602">
+        <File Id="File_193" Source="D:\Avesh\CygnetCI\SourceCode\CygnetCI\CygnetCI.Agent.Installer\publish\System.Private.DataContractSerialization.dll" KeyPath="yes" />
+      </Component>
+      <Component Id="Comp_194" Guid="C3A8A685-7202-47EE-8B2B-C21709333AF2">
+        <File Id="File_194" Source="D:\Avesh\CygnetCI\SourceCode\CygnetCI\CygnetCI.Agent.Installer\publish\System.Private.ServiceModel.dll" KeyPath="yes" />
+      </Component>
+      <Component Id="Comp_195" Guid="1E4336F0-38F0-405C-85CA-9BC3F166F6BE">
+        <File Id="File_195" Source="D:\Avesh\CygnetCI\SourceCode\CygnetCI\CygnetCI.Agent.Installer\publish\System.Private.Uri.dll" KeyPath="yes" />
+      </Component>
+      <Component Id="Comp_196" Guid="3D5A9DA8-BDD4-466A-97E6-B7E2077F3555">
+        <File Id="File_196" Source="D:\Avesh\CygnetCI\SourceCode\CygnetCI\CygnetCI.Agent.Installer\publish\System.Private.Windows.Core.dll" KeyPath="yes" />
+      </Component>
+      <Component Id="Comp_197" Guid="70034D7C-6157-49B7-993D-D40E852E6A19">
+        <File Id="File_197" Source="D:\Avesh\CygnetCI\SourceCode\CygnetCI\CygnetCI.Agent.Installer\publish\System.Private.Xml.dll" KeyPath="yes" />
+      </Component>
+      <Component Id="Comp_198" Guid="914E50CB-ACC3-4F30-AC62-D1E1DD625403">
+        <File Id="File_198" Source="D:\Avesh\CygnetCI\SourceCode\CygnetCI\CygnetCI.Agent.Installer\publish\System.Private.Xml.Linq.dll" KeyPath="yes" />
+      </Component>
+      <Component Id="Comp_199" Guid="80B931B0-CF52-4B06-A48E-DD2638005525">
+        <File Id="File_199" Source="D:\Avesh\CygnetCI\SourceCode\CygnetCI\CygnetCI.Agent.Installer\publish\System.Reflection.Context.dll" KeyPath="yes" />
+      </Component>
+      <Component Id="Comp_200" Guid="62355CAA-AB7A-4298-A46F-71A2DB86D4E7">
+        <File Id="File_200" Source="D:\Avesh\CygnetCI\SourceCode\CygnetCI\CygnetCI.Agent.Installer\publish\System.Reflection.DispatchProxy.dll" KeyPath="yes" />
+      </Component>
+      <Component Id="Comp_201" Guid="330C6DE7-D532-4B9C-B1ED-CA3D067548B3">
+        <File Id="File_201" Source="D:\Avesh\CygnetCI\SourceCode\CygnetCI\CygnetCI.Agent.Installer\publish\System.Reflection.dll" KeyPath="yes" />
+      </Component>
+      <Component Id="Comp_202" Guid="5ABA3764-9A1F-42B0-87AD-526E592019F0">
+        <File Id="File_202" Source="D:\Avesh\CygnetCI\SourceCode\CygnetCI\CygnetCI.Agent.Installer\publish\System.Reflection.Emit.dll" KeyPath="yes" />
+      </Component>
+      <Component Id="Comp_203" Guid="640EF501-09F0-42FA-AB65-4C851304A554">
+        <File Id="File_203" Source="D:\Avesh\CygnetCI\SourceCode\CygnetCI\CygnetCI.Agent.Installer\publish\System.Reflection.Emit.ILGeneration.dll" KeyPath="yes" />
+      </Component>
+      <Component Id="Comp_204" Guid="D081581E-17E4-4F01-9593-9D77411AEA97">
+        <File Id="File_204" Source="D:\Avesh\CygnetCI\SourceCode\CygnetCI\CygnetCI.Agent.Installer\publish\System.Reflection.Emit.Lightweight.dll" KeyPath="yes" />
+      </Component>
+      <Component Id="Comp_205" Guid="AD717420-069E-4800-8FC2-CA6FE0B238FE">
+        <File Id="File_205" Source="D:\Avesh\CygnetCI\SourceCode\CygnetCI\CygnetCI.Agent.Installer\publish\System.Reflection.Extensions.dll" KeyPath="yes" />
+      </Component>
+      <Component Id="Comp_206" Guid="5A8FA6C1-B2E0-47DC-B88C-3AC4B18153A0">
+        <File Id="File_206" Source="D:\Avesh\CygnetCI\SourceCode\CygnetCI\CygnetCI.Agent.Installer\publish\System.Reflection.Metadata.dll" KeyPath="yes" />
+      </Component>
+      <Component Id="Comp_207" Guid="1489C98C-AA80-4377-AC14-65D88380326E">
+        <File Id="File_207" Source="D:\Avesh\CygnetCI\SourceCode\CygnetCI\CygnetCI.Agent.Installer\publish\System.Reflection.Primitives.dll" KeyPath="yes" />
+      </Component>
+      <Component Id="Comp_208" Guid="A99166FC-9633-4DA1-9574-64AACEB46FA7">
+        <File Id="File_208" Source="D:\Avesh\CygnetCI\SourceCode\CygnetCI\CygnetCI.Agent.Installer\publish\System.Reflection.TypeExtensions.dll" KeyPath="yes" />
+      </Component>
+      <Component Id="Comp_209" Guid="44F0DFCB-B966-49C4-AFF1-2884210238F8">
+        <File Id="File_209" Source="D:\Avesh\CygnetCI\SourceCode\CygnetCI\CygnetCI.Agent.Installer\publish\System.Resources.Reader.dll" KeyPath="yes" />
+      </Component>
+      <Component Id="Comp_210" Guid="BBE54D0D-7718-4CD3-B0ED-199C0B46B6F1">
+        <File Id="File_210" Source="D:\Avesh\CygnetCI\SourceCode\CygnetCI\CygnetCI.Agent.Installer\publish\System.Resources.ResourceManager.dll" KeyPath="yes" />
+      </Component>
+      <Component Id="Comp_211" Guid="2BF8547A-2994-4AAB-89CC-2143A6290BE3">
+        <File Id="File_211" Source="D:\Avesh\CygnetCI\SourceCode\CygnetCI\CygnetCI.Agent.Installer\publish\System.Resources.Writer.dll" KeyPath="yes" />
+      </Component>
+      <Component Id="Comp_212" Guid="A5D1BE20-59FB-4770-8BFF-8046E1C6DB6F">
+        <File Id="File_212" Source="D:\Avesh\CygnetCI\SourceCode\CygnetCI\CygnetCI.Agent.Installer\publish\System.Runtime.Caching.dll" KeyPath="yes" />
+      </Component>
+      <Component Id="Comp_213" Guid="F01C968C-E3FE-40F8-BB65-7CDE8313953E">
+        <File Id="File_213" Source="D:\Avesh\CygnetCI\SourceCode\CygnetCI\CygnetCI.Agent.Installer\publish\System.Runtime.CompilerServices.Unsafe.dll" KeyPath="yes" />
+      </Component>
+      <Component Id="Comp_214" Guid="422702AB-F772-494E-A123-9D014276EAE2">
+        <File Id="File_214" Source="D:\Avesh\CygnetCI\SourceCode\CygnetCI\CygnetCI.Agent.Installer\publish\System.Runtime.CompilerServices.VisualC.dll" KeyPath="yes" />
+      </Component>
+      <Component Id="Comp_215" Guid="08073AA7-EBBD-419E-AD72-05DB72FA8152">
+        <File Id="File_215" Source="D:\Avesh\CygnetCI\SourceCode\CygnetCI\CygnetCI.Agent.Installer\publish\System.Runtime.dll" KeyPath="yes" />
+      </Component>
+      <Component Id="Comp_216" Guid="3CBA7195-FAC1-4DB2-BA0D-D342BCBA1C70">
+        <File Id="File_216" Source="D:\Avesh\CygnetCI\SourceCode\CygnetCI\CygnetCI.Agent.Installer\publish\System.Runtime.Extensions.dll" KeyPath="yes" />
+      </Component>
+      <Component Id="Comp_217" Guid="CD4D57BE-04CF-49F3-BDBF-0AF191BE0009">
+        <File Id="File_217" Source="D:\Avesh\CygnetCI\SourceCode\CygnetCI\CygnetCI.Agent.Installer\publish\System.Runtime.Handles.dll" KeyPath="yes" />
+      </Component>
+      <Component Id="Comp_218" Guid="2227B1B4-12C7-4EC6-A946-8020CD8A9B7B">
+        <File Id="File_218" Source="D:\Avesh\CygnetCI\SourceCode\CygnetCI\CygnetCI.Agent.Installer\publish\System.Runtime.InteropServices.dll" KeyPath="yes" />
+      </Component>
+      <Component Id="Comp_219" Guid="46F7DE3D-3DCE-4078-8202-D7EF2BF4F193">
+        <File Id="File_219" Source="D:\Avesh\CygnetCI\SourceCode\CygnetCI\CygnetCI.Agent.Installer\publish\System.Runtime.InteropServices.JavaScript.dll" KeyPath="yes" />
+      </Component>
+      <Component Id="Comp_220" Guid="2DEC7DDC-C2B2-4DA0-AAD9-F82979FBF648">
+        <File Id="File_220" Source="D:\Avesh\CygnetCI\SourceCode\CygnetCI\CygnetCI.Agent.Installer\publish\System.Runtime.InteropServices.RuntimeInformation.dll" KeyPath="yes" />
+      </Component>
+      <Component Id="Comp_221" Guid="7C1A8A4F-AE1F-4C92-8554-97FE5D78780A">
+        <File Id="File_221" Source="D:\Avesh\CygnetCI\SourceCode\CygnetCI\CygnetCI.Agent.Installer\publish\System.Runtime.Intrinsics.dll" KeyPath="yes" />
+      </Component>
+      <Component Id="Comp_222" Guid="9E90B93F-D28D-4ECE-A3B0-9BD1C806CB70">
+        <File Id="File_222" Source="D:\Avesh\CygnetCI\SourceCode\CygnetCI\CygnetCI.Agent.Installer\publish\System.Runtime.Loader.dll" KeyPath="yes" />
+      </Component>
+      <Component Id="Comp_223" Guid="C85967AE-DC4F-4C24-8598-41A5415CDF75">
+        <File Id="File_223" Source="D:\Avesh\CygnetCI\SourceCode\CygnetCI\CygnetCI.Agent.Installer\publish\System.Runtime.Numerics.dll" KeyPath="yes" />
+      </Component>
+      <Component Id="Comp_224" Guid="9CF8D186-4846-49D9-B35D-DBB43FD2C7F3">
+        <File Id="File_224" Source="D:\Avesh\CygnetCI\SourceCode\CygnetCI\CygnetCI.Agent.Installer\publish\System.Runtime.Serialization.dll" KeyPath="yes" />
+      </Component>
+      <Component Id="Comp_225" Guid="7A031E47-5FB2-4CE8-A86F-6C22BF594CEA">
+        <File Id="File_225" Source="D:\Avesh\CygnetCI\SourceCode\CygnetCI\CygnetCI.Agent.Installer\publish\System.Runtime.Serialization.Formatters.dll" KeyPath="yes" />
+      </Component>
+      <Component Id="Comp_226" Guid="5CC3EA4E-24E3-4F92-96CB-552311D18C62">
+        <File Id="File_226" Source="D:\Avesh\CygnetCI\SourceCode\CygnetCI\CygnetCI.Agent.Installer\publish\System.Runtime.Serialization.Json.dll" KeyPath="yes" />
+      </Component>
+      <Component Id="Comp_227" Guid="FF5254C2-4B21-4E66-91C9-AFF889F9B064">
+        <File Id="File_227" Source="D:\Avesh\CygnetCI\SourceCode\CygnetCI\CygnetCI.Agent.Installer\publish\System.Runtime.Serialization.Primitives.dll" KeyPath="yes" />
+      </Component>
+      <Component Id="Comp_228" Guid="1B409AD0-B5C2-40E1-84A0-23AA80834C4F">
+        <File Id="File_228" Source="D:\Avesh\CygnetCI\SourceCode\CygnetCI\CygnetCI.Agent.Installer\publish\System.Runtime.Serialization.Xml.dll" KeyPath="yes" />
+      </Component>
+      <Component Id="Comp_229" Guid="2EEC45C0-746D-4F3E-81B2-2131415DEA23">
+        <File Id="File_229" Source="D:\Avesh\CygnetCI\SourceCode\CygnetCI\CygnetCI.Agent.Installer\publish\System.Security.AccessControl.dll" KeyPath="yes" />
+      </Component>
+      <Component Id="Comp_230" Guid="DAEF3EC6-78E3-4D97-B881-15C91C751FDF">
+        <File Id="File_230" Source="D:\Avesh\CygnetCI\SourceCode\CygnetCI\CygnetCI.Agent.Installer\publish\System.Security.Claims.dll" KeyPath="yes" />
+      </Component>
+      <Component Id="Comp_231" Guid="DE165DA3-E010-41E3-8563-ED43C8F3C956">
+        <File Id="File_231" Source="D:\Avesh\CygnetCI\SourceCode\CygnetCI\CygnetCI.Agent.Installer\publish\System.Security.Cryptography.Algorithms.dll" KeyPath="yes" />
+      </Component>
+      <Component Id="Comp_232" Guid="AB214DAA-91EC-462B-9D33-F8F8D5C8B998">
+        <File Id="File_232" Source="D:\Avesh\CygnetCI\SourceCode\CygnetCI\CygnetCI.Agent.Installer\publish\System.Security.Cryptography.Cng.dll" KeyPath="yes" />
+      </Component>
+      <Component Id="Comp_233" Guid="BA90B2A3-BFC7-4DFC-BEBE-B41D1EF02344">
+        <File Id="File_233" Source="D:\Avesh\CygnetCI\SourceCode\CygnetCI\CygnetCI.Agent.Installer\publish\System.Security.Cryptography.Csp.dll" KeyPath="yes" />
+      </Component>
+      <Component Id="Comp_234" Guid="F88E0739-D601-46BB-B15A-002E59906ACE">
+        <File Id="File_234" Source="D:\Avesh\CygnetCI\SourceCode\CygnetCI\CygnetCI.Agent.Installer\publish\System.Security.Cryptography.dll" KeyPath="yes" />
+      </Component>
+      <Component Id="Comp_235" Guid="EA7D7550-799E-4527-9F9C-E841C1D28CDB">
+        <File Id="File_235" Source="D:\Avesh\CygnetCI\SourceCode\CygnetCI\CygnetCI.Agent.Installer\publish\System.Security.Cryptography.Encoding.dll" KeyPath="yes" />
+      </Component>
+      <Component Id="Comp_236" Guid="B4492B5C-AF68-4EED-8F4E-8C3E937EC3C1">
+        <File Id="File_236" Source="D:\Avesh\CygnetCI\SourceCode\CygnetCI\CygnetCI.Agent.Installer\publish\System.Security.Cryptography.OpenSsl.dll" KeyPath="yes" />
+      </Component>
+      <Component Id="Comp_237" Guid="6E60BAE4-26B7-4F9F-9BAF-83931ABBC001">
+        <File Id="File_237" Source="D:\Avesh\CygnetCI\SourceCode\CygnetCI\CygnetCI.Agent.Installer\publish\System.Security.Cryptography.Pkcs.dll" KeyPath="yes" />
+      </Component>
+      <Component Id="Comp_238" Guid="FD88AB45-4BFC-4863-9E38-8198D91D5B6F">
+        <File Id="File_238" Source="D:\Avesh\CygnetCI\SourceCode\CygnetCI\CygnetCI.Agent.Installer\publish\System.Security.Cryptography.Primitives.dll" KeyPath="yes" />
+      </Component>
+      <Component Id="Comp_239" Guid="E9DD47DA-B9BC-4F95-861B-EB6402923292">
+        <File Id="File_239" Source="D:\Avesh\CygnetCI\SourceCode\CygnetCI\CygnetCI.Agent.Installer\publish\System.Security.Cryptography.ProtectedData.dll" KeyPath="yes" />
+      </Component>
+      <Component Id="Comp_240" Guid="63575E71-A36A-4F4A-9D28-6A7ED36F9A96">
+        <File Id="File_240" Source="D:\Avesh\CygnetCI\SourceCode\CygnetCI\CygnetCI.Agent.Installer\publish\System.Security.Cryptography.X509Certificates.dll" KeyPath="yes" />
+      </Component>
+      <Component Id="Comp_241" Guid="E9C25B16-EC16-41D4-9A3E-135257A07D6E">
+        <File Id="File_241" Source="D:\Avesh\CygnetCI\SourceCode\CygnetCI\CygnetCI.Agent.Installer\publish\System.Security.Cryptography.Xml.dll" KeyPath="yes" />
+      </Component>
+      <Component Id="Comp_242" Guid="DCD6A2B7-9F52-481C-B498-F3E1F262763B">
+        <File Id="File_242" Source="D:\Avesh\CygnetCI\SourceCode\CygnetCI\CygnetCI.Agent.Installer\publish\System.Security.dll" KeyPath="yes" />
+      </Component>
+      <Component Id="Comp_243" Guid="73F0598E-BE34-4293-ABEE-1426334EEA6F">
+        <File Id="File_243" Source="D:\Avesh\CygnetCI\SourceCode\CygnetCI\CygnetCI.Agent.Installer\publish\System.Security.Permissions.dll" KeyPath="yes" />
+      </Component>
+      <Component Id="Comp_244" Guid="54E455E6-5BED-4BA0-B1ED-A432915EB7AC">
+        <File Id="File_244" Source="D:\Avesh\CygnetCI\SourceCode\CygnetCI\CygnetCI.Agent.Installer\publish\System.Security.Principal.dll" KeyPath="yes" />
+      </Component>
+      <Component Id="Comp_245" Guid="B76E8F0D-30DC-462B-966F-5DFFBB09CA52">
+        <File Id="File_245" Source="D:\Avesh\CygnetCI\SourceCode\CygnetCI\CygnetCI.Agent.Installer\publish\System.Security.Principal.Windows.dll" KeyPath="yes" />
+      </Component>
+      <Component Id="Comp_246" Guid="6BB3B1EC-4EF3-474B-A2FD-5F7055C1ECE8">
+        <File Id="File_246" Source="D:\Avesh\CygnetCI\SourceCode\CygnetCI\CygnetCI.Agent.Installer\publish\System.Security.SecureString.dll" KeyPath="yes" />
+      </Component>
+      <Component Id="Comp_247" Guid="911AE543-80B8-4DE3-8368-58C6AF85EE77">
+        <File Id="File_247" Source="D:\Avesh\CygnetCI\SourceCode\CygnetCI\CygnetCI.Agent.Installer\publish\System.ServiceModel.dll" KeyPath="yes" />
+      </Component>
+      <Component Id="Comp_248" Guid="E9E856DA-229D-475D-A3CC-BDA6752C1335">
+        <File Id="File_248" Source="D:\Avesh\CygnetCI\SourceCode\CygnetCI\CygnetCI.Agent.Installer\publish\System.ServiceModel.Duplex.dll" KeyPath="yes" />
+      </Component>
+      <Component Id="Comp_249" Guid="C8D0A689-A6F2-4332-895D-31094436ABB2">
+        <File Id="File_249" Source="D:\Avesh\CygnetCI\SourceCode\CygnetCI\CygnetCI.Agent.Installer\publish\System.ServiceModel.Http.dll" KeyPath="yes" />
+      </Component>
+      <Component Id="Comp_250" Guid="4C68E857-4F63-4304-B388-A744D1ED7B75">
+        <File Id="File_250" Source="D:\Avesh\CygnetCI\SourceCode\CygnetCI\CygnetCI.Agent.Installer\publish\System.ServiceModel.NetTcp.dll" KeyPath="yes" />
+      </Component>
+      <Component Id="Comp_251" Guid="F6F50562-F068-4E4F-9600-0A89E7D6C8C6">
+        <File Id="File_251" Source="D:\Avesh\CygnetCI\SourceCode\CygnetCI\CygnetCI.Agent.Installer\publish\System.ServiceModel.Primitives.dll" KeyPath="yes" />
+      </Component>
+      <Component Id="Comp_252" Guid="ADFDA8A2-7BEE-4A61-A33A-AB89915E3CE7">
+        <File Id="File_252" Source="D:\Avesh\CygnetCI\SourceCode\CygnetCI\CygnetCI.Agent.Installer\publish\System.ServiceModel.Security.dll" KeyPath="yes" />
+      </Component>
+      <Component Id="Comp_253" Guid="2309111F-68A6-44D7-8375-356C2B4300FD">
+        <File Id="File_253" Source="D:\Avesh\CygnetCI\SourceCode\CygnetCI\CygnetCI.Agent.Installer\publish\System.ServiceModel.Syndication.dll" KeyPath="yes" />
+      </Component>
+      <Component Id="Comp_254" Guid="671AA30C-21C4-48F4-A6E5-4A5842FC28BD">
+        <File Id="File_254" Source="D:\Avesh\CygnetCI\SourceCode\CygnetCI\CygnetCI.Agent.Installer\publish\System.ServiceModel.Web.dll" KeyPath="yes" />
+      </Component>
+      <Component Id="Comp_255" Guid="394BD23F-DBC3-4558-8DBA-26CB5F55A4D7">
+        <File Id="File_255" Source="D:\Avesh\CygnetCI\SourceCode\CygnetCI\CygnetCI.Agent.Installer\publish\System.ServiceProcess.dll" KeyPath="yes" />
+      </Component>
+      <Component Id="Comp_256" Guid="C1CAF5D1-1F84-4694-A9BB-15B0E2B6308F">
+        <File Id="File_256" Source="D:\Avesh\CygnetCI\SourceCode\CygnetCI\CygnetCI.Agent.Installer\publish\System.ServiceProcess.ServiceController.dll" KeyPath="yes" />
+      </Component>
+      <Component Id="Comp_257" Guid="912350FD-F4E9-46C2-90C0-A6257BEA7225">
+        <File Id="File_257" Source="D:\Avesh\CygnetCI\SourceCode\CygnetCI\CygnetCI.Agent.Installer\publish\System.Speech.dll" KeyPath="yes" />
+      </Component>
+      <Component Id="Comp_258" Guid="A00E0F3B-DE60-44B6-9E84-FA015CB907E6">
+        <File Id="File_258" Source="D:\Avesh\CygnetCI\SourceCode\CygnetCI\CygnetCI.Agent.Installer\publish\System.Text.Encoding.CodePages.dll" KeyPath="yes" />
+      </Component>
+      <Component Id="Comp_259" Guid="A1CB1303-FAD6-4A7F-B437-4DAAE7BC6C62">
+        <File Id="File_259" Source="D:\Avesh\CygnetCI\SourceCode\CygnetCI\CygnetCI.Agent.Installer\publish\System.Text.Encoding.dll" KeyPath="yes" />
+      </Component>
+      <Component Id="Comp_260" Guid="2317CD10-AF43-46A2-93C0-21B1150D9939">
+        <File Id="File_260" Source="D:\Avesh\CygnetCI\SourceCode\CygnetCI\CygnetCI.Agent.Installer\publish\System.Text.Encoding.Extensions.dll" KeyPath="yes" />
+      </Component>
+      <Component Id="Comp_261" Guid="575C2185-135D-43D0-81CB-B4BD0221F21F">
+        <File Id="File_261" Source="D:\Avesh\CygnetCI\SourceCode\CygnetCI\CygnetCI.Agent.Installer\publish\System.Text.Encodings.Web.dll" KeyPath="yes" />
+      </Component>
+      <Component Id="Comp_262" Guid="E0C44C06-7BD3-47F3-9772-92B4A43CE91F">
+        <File Id="File_262" Source="D:\Avesh\CygnetCI\SourceCode\CygnetCI\CygnetCI.Agent.Installer\publish\System.Text.Json.dll" KeyPath="yes" />
+      </Component>
+      <Component Id="Comp_263" Guid="09555AA3-D1D4-45B7-AF9C-13AF0C328BEE">
+        <File Id="File_263" Source="D:\Avesh\CygnetCI\SourceCode\CygnetCI\CygnetCI.Agent.Installer\publish\System.Text.RegularExpressions.dll" KeyPath="yes" />
+      </Component>
+      <Component Id="Comp_264" Guid="94F89000-BDA1-4321-A76F-50CDAFB2D3D1">
+        <File Id="File_264" Source="D:\Avesh\CygnetCI\SourceCode\CygnetCI\CygnetCI.Agent.Installer\publish\System.Threading.AccessControl.dll" KeyPath="yes" />
+      </Component>
+      <Component Id="Comp_265" Guid="ADD56AC4-8761-4E23-A566-AA4CD1963211">
+        <File Id="File_265" Source="D:\Avesh\CygnetCI\SourceCode\CygnetCI\CygnetCI.Agent.Installer\publish\System.Threading.Channels.dll" KeyPath="yes" />
+      </Component>
+      <Component Id="Comp_266" Guid="6D9AEF08-7794-4317-902E-272EDF3DE8F7">
+        <File Id="File_266" Source="D:\Avesh\CygnetCI\SourceCode\CygnetCI\CygnetCI.Agent.Installer\publish\System.Threading.dll" KeyPath="yes" />
+      </Component>
+      <Component Id="Comp_267" Guid="39F32444-6EB9-45F5-B233-95A67EF2A8FA">
+        <File Id="File_267" Source="D:\Avesh\CygnetCI\SourceCode\CygnetCI\CygnetCI.Agent.Installer\publish\System.Threading.Overlapped.dll" KeyPath="yes" />
+      </Component>
+      <Component Id="Comp_268" Guid="5A994B87-C21A-4227-B740-004BB65A1B52">
+        <File Id="File_268" Source="D:\Avesh\CygnetCI\SourceCode\CygnetCI\CygnetCI.Agent.Installer\publish\System.Threading.Tasks.Dataflow.dll" KeyPath="yes" />
+      </Component>
+      <Component Id="Comp_269" Guid="567ADCB1-9E2A-42CA-B7CE-750D8C436DA0">
+        <File Id="File_269" Source="D:\Avesh\CygnetCI\SourceCode\CygnetCI\CygnetCI.Agent.Installer\publish\System.Threading.Tasks.dll" KeyPath="yes" />
+      </Component>
+      <Component Id="Comp_270" Guid="5EC7088D-2C6D-4387-AB74-75988BA531F7">
+        <File Id="File_270" Source="D:\Avesh\CygnetCI\SourceCode\CygnetCI\CygnetCI.Agent.Installer\publish\System.Threading.Tasks.Extensions.dll" KeyPath="yes" />
+      </Component>
+      <Component Id="Comp_271" Guid="76F13D11-2FB3-465B-A1BC-42D76DD8419D">
+        <File Id="File_271" Source="D:\Avesh\CygnetCI\SourceCode\CygnetCI\CygnetCI.Agent.Installer\publish\System.Threading.Tasks.Parallel.dll" KeyPath="yes" />
+      </Component>
+      <Component Id="Comp_272" Guid="7A9FDBA9-7457-479E-B481-06E16C323FB2">
+        <File Id="File_272" Source="D:\Avesh\CygnetCI\SourceCode\CygnetCI\CygnetCI.Agent.Installer\publish\System.Threading.Thread.dll" KeyPath="yes" />
+      </Component>
+      <Component Id="Comp_273" Guid="A1BB0CF1-24A3-48AE-979E-1484F9DC7B36">
+        <File Id="File_273" Source="D:\Avesh\CygnetCI\SourceCode\CygnetCI\CygnetCI.Agent.Installer\publish\System.Threading.ThreadPool.dll" KeyPath="yes" />
+      </Component>
+      <Component Id="Comp_274" Guid="402F05AE-D751-4431-867B-6CE817F65ABB">
+        <File Id="File_274" Source="D:\Avesh\CygnetCI\SourceCode\CygnetCI\CygnetCI.Agent.Installer\publish\System.Threading.Timer.dll" KeyPath="yes" />
+      </Component>
+      <Component Id="Comp_275" Guid="7AE7DE05-6ECB-4B45-A552-CF532FD98158">
+        <File Id="File_275" Source="D:\Avesh\CygnetCI\SourceCode\CygnetCI\CygnetCI.Agent.Installer\publish\System.Transactions.dll" KeyPath="yes" />
+      </Component>
+      <Component Id="Comp_276" Guid="5C4B29F0-9799-4A29-A722-1077ADC5A773">
+        <File Id="File_276" Source="D:\Avesh\CygnetCI\SourceCode\CygnetCI\CygnetCI.Agent.Installer\publish\System.Transactions.Local.dll" KeyPath="yes" />
+      </Component>
+      <Component Id="Comp_277" Guid="49781DF6-D152-450A-9E7A-47EEDD3F8B58">
+        <File Id="File_277" Source="D:\Avesh\CygnetCI\SourceCode\CygnetCI\CygnetCI.Agent.Installer\publish\System.ValueTuple.dll" KeyPath="yes" />
+      </Component>
+      <Component Id="Comp_278" Guid="381F9FBC-29D2-4F38-8B21-5CBE4CB15DE3">
+        <File Id="File_278" Source="D:\Avesh\CygnetCI\SourceCode\CygnetCI\CygnetCI.Agent.Installer\publish\System.Web.dll" KeyPath="yes" />
+      </Component>
+      <Component Id="Comp_279" Guid="9C491775-8EEA-4B08-9E47-9E19F572EED2">
+        <File Id="File_279" Source="D:\Avesh\CygnetCI\SourceCode\CygnetCI\CygnetCI.Agent.Installer\publish\System.Web.HttpUtility.dll" KeyPath="yes" />
+      </Component>
+      <Component Id="Comp_280" Guid="A25FDA7E-DED8-4108-B20B-30961A34E7DE">
+        <File Id="File_280" Source="D:\Avesh\CygnetCI\SourceCode\CygnetCI\CygnetCI.Agent.Installer\publish\System.Web.Services.Description.dll" KeyPath="yes" />
+      </Component>
+      <Component Id="Comp_281" Guid="F9E295E9-6FC6-47AC-BE9F-648FB62477AB">
+        <File Id="File_281" Source="D:\Avesh\CygnetCI\SourceCode\CygnetCI\CygnetCI.Agent.Installer\publish\System.Windows.dll" KeyPath="yes" />
+      </Component>
+      <Component Id="Comp_282" Guid="F35D59FF-9503-42BC-BD66-D21EB8F65752">
+        <File Id="File_282" Source="D:\Avesh\CygnetCI\SourceCode\CygnetCI\CygnetCI.Agent.Installer\publish\System.Windows.Extensions.dll" KeyPath="yes" />
+      </Component>
+      <Component Id="Comp_283" Guid="995448F8-0C74-4AB6-9E8E-DA965D3E8AE2">
+        <File Id="File_283" Source="D:\Avesh\CygnetCI\SourceCode\CygnetCI\CygnetCI.Agent.Installer\publish\System.Xml.dll" KeyPath="yes" />
+      </Component>
+      <Component Id="Comp_284" Guid="A157DA6A-4180-4F49-A1DC-6B7CAB6250D0">
+        <File Id="File_284" Source="D:\Avesh\CygnetCI\SourceCode\CygnetCI\CygnetCI.Agent.Installer\publish\System.Xml.Linq.dll" KeyPath="yes" />
+      </Component>
+      <Component Id="Comp_285" Guid="B19FF903-E8BE-4C41-B849-1EC0BEBA7698">
+        <File Id="File_285" Source="D:\Avesh\CygnetCI\SourceCode\CygnetCI\CygnetCI.Agent.Installer\publish\System.Xml.ReaderWriter.dll" KeyPath="yes" />
+      </Component>
+      <Component Id="Comp_286" Guid="75B18257-A577-4B48-9D50-E856BEB86287">
+        <File Id="File_286" Source="D:\Avesh\CygnetCI\SourceCode\CygnetCI\CygnetCI.Agent.Installer\publish\System.Xml.Serialization.dll" KeyPath="yes" />
+      </Component>
+      <Component Id="Comp_287" Guid="A707BC1C-AF80-48FA-815F-B504687FA16E">
+        <File Id="File_287" Source="D:\Avesh\CygnetCI\SourceCode\CygnetCI\CygnetCI.Agent.Installer\publish\System.Xml.XDocument.dll" KeyPath="yes" />
+      </Component>
+      <Component Id="Comp_288" Guid="F36EF42C-8A12-4B68-967E-94B72EDF3D5F">
+        <File Id="File_288" Source="D:\Avesh\CygnetCI\SourceCode\CygnetCI\CygnetCI.Agent.Installer\publish\System.Xml.XmlDocument.dll" KeyPath="yes" />
+      </Component>
+      <Component Id="Comp_289" Guid="2072677A-30BB-4979-8E2B-A8272FB9ABDC">
+        <File Id="File_289" Source="D:\Avesh\CygnetCI\SourceCode\CygnetCI\CygnetCI.Agent.Installer\publish\System.Xml.XmlSerializer.dll" KeyPath="yes" />
+      </Component>
+      <Component Id="Comp_290" Guid="2D2F8318-4FE3-4444-8668-F2854EFDA6CE">
+        <File Id="File_290" Source="D:\Avesh\CygnetCI\SourceCode\CygnetCI\CygnetCI.Agent.Installer\publish\System.Xml.XPath.dll" KeyPath="yes" />
+      </Component>
+      <Component Id="Comp_291" Guid="0DAEC403-F913-453C-A57B-BA476784B70D">
+        <File Id="File_291" Source="D:\Avesh\CygnetCI\SourceCode\CygnetCI\CygnetCI.Agent.Installer\publish\System.Xml.XPath.XDocument.dll" KeyPath="yes" />
+      </Component>
+      <Component Id="Comp_292" Guid="9D12446C-C95C-4E03-82E6-A506017420CC">
+        <File Id="File_292" Source="D:\Avesh\CygnetCI\SourceCode\CygnetCI\CygnetCI.Agent.Installer\publish\WindowsBase.dll" KeyPath="yes" />
+      </Component>
+      <!-- Files from cs subdirectory -->
+      <Component Id="Comp_293" Guid="CC000826-F33C-4767-9446-D5A84F43DAF1">
+        <File Id="File_293" Source="D:\Avesh\CygnetCI\SourceCode\CygnetCI\CygnetCI.Agent.Installer\publish\cs\Microsoft.CodeAnalysis.CSharp.resources.dll" KeyPath="yes" />
+      </Component>
+      <Component Id="Comp_294" Guid="AC0F32EA-9C39-49C7-B352-E0A8127B3E2A">
+        <File Id="File_294" Source="D:\Avesh\CygnetCI\SourceCode\CygnetCI\CygnetCI.Agent.Installer\publish\cs\Microsoft.CodeAnalysis.resources.dll" KeyPath="yes" />
+      </Component>
+      <Component Id="Comp_295" Guid="20BDC4D3-964E-4F2F-A4B2-3B8EA6BE6F45">
+        <File Id="File_295" Source="D:\Avesh\CygnetCI\SourceCode\CygnetCI\CygnetCI.Agent.Installer\publish\cs\System.Private.ServiceModel.resources.dll" KeyPath="yes" />
+      </Component>
+      <Component Id="Comp_296" Guid="139F1D57-1423-4BF1-928E-6A87A8866DEB">
+        <File Id="File_296" Source="D:\Avesh\CygnetCI\SourceCode\CygnetCI\CygnetCI.Agent.Installer\publish\cs\System.Web.Services.Description.resources.dll" KeyPath="yes" />
+      </Component>
+      <!-- Files from de subdirectory -->
+      <Component Id="Comp_297" Guid="2415FAF9-B319-49F3-9B28-AB136E8FBD9C">
+        <File Id="File_297" Source="D:\Avesh\CygnetCI\SourceCode\CygnetCI\CygnetCI.Agent.Installer\publish\de\Microsoft.CodeAnalysis.CSharp.resources.dll" KeyPath="yes" />
+      </Component>
+      <Component Id="Comp_298" Guid="7DCF18DB-370C-4F72-9CC9-0A261E60DCEE">
+        <File Id="File_298" Source="D:\Avesh\CygnetCI\SourceCode\CygnetCI\CygnetCI.Agent.Installer\publish\de\Microsoft.CodeAnalysis.resources.dll" KeyPath="yes" />
+      </Component>
+      <Component Id="Comp_299" Guid="511753D8-9C98-4D3A-B48F-C718B0DC0CBD">
+        <File Id="File_299" Source="D:\Avesh\CygnetCI\SourceCode\CygnetCI\CygnetCI.Agent.Installer\publish\de\System.Private.ServiceModel.resources.dll" KeyPath="yes" />
+      </Component>
+      <Component Id="Comp_300" Guid="45E49EFE-4E2B-480F-ACBE-26872AAF8E4B">
+        <File Id="File_300" Source="D:\Avesh\CygnetCI\SourceCode\CygnetCI\CygnetCI.Agent.Installer\publish\de\System.Web.Services.Description.resources.dll" KeyPath="yes" />
+      </Component>
+      <!-- Files from dist subdirectory -->
+      <Component Id="Comp_301" Guid="606D92E1-AAC9-42B6-9248-0AD359CDBAB3">
+        <File Id="File_301" Source="D:\Avesh\CygnetCI\SourceCode\CygnetCI\CygnetCI.Agent.Installer\publish\dist\installer\appsettings.Development.json" KeyPath="yes" />
+      </Component>
+      <Component Id="Comp_302" Guid="925069A3-9FD1-4895-B068-028EC5B4CBCE">
+        <File Id="File_302" Source="D:\Avesh\CygnetCI\SourceCode\CygnetCI\CygnetCI.Agent.Installer\publish\dist\installer\appsettings.json" KeyPath="yes" />
+      </Component>
+      <Component Id="Comp_303" Guid="EE1ADD08-BA6E-467E-A358-7EE55DD7C693">
+        <File Id="File_303" Source="D:\Avesh\CygnetCI\SourceCode\CygnetCI\CygnetCI.Agent.Installer\publish\dist\installer\CygnetCI.Agent.deps.json" KeyPath="yes" />
+      </Component>
+      <Component Id="Comp_304" Guid="B5FD42B3-3203-4CB5-AB27-388ED046AE67">
+        <File Id="File_304" Source="D:\Avesh\CygnetCI\SourceCode\CygnetCI\CygnetCI.Agent.Installer\publish\dist\installer\CygnetCI.Agent.runtimeconfig.json" KeyPath="yes" />
+      </Component>
+      <Component Id="Comp_305" Guid="B64981D4-B8D3-449D-8C30-B5C79AE33918">
+        <File Id="File_305" Source="D:\Avesh\CygnetCI\SourceCode\CygnetCI\CygnetCI.Agent.Installer\publish\dist\publish\appsettings.Development.json" KeyPath="yes" />
+      </Component>
+      <Component Id="Comp_306" Guid="8090253F-D207-41EA-858C-47AC7D2E1AAC">
+        <File Id="File_306" Source="D:\Avesh\CygnetCI\SourceCode\CygnetCI\CygnetCI.Agent.Installer\publish\dist\publish\appsettings.json" KeyPath="yes" />
+      </Component>
+      <Component Id="Comp_307" Guid="410A2701-0681-41BB-9807-F493174A3442">
+        <File Id="File_307" Source="D:\Avesh\CygnetCI\SourceCode\CygnetCI\CygnetCI.Agent.Installer\publish\dist\publish\CygnetCI.Agent.deps.json" KeyPath="yes" />
+      </Component>
+      <Component Id="Comp_308" Guid="5A666281-15DE-41D7-AADF-821BD509409F">
+        <File Id="File_308" Source="D:\Avesh\CygnetCI\SourceCode\CygnetCI\CygnetCI.Agent.Installer\publish\dist\publish\CygnetCI.Agent.runtimeconfig.json" KeyPath="yes" />
+      </Component>
+      <!-- Files from es subdirectory -->
+      <Component Id="Comp_309" Guid="2964B013-A0BC-4109-9004-97CB06C740C6">
+        <File Id="File_309" Source="D:\Avesh\CygnetCI\SourceCode\CygnetCI\CygnetCI.Agent.Installer\publish\es\Microsoft.CodeAnalysis.CSharp.resources.dll" KeyPath="yes" />
+      </Component>
+      <Component Id="Comp_310" Guid="53C312E6-7B98-4F64-BF61-2E30CFEBD7E9">
+        <File Id="File_310" Source="D:\Avesh\CygnetCI\SourceCode\CygnetCI\CygnetCI.Agent.Installer\publish\es\Microsoft.CodeAnalysis.resources.dll" KeyPath="yes" />
+      </Component>
+      <Component Id="Comp_311" Guid="F0159941-9ECE-45C4-A912-F8F2A2297486">
+        <File Id="File_311" Source="D:\Avesh\CygnetCI\SourceCode\CygnetCI\CygnetCI.Agent.Installer\publish\es\System.Private.ServiceModel.resources.dll" KeyPath="yes" />
+      </Component>
+      <Component Id="Comp_312" Guid="374A7266-C4F9-47BC-BEC5-FB79998FBBAF">
+        <File Id="File_312" Source="D:\Avesh\CygnetCI\SourceCode\CygnetCI\CygnetCI.Agent.Installer\publish\es\System.Web.Services.Description.resources.dll" KeyPath="yes" />
+      </Component>
+      <!-- Files from fr subdirectory -->
+      <Component Id="Comp_313" Guid="D6305592-F3A6-486E-AD3C-C4B5F95EAEBB">
+        <File Id="File_313" Source="D:\Avesh\CygnetCI\SourceCode\CygnetCI\CygnetCI.Agent.Installer\publish\fr\Microsoft.CodeAnalysis.CSharp.resources.dll" KeyPath="yes" />
+      </Component>
+      <Component Id="Comp_314" Guid="B4741DEE-0E2B-4109-94E2-C8C21FAF6423">
+        <File Id="File_314" Source="D:\Avesh\CygnetCI\SourceCode\CygnetCI\CygnetCI.Agent.Installer\publish\fr\Microsoft.CodeAnalysis.resources.dll" KeyPath="yes" />
+      </Component>
+      <Component Id="Comp_315" Guid="E854B955-3807-411B-A469-A4C143815DFC">
+        <File Id="File_315" Source="D:\Avesh\CygnetCI\SourceCode\CygnetCI\CygnetCI.Agent.Installer\publish\fr\System.Private.ServiceModel.resources.dll" KeyPath="yes" />
+      </Component>
+      <Component Id="Comp_316" Guid="75F57CBD-6F20-48B9-A7BA-9372254A3C08">
+        <File Id="File_316" Source="D:\Avesh\CygnetCI\SourceCode\CygnetCI\CygnetCI.Agent.Installer\publish\fr\System.Web.Services.Description.resources.dll" KeyPath="yes" />
+      </Component>
+      <!-- Files from it subdirectory -->
+      <Component Id="Comp_317" Guid="565CBAF7-D022-480D-9184-C53F66F3A5C1">
+        <File Id="File_317" Source="D:\Avesh\CygnetCI\SourceCode\CygnetCI\CygnetCI.Agent.Installer\publish\it\Microsoft.CodeAnalysis.CSharp.resources.dll" KeyPath="yes" />
+      </Component>
+      <Component Id="Comp_318" Guid="B9E1546F-9EAF-481A-9924-1E594AA591CA">
+        <File Id="File_318" Source="D:\Avesh\CygnetCI\SourceCode\CygnetCI\CygnetCI.Agent.Installer\publish\it\Microsoft.CodeAnalysis.resources.dll" KeyPath="yes" />
+      </Component>
+      <Component Id="Comp_319" Guid="F9602A57-23E7-4FDB-8E26-70B00A9DD742">
+        <File Id="File_319" Source="D:\Avesh\CygnetCI\SourceCode\CygnetCI\CygnetCI.Agent.Installer\publish\it\System.Private.ServiceModel.resources.dll" KeyPath="yes" />
+      </Component>
+      <Component Id="Comp_320" Guid="EA014A7C-5EDF-41D2-88EA-28B0D1A0B2A8">
+        <File Id="File_320" Source="D:\Avesh\CygnetCI\SourceCode\CygnetCI\CygnetCI.Agent.Installer\publish\it\System.Web.Services.Description.resources.dll" KeyPath="yes" />
+      </Component>
+      <!-- Files from ja subdirectory -->
+      <Component Id="Comp_321" Guid="DF034D87-E6DF-4C2F-803D-382C286A187B">
+        <File Id="File_321" Source="D:\Avesh\CygnetCI\SourceCode\CygnetCI\CygnetCI.Agent.Installer\publish\ja\Microsoft.CodeAnalysis.CSharp.resources.dll" KeyPath="yes" />
+      </Component>
+      <Component Id="Comp_322" Guid="71A4CD92-AD2F-43DF-8B45-8D3230670AC4">
+        <File Id="File_322" Source="D:\Avesh\CygnetCI\SourceCode\CygnetCI\CygnetCI.Agent.Installer\publish\ja\Microsoft.CodeAnalysis.resources.dll" KeyPath="yes" />
+      </Component>
+      <Component Id="Comp_323" Guid="9979892F-1072-4F55-B958-71B028F15AC6">
+        <File Id="File_323" Source="D:\Avesh\CygnetCI\SourceCode\CygnetCI\CygnetCI.Agent.Installer\publish\ja\System.Private.ServiceModel.resources.dll" KeyPath="yes" />
+      </Component>
+      <Component Id="Comp_324" Guid="4C1343BD-B6B9-4618-8262-6A275F000B55">
+        <File Id="File_324" Source="D:\Avesh\CygnetCI\SourceCode\CygnetCI\CygnetCI.Agent.Installer\publish\ja\System.Web.Services.Description.resources.dll" KeyPath="yes" />
+      </Component>
+      <!-- Files from ko subdirectory -->
+      <Component Id="Comp_325" Guid="854B6DEE-87C3-4AC6-92B6-AFAFFB296B4B">
+        <File Id="File_325" Source="D:\Avesh\CygnetCI\SourceCode\CygnetCI\CygnetCI.Agent.Installer\publish\ko\Microsoft.CodeAnalysis.CSharp.resources.dll" KeyPath="yes" />
+      </Component>
+      <Component Id="Comp_326" Guid="AA161C63-DBC8-4292-9977-0D63DC937936">
+        <File Id="File_326" Source="D:\Avesh\CygnetCI\SourceCode\CygnetCI\CygnetCI.Agent.Installer\publish\ko\Microsoft.CodeAnalysis.resources.dll" KeyPath="yes" />
+      </Component>
+      <Component Id="Comp_327" Guid="BF8E06A3-7988-4A0C-BA91-592DF39749FC">
+        <File Id="File_327" Source="D:\Avesh\CygnetCI\SourceCode\CygnetCI\CygnetCI.Agent.Installer\publish\ko\System.Private.ServiceModel.resources.dll" KeyPath="yes" />
+      </Component>
+      <Component Id="Comp_328" Guid="EBA37599-C701-489C-9A1A-C98465640E22">
+        <File Id="File_328" Source="D:\Avesh\CygnetCI\SourceCode\CygnetCI\CygnetCI.Agent.Installer\publish\ko\System.Web.Services.Description.resources.dll" KeyPath="yes" />
+      </Component>
+      <!-- Files from pl subdirectory -->
+      <Component Id="Comp_329" Guid="AB2BB93D-2CC4-4B7D-9574-6FE3AF70966E">
+        <File Id="File_329" Source="D:\Avesh\CygnetCI\SourceCode\CygnetCI\CygnetCI.Agent.Installer\publish\pl\Microsoft.CodeAnalysis.CSharp.resources.dll" KeyPath="yes" />
+      </Component>
+      <Component Id="Comp_330" Guid="5D892F99-F1F6-43BD-AC37-2C4925E17824">
+        <File Id="File_330" Source="D:\Avesh\CygnetCI\SourceCode\CygnetCI\CygnetCI.Agent.Installer\publish\pl\Microsoft.CodeAnalysis.resources.dll" KeyPath="yes" />
+      </Component>
+      <Component Id="Comp_331" Guid="4232191C-6C67-41DC-9C94-445D1826D18B">
+        <File Id="File_331" Source="D:\Avesh\CygnetCI\SourceCode\CygnetCI\CygnetCI.Agent.Installer\publish\pl\System.Private.ServiceModel.resources.dll" KeyPath="yes" />
+      </Component>
+      <Component Id="Comp_332" Guid="C045D349-EC64-4966-8510-0A142EDF50FE">
+        <File Id="File_332" Source="D:\Avesh\CygnetCI\SourceCode\CygnetCI\CygnetCI.Agent.Installer\publish\pl\System.Web.Services.Description.resources.dll" KeyPath="yes" />
+      </Component>
+      <!-- Files from pt-BR subdirectory -->
+      <Component Id="Comp_333" Guid="4B1402D7-1F25-4CCE-8FCB-1E440055A2E8">
+        <File Id="File_333" Source="D:\Avesh\CygnetCI\SourceCode\CygnetCI\CygnetCI.Agent.Installer\publish\pt-BR\Microsoft.CodeAnalysis.CSharp.resources.dll" KeyPath="yes" />
+      </Component>
+      <Component Id="Comp_334" Guid="7E9913F4-5719-467F-B53F-4EFB443FC691">
+        <File Id="File_334" Source="D:\Avesh\CygnetCI\SourceCode\CygnetCI\CygnetCI.Agent.Installer\publish\pt-BR\Microsoft.CodeAnalysis.resources.dll" KeyPath="yes" />
+      </Component>
+      <Component Id="Comp_335" Guid="6889351A-E2CA-4C68-912D-2647D41A503C">
+        <File Id="File_335" Source="D:\Avesh\CygnetCI\SourceCode\CygnetCI\CygnetCI.Agent.Installer\publish\pt-BR\System.Private.ServiceModel.resources.dll" KeyPath="yes" />
+      </Component>
+      <Component Id="Comp_336" Guid="A51ED562-260B-4064-8BC8-1D8BB5C552DF">
+        <File Id="File_336" Source="D:\Avesh\CygnetCI\SourceCode\CygnetCI\CygnetCI.Agent.Installer\publish\pt-BR\System.Web.Services.Description.resources.dll" KeyPath="yes" />
+      </Component>
+      <!-- Files from ref subdirectory -->
+      <Component Id="Comp_337" Guid="A0521071-EF92-475B-8340-D69E1B29571F">
+        <File Id="File_337" Source="D:\Avesh\CygnetCI\SourceCode\CygnetCI\CygnetCI.Agent.Installer\publish\ref\Microsoft.CSharp.dll" KeyPath="yes" />
+      </Component>
+      <Component Id="Comp_338" Guid="D23685FA-8E0F-49B4-8D8A-26C4DCA37CCF">
+        <File Id="File_338" Source="D:\Avesh\CygnetCI\SourceCode\CygnetCI\CygnetCI.Agent.Installer\publish\ref\Microsoft.VisualBasic.Core.dll" KeyPath="yes" />
+      </Component>
+      <Component Id="Comp_339" Guid="498A8A1B-B608-4A9A-B298-21032FCD2DC9">
+        <File Id="File_339" Source="D:\Avesh\CygnetCI\SourceCode\CygnetCI\CygnetCI.Agent.Installer\publish\ref\Microsoft.VisualBasic.dll" KeyPath="yes" />
+      </Component>
+      <Component Id="Comp_340" Guid="FAB0571F-CF5D-44AC-B586-19F0E3F574DF">
+        <File Id="File_340" Source="D:\Avesh\CygnetCI\SourceCode\CygnetCI\CygnetCI.Agent.Installer\publish\ref\Microsoft.Win32.Primitives.dll" KeyPath="yes" />
+      </Component>
+      <Component Id="Comp_341" Guid="060CA3E4-1D70-4458-B998-7494868B1511">
+        <File Id="File_341" Source="D:\Avesh\CygnetCI\SourceCode\CygnetCI\CygnetCI.Agent.Installer\publish\ref\Microsoft.Win32.Registry.dll" KeyPath="yes" />
+      </Component>
+      <Component Id="Comp_342" Guid="946FA5F4-F666-40C6-BE3F-8CB2C5CA9A7E">
+        <File Id="File_342" Source="D:\Avesh\CygnetCI\SourceCode\CygnetCI\CygnetCI.Agent.Installer\publish\ref\mscorlib.dll" KeyPath="yes" />
+      </Component>
+      <Component Id="Comp_343" Guid="B524D4CD-B11B-4000-9976-F81F1DCB8E41">
+        <File Id="File_343" Source="D:\Avesh\CygnetCI\SourceCode\CygnetCI\CygnetCI.Agent.Installer\publish\ref\netstandard.dll" KeyPath="yes" />
+      </Component>
+      <Component Id="Comp_344" Guid="AD1B1E7D-825A-4A1F-A41C-CA8594EA6CA9">
+        <File Id="File_344" Source="D:\Avesh\CygnetCI\SourceCode\CygnetCI\CygnetCI.Agent.Installer\publish\ref\System.AppContext.dll" KeyPath="yes" />
+      </Component>
+      <Component Id="Comp_345" Guid="3BE676BF-9434-4CA7-904B-6F343814F40D">
+        <File Id="File_345" Source="D:\Avesh\CygnetCI\SourceCode\CygnetCI\CygnetCI.Agent.Installer\publish\ref\System.Buffers.dll" KeyPath="yes" />
+      </Component>
+      <Component Id="Comp_346" Guid="D5CD2BA4-CDB0-4C79-9677-DB7B8D12CDF7">
+        <File Id="File_346" Source="D:\Avesh\CygnetCI\SourceCode\CygnetCI\CygnetCI.Agent.Installer\publish\ref\System.Collections.Concurrent.dll" KeyPath="yes" />
+      </Component>
+      <Component Id="Comp_347" Guid="60701E07-1D41-4CA3-BB30-D9A236D39078">
+        <File Id="File_347" Source="D:\Avesh\CygnetCI\SourceCode\CygnetCI\CygnetCI.Agent.Installer\publish\ref\System.Collections.dll" KeyPath="yes" />
+      </Component>
+      <Component Id="Comp_348" Guid="6247AB03-417F-4C6C-B1B4-8978D68F817E">
+        <File Id="File_348" Source="D:\Avesh\CygnetCI\SourceCode\CygnetCI\CygnetCI.Agent.Installer\publish\ref\System.Collections.Immutable.dll" KeyPath="yes" />
+      </Component>
+      <Component Id="Comp_349" Guid="9DA4ABE3-FC91-4CC1-9D5C-2D73FD5F357B">
+        <File Id="File_349" Source="D:\Avesh\CygnetCI\SourceCode\CygnetCI\CygnetCI.Agent.Installer\publish\ref\System.Collections.NonGeneric.dll" KeyPath="yes" />
+      </Component>
+      <Component Id="Comp_350" Guid="32CA0A26-2FCB-4462-AE4B-0D9CFACFBA7A">
+        <File Id="File_350" Source="D:\Avesh\CygnetCI\SourceCode\CygnetCI\CygnetCI.Agent.Installer\publish\ref\System.Collections.Specialized.dll" KeyPath="yes" />
+      </Component>
+      <Component Id="Comp_351" Guid="49875E5C-D0FD-4446-A1B6-8BC1AB1A8AEA">
+        <File Id="File_351" Source="D:\Avesh\CygnetCI\SourceCode\CygnetCI\CygnetCI.Agent.Installer\publish\ref\System.ComponentModel.Annotations.dll" KeyPath="yes" />
+      </Component>
+      <Component Id="Comp_352" Guid="3F3DB600-2078-4B0F-8E93-632CAFB9104E">
+        <File Id="File_352" Source="D:\Avesh\CygnetCI\SourceCode\CygnetCI\CygnetCI.Agent.Installer\publish\ref\System.ComponentModel.DataAnnotations.dll" KeyPath="yes" />
+      </Component>
+      <Component Id="Comp_353" Guid="D7B77547-2D67-4E45-A674-7568205F8893">
+        <File Id="File_353" Source="D:\Avesh\CygnetCI\SourceCode\CygnetCI\CygnetCI.Agent.Installer\publish\ref\System.ComponentModel.dll" KeyPath="yes" />
+      </Component>
+      <Component Id="Comp_354" Guid="56A059DF-2051-4A6D-BEE0-ADC4039B2CAA">
+        <File Id="File_354" Source="D:\Avesh\CygnetCI\SourceCode\CygnetCI\CygnetCI.Agent.Installer\publish\ref\System.ComponentModel.EventBasedAsync.dll" KeyPath="yes" />
+      </Component>
+      <Component Id="Comp_355" Guid="C5BC7596-03E9-47D9-8CE5-F72A10649A48">
+        <File Id="File_355" Source="D:\Avesh\CygnetCI\SourceCode\CygnetCI\CygnetCI.Agent.Installer\publish\ref\System.ComponentModel.Primitives.dll" KeyPath="yes" />
+      </Component>
+      <Component Id="Comp_356" Guid="B07FD2A7-536F-4998-9271-B50BAA67F120">
+        <File Id="File_356" Source="D:\Avesh\CygnetCI\SourceCode\CygnetCI\CygnetCI.Agent.Installer\publish\ref\System.ComponentModel.TypeConverter.dll" KeyPath="yes" />
+      </Component>
+      <Component Id="Comp_357" Guid="AD849B4B-260E-4853-ADAE-EB5F61E11C1A">
+        <File Id="File_357" Source="D:\Avesh\CygnetCI\SourceCode\CygnetCI\CygnetCI.Agent.Installer\publish\ref\System.Configuration.dll" KeyPath="yes" />
+      </Component>
+      <Component Id="Comp_358" Guid="392A8E55-D6E7-426C-BC28-1EA4CFDC876A">
+        <File Id="File_358" Source="D:\Avesh\CygnetCI\SourceCode\CygnetCI\CygnetCI.Agent.Installer\publish\ref\System.Console.dll" KeyPath="yes" />
+      </Component>
+      <Component Id="Comp_359" Guid="70891D79-A135-449A-8A71-5C782AD284D5">
+        <File Id="File_359" Source="D:\Avesh\CygnetCI\SourceCode\CygnetCI\CygnetCI.Agent.Installer\publish\ref\System.Core.dll" KeyPath="yes" />
+      </Component>
+      <Component Id="Comp_360" Guid="517B4780-373F-48AB-892A-907C073F7C44">
+        <File Id="File_360" Source="D:\Avesh\CygnetCI\SourceCode\CygnetCI\CygnetCI.Agent.Installer\publish\ref\System.Data.Common.dll" KeyPath="yes" />
+      </Component>
+      <Component Id="Comp_361" Guid="76F7B0D7-49ED-43A2-939C-84CCD692ABB2">
+        <File Id="File_361" Source="D:\Avesh\CygnetCI\SourceCode\CygnetCI\CygnetCI.Agent.Installer\publish\ref\System.Data.DataSetExtensions.dll" KeyPath="yes" />
+      </Component>
+      <Component Id="Comp_362" Guid="670363DB-F659-4E70-8656-5049945D5B83">
+        <File Id="File_362" Source="D:\Avesh\CygnetCI\SourceCode\CygnetCI\CygnetCI.Agent.Installer\publish\ref\System.Data.dll" KeyPath="yes" />
+      </Component>
+      <Component Id="Comp_363" Guid="7E5DCF20-0B62-44C5-8F65-BE6B4FC7DCDB">
+        <File Id="File_363" Source="D:\Avesh\CygnetCI\SourceCode\CygnetCI\CygnetCI.Agent.Installer\publish\ref\System.Diagnostics.Contracts.dll" KeyPath="yes" />
+      </Component>
+      <Component Id="Comp_364" Guid="C659C015-7C89-4BCC-B31E-D959F9400DA2">
+        <File Id="File_364" Source="D:\Avesh\CygnetCI\SourceCode\CygnetCI\CygnetCI.Agent.Installer\publish\ref\System.Diagnostics.Debug.dll" KeyPath="yes" />
+      </Component>
+      <Component Id="Comp_365" Guid="C8D8B2B1-70FD-4EAA-90D6-CB0DEC204407">
+        <File Id="File_365" Source="D:\Avesh\CygnetCI\SourceCode\CygnetCI\CygnetCI.Agent.Installer\publish\ref\System.Diagnostics.DiagnosticSource.dll" KeyPath="yes" />
+      </Component>
+      <Component Id="Comp_366" Guid="8403611C-61A7-424E-837F-95A427D4F514">
+        <File Id="File_366" Source="D:\Avesh\CygnetCI\SourceCode\CygnetCI\CygnetCI.Agent.Installer\publish\ref\System.Diagnostics.FileVersionInfo.dll" KeyPath="yes" />
+      </Component>
+      <Component Id="Comp_367" Guid="0336F14C-100C-4F41-BD6A-78AA94DE7E6C">
+        <File Id="File_367" Source="D:\Avesh\CygnetCI\SourceCode\CygnetCI\CygnetCI.Agent.Installer\publish\ref\System.Diagnostics.Process.dll" KeyPath="yes" />
+      </Component>
+      <Component Id="Comp_368" Guid="58DD9582-3ED6-446D-AE30-ABAD51F5482F">
+        <File Id="File_368" Source="D:\Avesh\CygnetCI\SourceCode\CygnetCI\CygnetCI.Agent.Installer\publish\ref\System.Diagnostics.StackTrace.dll" KeyPath="yes" />
+      </Component>
+      <Component Id="Comp_369" Guid="D2887814-7B24-45A3-98EF-F288A7C7848A">
+        <File Id="File_369" Source="D:\Avesh\CygnetCI\SourceCode\CygnetCI\CygnetCI.Agent.Installer\publish\ref\System.Diagnostics.TextWriterTraceListener.dll" KeyPath="yes" />
+      </Component>
+      <Component Id="Comp_370" Guid="1E3526E8-297A-47B1-B454-6161BFA2BB3B">
+        <File Id="File_370" Source="D:\Avesh\CygnetCI\SourceCode\CygnetCI\CygnetCI.Agent.Installer\publish\ref\System.Diagnostics.Tools.dll" KeyPath="yes" />
+      </Component>
+      <Component Id="Comp_371" Guid="049184CD-F667-4AEA-84C9-A114C735791E">
+        <File Id="File_371" Source="D:\Avesh\CygnetCI\SourceCode\CygnetCI\CygnetCI.Agent.Installer\publish\ref\System.Diagnostics.TraceSource.dll" KeyPath="yes" />
+      </Component>
+      <Component Id="Comp_372" Guid="D392F326-2341-4BC3-9383-401CC6F97861">
+        <File Id="File_372" Source="D:\Avesh\CygnetCI\SourceCode\CygnetCI\CygnetCI.Agent.Installer\publish\ref\System.Diagnostics.Tracing.dll" KeyPath="yes" />
+      </Component>
+      <Component Id="Comp_373" Guid="75B933F9-4A74-494B-96F5-E6E8F9C8BEA5">
+        <File Id="File_373" Source="D:\Avesh\CygnetCI\SourceCode\CygnetCI\CygnetCI.Agent.Installer\publish\ref\System.dll" KeyPath="yes" />
+      </Component>
+      <Component Id="Comp_374" Guid="90C1F056-E45A-40E4-8622-A3543D51BFCE">
+        <File Id="File_374" Source="D:\Avesh\CygnetCI\SourceCode\CygnetCI\CygnetCI.Agent.Installer\publish\ref\System.Drawing.dll" KeyPath="yes" />
+      </Component>
+      <Component Id="Comp_375" Guid="A9A1C87B-BA76-473E-853A-0E7AFDB621EC">
+        <File Id="File_375" Source="D:\Avesh\CygnetCI\SourceCode\CygnetCI\CygnetCI.Agent.Installer\publish\ref\System.Drawing.Primitives.dll" KeyPath="yes" />
+      </Component>
+      <Component Id="Comp_376" Guid="20FDF8C0-7700-45A5-9F60-67D0C3280C38">
+        <File Id="File_376" Source="D:\Avesh\CygnetCI\SourceCode\CygnetCI\CygnetCI.Agent.Installer\publish\ref\System.Dynamic.Runtime.dll" KeyPath="yes" />
+      </Component>
+      <Component Id="Comp_377" Guid="7C16E9DF-7EA1-42C4-B0E5-973855415083">
+        <File Id="File_377" Source="D:\Avesh\CygnetCI\SourceCode\CygnetCI\CygnetCI.Agent.Installer\publish\ref\System.Formats.Asn1.dll" KeyPath="yes" />
+      </Component>
+      <Component Id="Comp_378" Guid="4B3BC50D-37AD-4802-B93B-7A9111DDC0BB">
+        <File Id="File_378" Source="D:\Avesh\CygnetCI\SourceCode\CygnetCI\CygnetCI.Agent.Installer\publish\ref\System.Formats.Tar.dll" KeyPath="yes" />
+      </Component>
+      <Component Id="Comp_379" Guid="2D48E0F7-36FB-43E5-9E44-9CA9529C43DC">
+        <File Id="File_379" Source="D:\Avesh\CygnetCI\SourceCode\CygnetCI\CygnetCI.Agent.Installer\publish\ref\System.Globalization.Calendars.dll" KeyPath="yes" />
+      </Component>
+      <Component Id="Comp_380" Guid="93730C3C-FDD9-4129-B75E-CAB824F8A1F2">
+        <File Id="File_380" Source="D:\Avesh\CygnetCI\SourceCode\CygnetCI\CygnetCI.Agent.Installer\publish\ref\System.Globalization.dll" KeyPath="yes" />
+      </Component>
+      <Component Id="Comp_381" Guid="7E9D92BD-58A8-4F9C-8505-CEB21E51DD3A">
+        <File Id="File_381" Source="D:\Avesh\CygnetCI\SourceCode\CygnetCI\CygnetCI.Agent.Installer\publish\ref\System.Globalization.Extensions.dll" KeyPath="yes" />
+      </Component>
+      <Component Id="Comp_382" Guid="D5734AB7-6F24-4A98-A1BB-0C1EE1A4ED1C">
+        <File Id="File_382" Source="D:\Avesh\CygnetCI\SourceCode\CygnetCI\CygnetCI.Agent.Installer\publish\ref\System.IO.Compression.Brotli.dll" KeyPath="yes" />
+      </Component>
+      <Component Id="Comp_383" Guid="F9D04577-B103-4707-A647-F3DF739FF625">
+        <File Id="File_383" Source="D:\Avesh\CygnetCI\SourceCode\CygnetCI\CygnetCI.Agent.Installer\publish\ref\System.IO.Compression.dll" KeyPath="yes" />
+      </Component>
+      <Component Id="Comp_384" Guid="489D557E-4C8A-44D1-AAE5-C9406E9233CB">
+        <File Id="File_384" Source="D:\Avesh\CygnetCI\SourceCode\CygnetCI\CygnetCI.Agent.Installer\publish\ref\System.IO.Compression.FileSystem.dll" KeyPath="yes" />
+      </Component>
+      <Component Id="Comp_385" Guid="CBF9335E-B25B-41AB-86BF-A68BB85B247B">
+        <File Id="File_385" Source="D:\Avesh\CygnetCI\SourceCode\CygnetCI\CygnetCI.Agent.Installer\publish\ref\System.IO.Compression.ZipFile.dll" KeyPath="yes" />
+      </Component>
+      <Component Id="Comp_386" Guid="ED710162-1F90-4EDA-909D-E8F72C2CADF4">
+        <File Id="File_386" Source="D:\Avesh\CygnetCI\SourceCode\CygnetCI\CygnetCI.Agent.Installer\publish\ref\System.IO.dll" KeyPath="yes" />
+      </Component>
+      <Component Id="Comp_387" Guid="3055B58D-DDE6-4080-86A3-C5EFC6376C84">
+        <File Id="File_387" Source="D:\Avesh\CygnetCI\SourceCode\CygnetCI\CygnetCI.Agent.Installer\publish\ref\System.IO.FileSystem.AccessControl.dll" KeyPath="yes" />
+      </Component>
+      <Component Id="Comp_388" Guid="03CD0C75-880D-4212-85EE-FE7905159609">
+        <File Id="File_388" Source="D:\Avesh\CygnetCI\SourceCode\CygnetCI\CygnetCI.Agent.Installer\publish\ref\System.IO.FileSystem.dll" KeyPath="yes" />
+      </Component>
+      <Component Id="Comp_389" Guid="415191F0-0D2C-4151-9494-0EF1EC3F69E5">
+        <File Id="File_389" Source="D:\Avesh\CygnetCI\SourceCode\CygnetCI\CygnetCI.Agent.Installer\publish\ref\System.IO.FileSystem.DriveInfo.dll" KeyPath="yes" />
+      </Component>
+      <Component Id="Comp_390" Guid="90F9B54B-C6F1-4DD0-8C74-0A44054C9498">
+        <File Id="File_390" Source="D:\Avesh\CygnetCI\SourceCode\CygnetCI\CygnetCI.Agent.Installer\publish\ref\System.IO.FileSystem.Primitives.dll" KeyPath="yes" />
+      </Component>
+      <Component Id="Comp_391" Guid="3A15E0D2-90CF-4173-B155-4B346614F974">
+        <File Id="File_391" Source="D:\Avesh\CygnetCI\SourceCode\CygnetCI\CygnetCI.Agent.Installer\publish\ref\System.IO.FileSystem.Watcher.dll" KeyPath="yes" />
+      </Component>
+      <Component Id="Comp_392" Guid="D92B6AB9-BBBA-4D55-AB20-FB7708850F61">
+        <File Id="File_392" Source="D:\Avesh\CygnetCI\SourceCode\CygnetCI\CygnetCI.Agent.Installer\publish\ref\System.IO.IsolatedStorage.dll" KeyPath="yes" />
+      </Component>
+      <Component Id="Comp_393" Guid="AB4C216B-2927-4631-8DC4-2F20890704C6">
+        <File Id="File_393" Source="D:\Avesh\CygnetCI\SourceCode\CygnetCI\CygnetCI.Agent.Installer\publish\ref\System.IO.MemoryMappedFiles.dll" KeyPath="yes" />
+      </Component>
+      <Component Id="Comp_394" Guid="E7D6DDAB-BA70-44E6-BF6D-B9F80BE0A602">
+        <File Id="File_394" Source="D:\Avesh\CygnetCI\SourceCode\CygnetCI\CygnetCI.Agent.Installer\publish\ref\System.IO.Pipelines.dll" KeyPath="yes" />
+      </Component>
+      <Component Id="Comp_395" Guid="F20CBB32-95DA-45BC-9A17-CF2E7A22DBC4">
+        <File Id="File_395" Source="D:\Avesh\CygnetCI\SourceCode\CygnetCI\CygnetCI.Agent.Installer\publish\ref\System.IO.Pipes.AccessControl.dll" KeyPath="yes" />
+      </Component>
+      <Component Id="Comp_396" Guid="D2789B7E-AE01-47AB-ACEA-73B01D34470F">
+        <File Id="File_396" Source="D:\Avesh\CygnetCI\SourceCode\CygnetCI\CygnetCI.Agent.Installer\publish\ref\System.IO.Pipes.dll" KeyPath="yes" />
+      </Component>
+      <Component Id="Comp_397" Guid="FD36CF61-D32D-480A-95FB-20E5F6F2914A">
+        <File Id="File_397" Source="D:\Avesh\CygnetCI\SourceCode\CygnetCI\CygnetCI.Agent.Installer\publish\ref\System.IO.UnmanagedMemoryStream.dll" KeyPath="yes" />
+      </Component>
+      <Component Id="Comp_398" Guid="0FEDCA13-0DF8-4499-B802-B5F18CF252E4">
+        <File Id="File_398" Source="D:\Avesh\CygnetCI\SourceCode\CygnetCI\CygnetCI.Agent.Installer\publish\ref\System.Linq.dll" KeyPath="yes" />
+      </Component>
+      <Component Id="Comp_399" Guid="DEB20C1B-AB54-4E41-A884-D7CD9D9E8807">
+        <File Id="File_399" Source="D:\Avesh\CygnetCI\SourceCode\CygnetCI\CygnetCI.Agent.Installer\publish\ref\System.Linq.Expressions.dll" KeyPath="yes" />
+      </Component>
+      <Component Id="Comp_400" Guid="01E64C70-CFFD-48A0-BC67-8142F75A06A9">
+        <File Id="File_400" Source="D:\Avesh\CygnetCI\SourceCode\CygnetCI\CygnetCI.Agent.Installer\publish\ref\System.Linq.Parallel.dll" KeyPath="yes" />
+      </Component>
+      <Component Id="Comp_401" Guid="DB0A1C52-F2D4-41D1-9BDA-F965D2827BB9">
+        <File Id="File_401" Source="D:\Avesh\CygnetCI\SourceCode\CygnetCI\CygnetCI.Agent.Installer\publish\ref\System.Linq.Queryable.dll" KeyPath="yes" />
+      </Component>
+      <Component Id="Comp_402" Guid="0C10AECB-AFFF-4899-9A18-3CECE53C0936">
+        <File Id="File_402" Source="D:\Avesh\CygnetCI\SourceCode\CygnetCI\CygnetCI.Agent.Installer\publish\ref\System.Memory.dll" KeyPath="yes" />
+      </Component>
+      <Component Id="Comp_403" Guid="BDFEE08E-BD84-4067-ABB0-80B392627A63">
+        <File Id="File_403" Source="D:\Avesh\CygnetCI\SourceCode\CygnetCI\CygnetCI.Agent.Installer\publish\ref\System.Net.dll" KeyPath="yes" />
+      </Component>
+      <Component Id="Comp_404" Guid="6292A94D-7DD1-4D4A-9D71-F9585A14A519">
+        <File Id="File_404" Source="D:\Avesh\CygnetCI\SourceCode\CygnetCI\CygnetCI.Agent.Installer\publish\ref\System.Net.Http.dll" KeyPath="yes" />
+      </Component>
+      <Component Id="Comp_405" Guid="06521343-562B-4A40-A732-9883B5E35CAF">
+        <File Id="File_405" Source="D:\Avesh\CygnetCI\SourceCode\CygnetCI\CygnetCI.Agent.Installer\publish\ref\System.Net.Http.Json.dll" KeyPath="yes" />
+      </Component>
+      <Component Id="Comp_406" Guid="456456D9-6E02-4039-B80B-5E964C51118C">
+        <File Id="File_406" Source="D:\Avesh\CygnetCI\SourceCode\CygnetCI\CygnetCI.Agent.Installer\publish\ref\System.Net.HttpListener.dll" KeyPath="yes" />
+      </Component>
+      <Component Id="Comp_407" Guid="8958F870-F56F-4ADD-AB2B-5137B179FFDA">
+        <File Id="File_407" Source="D:\Avesh\CygnetCI\SourceCode\CygnetCI\CygnetCI.Agent.Installer\publish\ref\System.Net.Mail.dll" KeyPath="yes" />
+      </Component>
+      <Component Id="Comp_408" Guid="CBA94291-806B-4DCB-8198-AB5A55503720">
+        <File Id="File_408" Source="D:\Avesh\CygnetCI\SourceCode\CygnetCI\CygnetCI.Agent.Installer\publish\ref\System.Net.NameResolution.dll" KeyPath="yes" />
+      </Component>
+      <Component Id="Comp_409" Guid="BE1F1689-EF39-4F2C-8F45-E4F1C4AD9290">
+        <File Id="File_409" Source="D:\Avesh\CygnetCI\SourceCode\CygnetCI\CygnetCI.Agent.Installer\publish\ref\System.Net.NetworkInformation.dll" KeyPath="yes" />
+      </Component>
+      <Component Id="Comp_410" Guid="3F1BF40A-1CCE-4B40-8770-A6F14D2DF687">
+        <File Id="File_410" Source="D:\Avesh\CygnetCI\SourceCode\CygnetCI\CygnetCI.Agent.Installer\publish\ref\System.Net.Ping.dll" KeyPath="yes" />
+      </Component>
+      <Component Id="Comp_411" Guid="6B5E1677-3739-4683-889D-03E8D9BD46CE">
+        <File Id="File_411" Source="D:\Avesh\CygnetCI\SourceCode\CygnetCI\CygnetCI.Agent.Installer\publish\ref\System.Net.Primitives.dll" KeyPath="yes" />
+      </Component>
+      <Component Id="Comp_412" Guid="A650E80C-4120-406A-88C7-4EB9F534F4CB">
+        <File Id="File_412" Source="D:\Avesh\CygnetCI\SourceCode\CygnetCI\CygnetCI.Agent.Installer\publish\ref\System.Net.Quic.dll" KeyPath="yes" />
+      </Component>
+      <Component Id="Comp_413" Guid="D703F652-A423-403A-9D71-EC90DEBEA2FE">
+        <File Id="File_413" Source="D:\Avesh\CygnetCI\SourceCode\CygnetCI\CygnetCI.Agent.Installer\publish\ref\System.Net.Requests.dll" KeyPath="yes" />
+      </Component>
+      <Component Id="Comp_414" Guid="C236E6C8-8514-42AE-BB2C-467A559B7EED">
+        <File Id="File_414" Source="D:\Avesh\CygnetCI\SourceCode\CygnetCI\CygnetCI.Agent.Installer\publish\ref\System.Net.Security.dll" KeyPath="yes" />
+      </Component>
+      <Component Id="Comp_415" Guid="39661A76-A837-49EA-8B9B-BE160ED421A5">
+        <File Id="File_415" Source="D:\Avesh\CygnetCI\SourceCode\CygnetCI\CygnetCI.Agent.Installer\publish\ref\System.Net.ServicePoint.dll" KeyPath="yes" />
+      </Component>
+      <Component Id="Comp_416" Guid="89AEF099-B4E0-4B4A-81A2-3B0FB91BEF1B">
+        <File Id="File_416" Source="D:\Avesh\CygnetCI\SourceCode\CygnetCI\CygnetCI.Agent.Installer\publish\ref\System.Net.Sockets.dll" KeyPath="yes" />
+      </Component>
+      <Component Id="Comp_417" Guid="82F35ABF-C82F-40E7-A99F-63DEDB0FB24F">
+        <File Id="File_417" Source="D:\Avesh\CygnetCI\SourceCode\CygnetCI\CygnetCI.Agent.Installer\publish\ref\System.Net.WebClient.dll" KeyPath="yes" />
+      </Component>
+      <Component Id="Comp_418" Guid="9909DDC7-1EFC-4B27-8A2B-A2FCC9338791">
+        <File Id="File_418" Source="D:\Avesh\CygnetCI\SourceCode\CygnetCI\CygnetCI.Agent.Installer\publish\ref\System.Net.WebHeaderCollection.dll" KeyPath="yes" />
+      </Component>
+      <Component Id="Comp_419" Guid="9467C67D-445A-4425-8300-F4982D90B59F">
+        <File Id="File_419" Source="D:\Avesh\CygnetCI\SourceCode\CygnetCI\CygnetCI.Agent.Installer\publish\ref\System.Net.WebProxy.dll" KeyPath="yes" />
+      </Component>
+      <Component Id="Comp_420" Guid="C990EF9D-EB74-4F49-AEE6-3036F9A04365">
+        <File Id="File_420" Source="D:\Avesh\CygnetCI\SourceCode\CygnetCI\CygnetCI.Agent.Installer\publish\ref\System.Net.WebSockets.Client.dll" KeyPath="yes" />
+      </Component>
+      <Component Id="Comp_421" Guid="6B240F42-65E0-4B37-918F-2917358A0585">
+        <File Id="File_421" Source="D:\Avesh\CygnetCI\SourceCode\CygnetCI\CygnetCI.Agent.Installer\publish\ref\System.Net.WebSockets.dll" KeyPath="yes" />
+      </Component>
+      <Component Id="Comp_422" Guid="467B1A7D-297E-475E-ACF6-DE42AB45698A">
+        <File Id="File_422" Source="D:\Avesh\CygnetCI\SourceCode\CygnetCI\CygnetCI.Agent.Installer\publish\ref\System.Numerics.dll" KeyPath="yes" />
+      </Component>
+      <Component Id="Comp_423" Guid="17D1CD6F-2532-4D8D-A010-0634A633DC44">
+        <File Id="File_423" Source="D:\Avesh\CygnetCI\SourceCode\CygnetCI\CygnetCI.Agent.Installer\publish\ref\System.Numerics.Vectors.dll" KeyPath="yes" />
+      </Component>
+      <Component Id="Comp_424" Guid="71FF2FF5-3A09-4EDA-807D-0A316CA84CDF">
+        <File Id="File_424" Source="D:\Avesh\CygnetCI\SourceCode\CygnetCI\CygnetCI.Agent.Installer\publish\ref\System.ObjectModel.dll" KeyPath="yes" />
+      </Component>
+      <Component Id="Comp_425" Guid="1F95EC7E-79F0-454A-B6EE-BD5C21281B16">
+        <File Id="File_425" Source="D:\Avesh\CygnetCI\SourceCode\CygnetCI\CygnetCI.Agent.Installer\publish\ref\System.Reflection.DispatchProxy.dll" KeyPath="yes" />
+      </Component>
+      <Component Id="Comp_426" Guid="0F3FBD38-BD82-4F14-B84E-4320AFA7F363">
+        <File Id="File_426" Source="D:\Avesh\CygnetCI\SourceCode\CygnetCI\CygnetCI.Agent.Installer\publish\ref\System.Reflection.dll" KeyPath="yes" />
+      </Component>
+      <Component Id="Comp_427" Guid="54BF6C6D-A640-45D0-9E7D-68730D2712F8">
+        <File Id="File_427" Source="D:\Avesh\CygnetCI\SourceCode\CygnetCI\CygnetCI.Agent.Installer\publish\ref\System.Reflection.Emit.dll" KeyPath="yes" />
+      </Component>
+      <Component Id="Comp_428" Guid="0FFC1451-1890-44C2-8F9F-9FD6393435DE">
+        <File Id="File_428" Source="D:\Avesh\CygnetCI\SourceCode\CygnetCI\CygnetCI.Agent.Installer\publish\ref\System.Reflection.Emit.ILGeneration.dll" KeyPath="yes" />
+      </Component>
+      <Component Id="Comp_429" Guid="992FDFEA-D74D-41F1-8A9C-AD8F54D39583">
+        <File Id="File_429" Source="D:\Avesh\CygnetCI\SourceCode\CygnetCI\CygnetCI.Agent.Installer\publish\ref\System.Reflection.Emit.Lightweight.dll" KeyPath="yes" />
+      </Component>
+      <Component Id="Comp_430" Guid="30B82F71-70F4-4250-81B9-3BEADAB1A8F2">
+        <File Id="File_430" Source="D:\Avesh\CygnetCI\SourceCode\CygnetCI\CygnetCI.Agent.Installer\publish\ref\System.Reflection.Extensions.dll" KeyPath="yes" />
+      </Component>
+      <Component Id="Comp_431" Guid="E4FF2FB3-C5E6-44A6-AB35-F1C657722F9F">
+        <File Id="File_431" Source="D:\Avesh\CygnetCI\SourceCode\CygnetCI\CygnetCI.Agent.Installer\publish\ref\System.Reflection.Metadata.dll" KeyPath="yes" />
+      </Component>
+      <Component Id="Comp_432" Guid="3C4FA87A-8A9E-4A10-B1F7-34D993402CC5">
+        <File Id="File_432" Source="D:\Avesh\CygnetCI\SourceCode\CygnetCI\CygnetCI.Agent.Installer\publish\ref\System.Reflection.Primitives.dll" KeyPath="yes" />
+      </Component>
+      <Component Id="Comp_433" Guid="0C3F74F7-5D15-4F2E-BB78-3BFA388EB533">
+        <File Id="File_433" Source="D:\Avesh\CygnetCI\SourceCode\CygnetCI\CygnetCI.Agent.Installer\publish\ref\System.Reflection.TypeExtensions.dll" KeyPath="yes" />
+      </Component>
+      <Component Id="Comp_434" Guid="5D6EA0D2-1821-48DD-9225-7A3B4C936C4B">
+        <File Id="File_434" Source="D:\Avesh\CygnetCI\SourceCode\CygnetCI\CygnetCI.Agent.Installer\publish\ref\System.Resources.Reader.dll" KeyPath="yes" />
+      </Component>
+      <Component Id="Comp_435" Guid="81FFBA96-2165-467B-B0C4-068E827B0529">
+        <File Id="File_435" Source="D:\Avesh\CygnetCI\SourceCode\CygnetCI\CygnetCI.Agent.Installer\publish\ref\System.Resources.ResourceManager.dll" KeyPath="yes" />
+      </Component>
+      <Component Id="Comp_436" Guid="63BA2EB5-8241-4278-B7B1-4532CB34DE6D">
+        <File Id="File_436" Source="D:\Avesh\CygnetCI\SourceCode\CygnetCI\CygnetCI.Agent.Installer\publish\ref\System.Resources.Writer.dll" KeyPath="yes" />
+      </Component>
+      <Component Id="Comp_437" Guid="0DA66788-F35A-476F-9B97-96C1E15998FB">
+        <File Id="File_437" Source="D:\Avesh\CygnetCI\SourceCode\CygnetCI\CygnetCI.Agent.Installer\publish\ref\System.Runtime.CompilerServices.Unsafe.dll" KeyPath="yes" />
+      </Component>
+      <Component Id="Comp_438" Guid="E43C5B69-05EA-4364-98E1-2FADB2F6761F">
+        <File Id="File_438" Source="D:\Avesh\CygnetCI\SourceCode\CygnetCI\CygnetCI.Agent.Installer\publish\ref\System.Runtime.CompilerServices.VisualC.dll" KeyPath="yes" />
+      </Component>
+      <Component Id="Comp_439" Guid="17671837-EE10-4E06-BA91-F8384C3AF981">
+        <File Id="File_439" Source="D:\Avesh\CygnetCI\SourceCode\CygnetCI\CygnetCI.Agent.Installer\publish\ref\System.Runtime.dll" KeyPath="yes" />
+      </Component>
+      <Component Id="Comp_440" Guid="845A16B4-BDAE-4557-B80C-BAF977EA523B">
+        <File Id="File_440" Source="D:\Avesh\CygnetCI\SourceCode\CygnetCI\CygnetCI.Agent.Installer\publish\ref\System.Runtime.Extensions.dll" KeyPath="yes" />
+      </Component>
+      <Component Id="Comp_441" Guid="8721E6A7-729B-43EF-92ED-CBCA959D7F1C">
+        <File Id="File_441" Source="D:\Avesh\CygnetCI\SourceCode\CygnetCI\CygnetCI.Agent.Installer\publish\ref\System.Runtime.Handles.dll" KeyPath="yes" />
+      </Component>
+      <Component Id="Comp_442" Guid="4DB92079-F040-4D9A-8876-872C5BDA5FBB">
+        <File Id="File_442" Source="D:\Avesh\CygnetCI\SourceCode\CygnetCI\CygnetCI.Agent.Installer\publish\ref\System.Runtime.InteropServices.dll" KeyPath="yes" />
+      </Component>
+      <Component Id="Comp_443" Guid="41BFC424-493C-4B39-BD00-C4B921D3CEDB">
+        <File Id="File_443" Source="D:\Avesh\CygnetCI\SourceCode\CygnetCI\CygnetCI.Agent.Installer\publish\ref\System.Runtime.InteropServices.JavaScript.dll" KeyPath="yes" />
+      </Component>
+      <Component Id="Comp_444" Guid="EB748C1B-1B90-4CE9-8B9D-14745B6A4840">
+        <File Id="File_444" Source="D:\Avesh\CygnetCI\SourceCode\CygnetCI\CygnetCI.Agent.Installer\publish\ref\System.Runtime.InteropServices.RuntimeInformation.dll" KeyPath="yes" />
+      </Component>
+      <Component Id="Comp_445" Guid="FCE09C2C-C434-4D1D-9703-E80AD580E8D8">
+        <File Id="File_445" Source="D:\Avesh\CygnetCI\SourceCode\CygnetCI\CygnetCI.Agent.Installer\publish\ref\System.Runtime.Intrinsics.dll" KeyPath="yes" />
+      </Component>
+      <Component Id="Comp_446" Guid="7C2B3A63-6A76-4402-8D37-E18D7DE2782F">
+        <File Id="File_446" Source="D:\Avesh\CygnetCI\SourceCode\CygnetCI\CygnetCI.Agent.Installer\publish\ref\System.Runtime.Loader.dll" KeyPath="yes" />
+      </Component>
+      <Component Id="Comp_447" Guid="C4DD7E33-59E3-4DFE-866A-8A08F1BA40A4">
+        <File Id="File_447" Source="D:\Avesh\CygnetCI\SourceCode\CygnetCI\CygnetCI.Agent.Installer\publish\ref\System.Runtime.Numerics.dll" KeyPath="yes" />
+      </Component>
+      <Component Id="Comp_448" Guid="2BA536BF-CF5E-4D4B-B8B4-EBBF9257EE76">
+        <File Id="File_448" Source="D:\Avesh\CygnetCI\SourceCode\CygnetCI\CygnetCI.Agent.Installer\publish\ref\System.Runtime.Serialization.dll" KeyPath="yes" />
+      </Component>
+      <Component Id="Comp_449" Guid="91C39DBA-3E20-47BD-9EC3-217684F722CC">
+        <File Id="File_449" Source="D:\Avesh\CygnetCI\SourceCode\CygnetCI\CygnetCI.Agent.Installer\publish\ref\System.Runtime.Serialization.Formatters.dll" KeyPath="yes" />
+      </Component>
+      <Component Id="Comp_450" Guid="04F92DF0-3E75-40CD-AF3A-F16AFA323089">
+        <File Id="File_450" Source="D:\Avesh\CygnetCI\SourceCode\CygnetCI\CygnetCI.Agent.Installer\publish\ref\System.Runtime.Serialization.Json.dll" KeyPath="yes" />
+      </Component>
+      <Component Id="Comp_451" Guid="21D9B734-CE62-41F3-B40D-E62482B0040E">
+        <File Id="File_451" Source="D:\Avesh\CygnetCI\SourceCode\CygnetCI\CygnetCI.Agent.Installer\publish\ref\System.Runtime.Serialization.Primitives.dll" KeyPath="yes" />
+      </Component>
+      <Component Id="Comp_452" Guid="35806864-827D-4D5F-A02F-1225D55E99ED">
+        <File Id="File_452" Source="D:\Avesh\CygnetCI\SourceCode\CygnetCI\CygnetCI.Agent.Installer\publish\ref\System.Runtime.Serialization.Xml.dll" KeyPath="yes" />
+      </Component>
+      <Component Id="Comp_453" Guid="8099D09F-84F6-470B-AEC9-07974255F1A8">
+        <File Id="File_453" Source="D:\Avesh\CygnetCI\SourceCode\CygnetCI\CygnetCI.Agent.Installer\publish\ref\System.Security.AccessControl.dll" KeyPath="yes" />
+      </Component>
+      <Component Id="Comp_454" Guid="DBC77107-98BE-46A9-AA5B-4485BD54D4C2">
+        <File Id="File_454" Source="D:\Avesh\CygnetCI\SourceCode\CygnetCI\CygnetCI.Agent.Installer\publish\ref\System.Security.Claims.dll" KeyPath="yes" />
+      </Component>
+      <Component Id="Comp_455" Guid="3639ABF5-BFE6-4D0D-8DDA-7A62BBA3586A">
+        <File Id="File_455" Source="D:\Avesh\CygnetCI\SourceCode\CygnetCI\CygnetCI.Agent.Installer\publish\ref\System.Security.Cryptography.Algorithms.dll" KeyPath="yes" />
+      </Component>
+      <Component Id="Comp_456" Guid="F18FF60D-DD66-4D58-86C6-D5B354F5E9FD">
+        <File Id="File_456" Source="D:\Avesh\CygnetCI\SourceCode\CygnetCI\CygnetCI.Agent.Installer\publish\ref\System.Security.Cryptography.Cng.dll" KeyPath="yes" />
+      </Component>
+      <Component Id="Comp_457" Guid="E631CBFF-93E3-4B7E-9EAF-270BE01659D3">
+        <File Id="File_457" Source="D:\Avesh\CygnetCI\SourceCode\CygnetCI\CygnetCI.Agent.Installer\publish\ref\System.Security.Cryptography.Csp.dll" KeyPath="yes" />
+      </Component>
+      <Component Id="Comp_458" Guid="91CE499F-E549-4394-AE86-A7FE679C37CF">
+        <File Id="File_458" Source="D:\Avesh\CygnetCI\SourceCode\CygnetCI\CygnetCI.Agent.Installer\publish\ref\System.Security.Cryptography.dll" KeyPath="yes" />
+      </Component>
+      <Component Id="Comp_459" Guid="F93448EA-8B61-49D4-B105-32D6A49B5AC8">
+        <File Id="File_459" Source="D:\Avesh\CygnetCI\SourceCode\CygnetCI\CygnetCI.Agent.Installer\publish\ref\System.Security.Cryptography.Encoding.dll" KeyPath="yes" />
+      </Component>
+      <Component Id="Comp_460" Guid="1A48B2F1-1131-466B-ACA5-0D35CBD047C3">
+        <File Id="File_460" Source="D:\Avesh\CygnetCI\SourceCode\CygnetCI\CygnetCI.Agent.Installer\publish\ref\System.Security.Cryptography.OpenSsl.dll" KeyPath="yes" />
+      </Component>
+      <Component Id="Comp_461" Guid="16524C8E-CC1B-4AD0-AAFD-4D6DFFA19630">
+        <File Id="File_461" Source="D:\Avesh\CygnetCI\SourceCode\CygnetCI\CygnetCI.Agent.Installer\publish\ref\System.Security.Cryptography.Primitives.dll" KeyPath="yes" />
+      </Component>
+      <Component Id="Comp_462" Guid="660AD0E5-9AA3-4012-A0D5-2A5210339D48">
+        <File Id="File_462" Source="D:\Avesh\CygnetCI\SourceCode\CygnetCI\CygnetCI.Agent.Installer\publish\ref\System.Security.Cryptography.X509Certificates.dll" KeyPath="yes" />
+      </Component>
+      <Component Id="Comp_463" Guid="6551C3F5-C16C-4B6D-9553-0D8A6EACAC08">
+        <File Id="File_463" Source="D:\Avesh\CygnetCI\SourceCode\CygnetCI\CygnetCI.Agent.Installer\publish\ref\System.Security.dll" KeyPath="yes" />
+      </Component>
+      <Component Id="Comp_464" Guid="4D0685DF-3BE3-4F61-903D-B063F566E38B">
+        <File Id="File_464" Source="D:\Avesh\CygnetCI\SourceCode\CygnetCI\CygnetCI.Agent.Installer\publish\ref\System.Security.Principal.dll" KeyPath="yes" />
+      </Component>
+      <Component Id="Comp_465" Guid="3F8608E0-D573-44BF-ACAA-272F82354607">
+        <File Id="File_465" Source="D:\Avesh\CygnetCI\SourceCode\CygnetCI\CygnetCI.Agent.Installer\publish\ref\System.Security.Principal.Windows.dll" KeyPath="yes" />
+      </Component>
+      <Component Id="Comp_466" Guid="EAF0C994-FBDB-4CD5-9CA5-DFCC3EB7C5FA">
+        <File Id="File_466" Source="D:\Avesh\CygnetCI\SourceCode\CygnetCI\CygnetCI.Agent.Installer\publish\ref\System.Security.SecureString.dll" KeyPath="yes" />
+      </Component>
+      <Component Id="Comp_467" Guid="D4CCEFEB-1379-4F62-B91B-FCB509ADC2AA">
+        <File Id="File_467" Source="D:\Avesh\CygnetCI\SourceCode\CygnetCI\CygnetCI.Agent.Installer\publish\ref\System.ServiceModel.Web.dll" KeyPath="yes" />
+      </Component>
+      <Component Id="Comp_468" Guid="2049C309-8364-4ACE-A482-345D54F8ADDB">
+        <File Id="File_468" Source="D:\Avesh\CygnetCI\SourceCode\CygnetCI\CygnetCI.Agent.Installer\publish\ref\System.ServiceProcess.dll" KeyPath="yes" />
+      </Component>
+      <Component Id="Comp_469" Guid="1D6BC093-64B5-44A2-B0A2-BF387DEA5C67">
+        <File Id="File_469" Source="D:\Avesh\CygnetCI\SourceCode\CygnetCI\CygnetCI.Agent.Installer\publish\ref\System.Text.Encoding.CodePages.dll" KeyPath="yes" />
+      </Component>
+      <Component Id="Comp_470" Guid="C8570030-7DDB-4083-8B6A-132ADFF87676">
+        <File Id="File_470" Source="D:\Avesh\CygnetCI\SourceCode\CygnetCI\CygnetCI.Agent.Installer\publish\ref\System.Text.Encoding.dll" KeyPath="yes" />
+      </Component>
+      <Component Id="Comp_471" Guid="D51B80E9-89E5-4D74-B4A1-1390D52412F8">
+        <File Id="File_471" Source="D:\Avesh\CygnetCI\SourceCode\CygnetCI\CygnetCI.Agent.Installer\publish\ref\System.Text.Encoding.Extensions.dll" KeyPath="yes" />
+      </Component>
+      <Component Id="Comp_472" Guid="BE69069E-0BE7-4945-BE38-ADA5D3623CDB">
+        <File Id="File_472" Source="D:\Avesh\CygnetCI\SourceCode\CygnetCI\CygnetCI.Agent.Installer\publish\ref\System.Text.Encodings.Web.dll" KeyPath="yes" />
+      </Component>
+      <Component Id="Comp_473" Guid="195FB02C-7F36-4161-B5D8-BE902E32D9AA">
+        <File Id="File_473" Source="D:\Avesh\CygnetCI\SourceCode\CygnetCI\CygnetCI.Agent.Installer\publish\ref\System.Text.Json.dll" KeyPath="yes" />
+      </Component>
+      <Component Id="Comp_474" Guid="82EC6B83-5ACC-4A26-B1B3-923BC01D312A">
+        <File Id="File_474" Source="D:\Avesh\CygnetCI\SourceCode\CygnetCI\CygnetCI.Agent.Installer\publish\ref\System.Text.RegularExpressions.dll" KeyPath="yes" />
+      </Component>
+      <Component Id="Comp_475" Guid="C485FCA7-C358-4881-ABFB-FC99A7E9DF35">
+        <File Id="File_475" Source="D:\Avesh\CygnetCI\SourceCode\CygnetCI\CygnetCI.Agent.Installer\publish\ref\System.Threading.Channels.dll" KeyPath="yes" />
+      </Component>
+      <Component Id="Comp_476" Guid="F2DB5BED-C814-4F1B-B5FD-228FDF37038E">
+        <File Id="File_476" Source="D:\Avesh\CygnetCI\SourceCode\CygnetCI\CygnetCI.Agent.Installer\publish\ref\System.Threading.dll" KeyPath="yes" />
+      </Component>
+      <Component Id="Comp_477" Guid="B99AC3DC-8CDF-4841-A7AC-F996B201E62A">
+        <File Id="File_477" Source="D:\Avesh\CygnetCI\SourceCode\CygnetCI\CygnetCI.Agent.Installer\publish\ref\System.Threading.Overlapped.dll" KeyPath="yes" />
+      </Component>
+      <Component Id="Comp_478" Guid="FA583EB5-CEE3-4589-ABD7-3FB0DE043CEB">
+        <File Id="File_478" Source="D:\Avesh\CygnetCI\SourceCode\CygnetCI\CygnetCI.Agent.Installer\publish\ref\System.Threading.Tasks.Dataflow.dll" KeyPath="yes" />
+      </Component>
+      <Component Id="Comp_479" Guid="8559E95A-8C3D-4A87-B506-EDF11ECA041A">
+        <File Id="File_479" Source="D:\Avesh\CygnetCI\SourceCode\CygnetCI\CygnetCI.Agent.Installer\publish\ref\System.Threading.Tasks.dll" KeyPath="yes" />
+      </Component>
+      <Component Id="Comp_480" Guid="D061819E-46FD-463C-9E06-B37766190BAC">
+        <File Id="File_480" Source="D:\Avesh\CygnetCI\SourceCode\CygnetCI\CygnetCI.Agent.Installer\publish\ref\System.Threading.Tasks.Extensions.dll" KeyPath="yes" />
+      </Component>
+      <Component Id="Comp_481" Guid="C5F99AA3-D18E-41C9-817E-AD643FB6A9C0">
+        <File Id="File_481" Source="D:\Avesh\CygnetCI\SourceCode\CygnetCI\CygnetCI.Agent.Installer\publish\ref\System.Threading.Tasks.Parallel.dll" KeyPath="yes" />
+      </Component>
+      <Component Id="Comp_482" Guid="20C61D2B-C0CD-4DBD-BA7E-4C03DE990A56">
+        <File Id="File_482" Source="D:\Avesh\CygnetCI\SourceCode\CygnetCI\CygnetCI.Agent.Installer\publish\ref\System.Threading.Thread.dll" KeyPath="yes" />
+      </Component>
+      <Component Id="Comp_483" Guid="E613E92E-F2ED-4A7A-928D-2A3E1E2397FF">
+        <File Id="File_483" Source="D:\Avesh\CygnetCI\SourceCode\CygnetCI\CygnetCI.Agent.Installer\publish\ref\System.Threading.ThreadPool.dll" KeyPath="yes" />
+      </Component>
+      <Component Id="Comp_484" Guid="A3896969-48EF-4511-AC2C-213F953B9751">
+        <File Id="File_484" Source="D:\Avesh\CygnetCI\SourceCode\CygnetCI\CygnetCI.Agent.Installer\publish\ref\System.Threading.Timer.dll" KeyPath="yes" />
+      </Component>
+      <Component Id="Comp_485" Guid="9EE88032-B3AF-4305-A2F4-96D512D1E1C4">
+        <File Id="File_485" Source="D:\Avesh\CygnetCI\SourceCode\CygnetCI\CygnetCI.Agent.Installer\publish\ref\System.Transactions.dll" KeyPath="yes" />
+      </Component>
+      <Component Id="Comp_486" Guid="A282D804-D4FB-4BDF-AC48-41D39AA100A6">
+        <File Id="File_486" Source="D:\Avesh\CygnetCI\SourceCode\CygnetCI\CygnetCI.Agent.Installer\publish\ref\System.Transactions.Local.dll" KeyPath="yes" />
+      </Component>
+      <Component Id="Comp_487" Guid="24CBB8D5-DA56-47F3-995A-1B7AC31C0223">
+        <File Id="File_487" Source="D:\Avesh\CygnetCI\SourceCode\CygnetCI\CygnetCI.Agent.Installer\publish\ref\System.ValueTuple.dll" KeyPath="yes" />
+      </Component>
+      <Component Id="Comp_488" Guid="0CF4C950-111F-4624-9A84-778AA02CE207">
+        <File Id="File_488" Source="D:\Avesh\CygnetCI\SourceCode\CygnetCI\CygnetCI.Agent.Installer\publish\ref\System.Web.dll" KeyPath="yes" />
+      </Component>
+      <Component Id="Comp_489" Guid="C049CF01-DA50-47E5-B948-F51C3E98B8E0">
+        <File Id="File_489" Source="D:\Avesh\CygnetCI\SourceCode\CygnetCI\CygnetCI.Agent.Installer\publish\ref\System.Web.HttpUtility.dll" KeyPath="yes" />
+      </Component>
+      <Component Id="Comp_490" Guid="6BD15172-B038-47CA-8C1D-02C70F5BCF74">
+        <File Id="File_490" Source="D:\Avesh\CygnetCI\SourceCode\CygnetCI\CygnetCI.Agent.Installer\publish\ref\System.Windows.dll" KeyPath="yes" />
+      </Component>
+      <Component Id="Comp_491" Guid="F8AE258E-9146-4D16-A9FB-3DA154F1E7BC">
+        <File Id="File_491" Source="D:\Avesh\CygnetCI\SourceCode\CygnetCI\CygnetCI.Agent.Installer\publish\ref\System.Xml.dll" KeyPath="yes" />
+      </Component>
+      <Component Id="Comp_492" Guid="24C7A8EA-4105-438B-8D3D-123A33070935">
+        <File Id="File_492" Source="D:\Avesh\CygnetCI\SourceCode\CygnetCI\CygnetCI.Agent.Installer\publish\ref\System.Xml.Linq.dll" KeyPath="yes" />
+      </Component>
+      <Component Id="Comp_493" Guid="C829D13B-B7FD-4D8A-9175-6B0CACE0BFA1">
+        <File Id="File_493" Source="D:\Avesh\CygnetCI\SourceCode\CygnetCI\CygnetCI.Agent.Installer\publish\ref\System.Xml.ReaderWriter.dll" KeyPath="yes" />
+      </Component>
+      <Component Id="Comp_494" Guid="AD09735F-5861-46CA-9283-636E57556C6D">
+        <File Id="File_494" Source="D:\Avesh\CygnetCI\SourceCode\CygnetCI\CygnetCI.Agent.Installer\publish\ref\System.Xml.Serialization.dll" KeyPath="yes" />
+      </Component>
+      <Component Id="Comp_495" Guid="93E7C401-75CD-4A25-A01F-8D18CF9E1A0E">
+        <File Id="File_495" Source="D:\Avesh\CygnetCI\SourceCode\CygnetCI\CygnetCI.Agent.Installer\publish\ref\System.Xml.XDocument.dll" KeyPath="yes" />
+      </Component>
+      <Component Id="Comp_496" Guid="6424E0C6-A845-4127-B1E0-EB7FDB8836F4">
+        <File Id="File_496" Source="D:\Avesh\CygnetCI\SourceCode\CygnetCI\CygnetCI.Agent.Installer\publish\ref\System.Xml.XmlDocument.dll" KeyPath="yes" />
+      </Component>
+      <Component Id="Comp_497" Guid="B9B04F9E-1623-404A-B442-47EDD0FECB0E">
+        <File Id="File_497" Source="D:\Avesh\CygnetCI\SourceCode\CygnetCI\CygnetCI.Agent.Installer\publish\ref\System.Xml.XmlSerializer.dll" KeyPath="yes" />
+      </Component>
+      <Component Id="Comp_498" Guid="A75BF7E6-6205-48BE-99FD-64B04B10F647">
+        <File Id="File_498" Source="D:\Avesh\CygnetCI\SourceCode\CygnetCI\CygnetCI.Agent.Installer\publish\ref\System.Xml.XPath.dll" KeyPath="yes" />
+      </Component>
+      <Component Id="Comp_499" Guid="B4D95084-6AC5-4EBE-8AD2-0DC732147A5A">
+        <File Id="File_499" Source="D:\Avesh\CygnetCI\SourceCode\CygnetCI\CygnetCI.Agent.Installer\publish\ref\System.Xml.XPath.XDocument.dll" KeyPath="yes" />
+      </Component>
+      <Component Id="Comp_500" Guid="02EB29DB-1256-4303-A4FD-CD024C3BBE67">
+        <File Id="File_500" Source="D:\Avesh\CygnetCI\SourceCode\CygnetCI\CygnetCI.Agent.Installer\publish\ref\WindowsBase.dll" KeyPath="yes" />
+      </Component>
+      <!-- Files from ru subdirectory -->
+      <Component Id="Comp_501" Guid="7FBC26A3-CD6D-4BE9-8512-24611FD7910B">
+        <File Id="File_501" Source="D:\Avesh\CygnetCI\SourceCode\CygnetCI\CygnetCI.Agent.Installer\publish\ru\Microsoft.CodeAnalysis.CSharp.resources.dll" KeyPath="yes" />
+      </Component>
+      <Component Id="Comp_502" Guid="42C4B42A-60AB-46AA-A5F4-71B7B3E8BC9A">
+        <File Id="File_502" Source="D:\Avesh\CygnetCI\SourceCode\CygnetCI\CygnetCI.Agent.Installer\publish\ru\Microsoft.CodeAnalysis.resources.dll" KeyPath="yes" />
+      </Component>
+      <Component Id="Comp_503" Guid="C23DA231-9DFF-4061-BFE6-87F00703E855">
+        <File Id="File_503" Source="D:\Avesh\CygnetCI\SourceCode\CygnetCI\CygnetCI.Agent.Installer\publish\ru\System.Private.ServiceModel.resources.dll" KeyPath="yes" />
+      </Component>
+      <Component Id="Comp_504" Guid="954CADDD-2A95-4621-84DD-D4FB59553F3A">
+        <File Id="File_504" Source="D:\Avesh\CygnetCI\SourceCode\CygnetCI\CygnetCI.Agent.Installer\publish\ru\System.Web.Services.Description.resources.dll" KeyPath="yes" />
+      </Component>
+      <!-- Files from runtimes subdirectory -->
+      <Component Id="Comp_505" Guid="C379E77E-B454-4B6B-9D07-BF46D3A959AE">
+        <File Id="File_505" Source="D:\Avesh\CygnetCI\SourceCode\CygnetCI\CygnetCI.Agent.Installer\publish\runtimes\unix\lib\net9.0\Modules\Microsoft.PowerShell.Host\Microsoft.PowerShell.Host.psd1" KeyPath="yes" />
+      </Component>
+      <Component Id="Comp_506" Guid="5A39CECB-7879-44F1-8426-08A102A02E8B">
+        <File Id="File_506" Source="D:\Avesh\CygnetCI\SourceCode\CygnetCI\CygnetCI.Agent.Installer\publish\runtimes\unix\lib\net9.0\Modules\Microsoft.PowerShell.Management\Microsoft.PowerShell.Management.psd1" KeyPath="yes" />
+      </Component>
+      <Component Id="Comp_507" Guid="902CDD1A-F3F1-421C-A904-21CBD61FFD5C">
+        <File Id="File_507" Source="D:\Avesh\CygnetCI\SourceCode\CygnetCI\CygnetCI.Agent.Installer\publish\runtimes\unix\lib\net9.0\Modules\Microsoft.PowerShell.Security\Microsoft.PowerShell.Security.psd1" KeyPath="yes" />
+      </Component>
+      <Component Id="Comp_508" Guid="F2CD4AA7-87DB-4A8C-AD6D-136DCD1F5DFF">
+        <File Id="File_508" Source="D:\Avesh\CygnetCI\SourceCode\CygnetCI\CygnetCI.Agent.Installer\publish\runtimes\unix\lib\net9.0\Modules\Microsoft.PowerShell.Utility\Microsoft.PowerShell.Utility.psd1" KeyPath="yes" />
+      </Component>
+      <Component Id="Comp_509" Guid="E30D7899-B914-4C7C-8708-64177DE9E2F0">
+        <File Id="File_509" Source="D:\Avesh\CygnetCI\SourceCode\CygnetCI\CygnetCI.Agent.Installer\publish\runtimes\win\lib\net9.0\Modules\CimCmdlets\CimCmdlets.psd1" KeyPath="yes" />
+      </Component>
+      <Component Id="Comp_510" Guid="0CD21506-1E28-4DD5-A905-4E911535906C">
+        <File Id="File_510" Source="D:\Avesh\CygnetCI\SourceCode\CygnetCI\CygnetCI.Agent.Installer\publish\runtimes\win\lib\net9.0\Modules\Microsoft.PowerShell.Diagnostics\Diagnostics.format.ps1xml" KeyPath="yes" />
+      </Component>
+      <Component Id="Comp_511" Guid="07CDB709-F191-4370-8EB6-A0020BC6D3F2">
+        <File Id="File_511" Source="D:\Avesh\CygnetCI\SourceCode\CygnetCI\CygnetCI.Agent.Installer\publish\runtimes\win\lib\net9.0\Modules\Microsoft.PowerShell.Diagnostics\Event.format.ps1xml" KeyPath="yes" />
+      </Component>
+      <Component Id="Comp_512" Guid="1776F75A-E1E8-4001-94D3-652EB2397E59">
+        <File Id="File_512" Source="D:\Avesh\CygnetCI\SourceCode\CygnetCI\CygnetCI.Agent.Installer\publish\runtimes\win\lib\net9.0\Modules\Microsoft.PowerShell.Diagnostics\GetEvent.types.ps1xml" KeyPath="yes" />
+      </Component>
+      <Component Id="Comp_513" Guid="F6C04B23-8DC6-4067-9A3E-B5CC122A1623">
+        <File Id="File_513" Source="D:\Avesh\CygnetCI\SourceCode\CygnetCI\CygnetCI.Agent.Installer\publish\runtimes\win\lib\net9.0\Modules\Microsoft.PowerShell.Diagnostics\Microsoft.PowerShell.Diagnostics.psd1" KeyPath="yes" />
+      </Component>
+      <Component Id="Comp_514" Guid="EF8B9E7B-D9B4-480B-BF49-693BB9C5A330">
+        <File Id="File_514" Source="D:\Avesh\CygnetCI\SourceCode\CygnetCI\CygnetCI.Agent.Installer\publish\runtimes\win\lib\net9.0\Modules\Microsoft.PowerShell.Host\Microsoft.PowerShell.Host.psd1" KeyPath="yes" />
+      </Component>
+      <Component Id="Comp_515" Guid="11CCF56F-1F54-4D3E-B283-8CD4D07A66DF">
+        <File Id="File_515" Source="D:\Avesh\CygnetCI\SourceCode\CygnetCI\CygnetCI.Agent.Installer\publish\runtimes\win\lib\net9.0\Modules\Microsoft.PowerShell.Management\Microsoft.PowerShell.Management.psd1" KeyPath="yes" />
+      </Component>
+      <Component Id="Comp_516" Guid="673CCF22-7275-480A-8BC7-ED139CB77188">
+        <File Id="File_516" Source="D:\Avesh\CygnetCI\SourceCode\CygnetCI\CygnetCI.Agent.Installer\publish\runtimes\win\lib\net9.0\Modules\Microsoft.PowerShell.Security\Microsoft.PowerShell.Security.psd1" KeyPath="yes" />
+      </Component>
+      <Component Id="Comp_517" Guid="679E9649-7E21-4488-805F-C1EECC503284">
+        <File Id="File_517" Source="D:\Avesh\CygnetCI\SourceCode\CygnetCI\CygnetCI.Agent.Installer\publish\runtimes\win\lib\net9.0\Modules\Microsoft.PowerShell.Security\Security.types.ps1xml" KeyPath="yes" />
+      </Component>
+      <Component Id="Comp_518" Guid="9704E3A2-E7C5-4229-9134-5B3B741DC330">
+        <File Id="File_518" Source="D:\Avesh\CygnetCI\SourceCode\CygnetCI\CygnetCI.Agent.Installer\publish\runtimes\win\lib\net9.0\Modules\Microsoft.PowerShell.Utility\Microsoft.PowerShell.Utility.psd1" KeyPath="yes" />
+      </Component>
+      <Component Id="Comp_519" Guid="C780E6FF-CB95-4E68-8F4F-05AA4AD8990A">
+        <File Id="File_519" Source="D:\Avesh\CygnetCI\SourceCode\CygnetCI\CygnetCI.Agent.Installer\publish\runtimes\win\lib\net9.0\Modules\Microsoft.WSMan.Management\Microsoft.WSMan.Management.psd1" KeyPath="yes" />
+      </Component>
+      <Component Id="Comp_520" Guid="4C247610-4CF0-44DD-8CE4-34429706CED7">
+        <File Id="File_520" Source="D:\Avesh\CygnetCI\SourceCode\CygnetCI\CygnetCI.Agent.Installer\publish\runtimes\win\lib\net9.0\Modules\Microsoft.WSMan.Management\WSMan.format.ps1xml" KeyPath="yes" />
+      </Component>
+      <Component Id="Comp_521" Guid="88E0781E-DB5B-48AD-9D51-6CE62C4D6CB1">
+        <File Id="File_521" Source="D:\Avesh\CygnetCI\SourceCode\CygnetCI\CygnetCI.Agent.Installer\publish\runtimes\win\lib\net9.0\Modules\PSDiagnostics\PSDiagnostics.psd1" KeyPath="yes" />
+      </Component>
+      <Component Id="Comp_522" Guid="83FEFFFE-3F8E-4F65-B266-EE6467D2A735">
+        <File Id="File_522" Source="D:\Avesh\CygnetCI\SourceCode\CygnetCI\CygnetCI.Agent.Installer\publish\runtimes\win\lib\net9.0\Modules\PSDiagnostics\PSDiagnostics.psm1" KeyPath="yes" />
+      </Component>
+      <!-- Files from tr subdirectory -->
+      <Component Id="Comp_523" Guid="C88CAE83-806E-4CAE-AF72-F7922D20A71A">
+        <File Id="File_523" Source="D:\Avesh\CygnetCI\SourceCode\CygnetCI\CygnetCI.Agent.Installer\publish\tr\Microsoft.CodeAnalysis.CSharp.resources.dll" KeyPath="yes" />
+      </Component>
+      <Component Id="Comp_524" Guid="5FE63792-5A4E-458C-9D21-486DA8A57BAD">
+        <File Id="File_524" Source="D:\Avesh\CygnetCI\SourceCode\CygnetCI\CygnetCI.Agent.Installer\publish\tr\Microsoft.CodeAnalysis.resources.dll" KeyPath="yes" />
+      </Component>
+      <Component Id="Comp_525" Guid="9A3AD92B-6B3F-4EA2-B0AD-4495856291A0">
+        <File Id="File_525" Source="D:\Avesh\CygnetCI\SourceCode\CygnetCI\CygnetCI.Agent.Installer\publish\tr\System.Private.ServiceModel.resources.dll" KeyPath="yes" />
+      </Component>
+      <Component Id="Comp_526" Guid="8560F257-D24F-47FB-8D75-F075ACA9CBB0">
+        <File Id="File_526" Source="D:\Avesh\CygnetCI\SourceCode\CygnetCI\CygnetCI.Agent.Installer\publish\tr\System.Web.Services.Description.resources.dll" KeyPath="yes" />
+      </Component>
+      <!-- Files from zh-Hans subdirectory -->
+      <Component Id="Comp_527" Guid="5796BC9F-2B08-4C2D-B226-D5DC17DA39BB">
+        <File Id="File_527" Source="D:\Avesh\CygnetCI\SourceCode\CygnetCI\CygnetCI.Agent.Installer\publish\zh-Hans\Microsoft.CodeAnalysis.CSharp.resources.dll" KeyPath="yes" />
+      </Component>
+      <Component Id="Comp_528" Guid="0ABD10B5-6E3A-4EE2-8E0C-28A0195478AD">
+        <File Id="File_528" Source="D:\Avesh\CygnetCI\SourceCode\CygnetCI\CygnetCI.Agent.Installer\publish\zh-Hans\Microsoft.CodeAnalysis.resources.dll" KeyPath="yes" />
+      </Component>
+      <Component Id="Comp_529" Guid="36AEA93C-6EAF-43E4-9669-94B729433398">
+        <File Id="File_529" Source="D:\Avesh\CygnetCI\SourceCode\CygnetCI\CygnetCI.Agent.Installer\publish\zh-Hans\System.Private.ServiceModel.resources.dll" KeyPath="yes" />
+      </Component>
+      <Component Id="Comp_530" Guid="C52D1B61-298B-46DE-9FFA-FA7EC03239F7">
+        <File Id="File_530" Source="D:\Avesh\CygnetCI\SourceCode\CygnetCI\CygnetCI.Agent.Installer\publish\zh-Hans\System.Web.Services.Description.resources.dll" KeyPath="yes" />
+      </Component>
+      <!-- Files from zh-Hant subdirectory -->
+      <Component Id="Comp_531" Guid="3646CCBA-29E1-4719-AAB9-674446E68764">
+        <File Id="File_531" Source="D:\Avesh\CygnetCI\SourceCode\CygnetCI\CygnetCI.Agent.Installer\publish\zh-Hant\Microsoft.CodeAnalysis.CSharp.resources.dll" KeyPath="yes" />
+      </Component>
+      <Component Id="Comp_532" Guid="2BE0C8CB-5EB1-4AE2-BAE7-F00A636254E9">
+        <File Id="File_532" Source="D:\Avesh\CygnetCI\SourceCode\CygnetCI\CygnetCI.Agent.Installer\publish\zh-Hant\Microsoft.CodeAnalysis.resources.dll" KeyPath="yes" />
+      </Component>
+      <Component Id="Comp_533" Guid="0DB2D81D-71D1-4007-9323-52BA9EE64489">
+        <File Id="File_533" Source="D:\Avesh\CygnetCI\SourceCode\CygnetCI\CygnetCI.Agent.Installer\publish\zh-Hant\System.Private.ServiceModel.resources.dll" KeyPath="yes" />
+      </Component>
+      <Component Id="Comp_534" Guid="CA69152C-5D89-4A9F-99CA-FAFB2B7EF131">
+        <File Id="File_534" Source="D:\Avesh\CygnetCI\SourceCode\CygnetCI\CygnetCI.Agent.Installer\publish\zh-Hant\System.Web.Services.Description.resources.dll" KeyPath="yes" />
+      </Component>
+    </ComponentGroup>
+  </Fragment>
+</Wix>

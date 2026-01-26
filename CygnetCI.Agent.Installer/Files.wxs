@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Wix xmlns="http://wixtoolset.org/schemas/v4/wxs">
+
+  <Fragment>
+    <ComponentGroup Id="PublishedComponents" Directory="INSTALLFOLDER">
+      <!--
+        Files harvested from the published output of CygnetCI.Agent project.
+        The WiX SDK automatically provides the published files through project reference.
+      -->
+      <Files Include="$(CygnetCI.Agent.TargetDir)**">
+        <Exclude Files="$(CygnetCI.Agent.TargetDir)CygnetCI.Agent.exe" />
+      </Files>
+    </ComponentGroup>
+  </Fragment>
+
+</Wix>

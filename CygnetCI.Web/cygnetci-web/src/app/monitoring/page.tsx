@@ -8,6 +8,7 @@ import {
   RefreshCw, Globe, ChevronRight
 } from 'lucide-react';
 import { useCustomer } from '@/lib/contexts/CustomerContext';
+import { CONFIG } from '@/lib/config';
 import { MetricDetailModal } from '@/components/monitoring/MetricDetailModal';
 import { WindowsServicesModal } from '@/components/monitoring/WindowsServicesModal';
 import { DriveInfoModal } from '@/components/monitoring/DriveInfoModal';
@@ -44,8 +45,8 @@ export default function MonitoringPage() {
     setRefreshing(true);
     try {
       const url = selectedCustomer
-        ? `http://127.0.0.1:8000/monitoring/agents/metrics?customer_id=${selectedCustomer.id}`
-        : 'http://127.0.0.1:8000/monitoring/agents/metrics';
+        ? `${CONFIG.api.baseUrl}/monitoring/agents/metrics?customer_id=${selectedCustomer.id}`
+        : `${CONFIG.api.baseUrl}/monitoring/agents/metrics`;
       const response = await fetch(url);
       if (response.ok) {
         const data = await response.json();

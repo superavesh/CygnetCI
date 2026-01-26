@@ -4,6 +4,7 @@
 
 import React, { useState, useEffect, useRef } from 'react';
 import { X, Square, Terminal, Download, Copy, Check } from 'lucide-react';
+import { CONFIG } from '@/lib/config';
 
 interface ExecutionViewModalProps {
   isOpen: boolean;
@@ -58,7 +59,7 @@ export const ExecutionViewModal: React.FC<ExecutionViewModalProps> = ({
       try {
         // Fetch execution status from the executions endpoint (only if pipelineId is provided)
         if (pipelineId && pipelineId > 0) {
-          const statusResponse = await fetch(`http://127.0.0.1:8000/pipelines/${pipelineId}/executions?limit=500`);
+          const statusResponse = await fetch(`${CONFIG.api.baseUrl}/pipelines/${pipelineId}/executions?limit=500`);
           if (statusResponse.ok) {
             const executions = await statusResponse.json();
             const currentExecution = executions.find((exec: any) => exec.id === executionId);
@@ -81,7 +82,7 @@ export const ExecutionViewModal: React.FC<ExecutionViewModalProps> = ({
         }
 
         // Fetch logs with high limit to get all logs
-        const logsUrl = `http://127.0.0.1:8000/pipeline-executions/${executionId}/logs?limit=10000`;
+        const logsUrl = `${CONFIG.api.baseUrl}/pipeline-executions/${executionId}/logs?limit=10000`;
         console.log('[ExecutionViewModal] Fetching logs from:', logsUrl);
         const logsResponse = await fetch(logsUrl);
         console.log('[ExecutionViewModal] Logs response status:', logsResponse.status, logsResponse.ok);

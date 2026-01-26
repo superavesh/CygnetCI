@@ -1,0 +1,43 @@
+{
+  "Agent": {
+    "ServerUrl": "http://YOUR_SERVER_IP:8000",
+    "AgentUuid": "GENERATE_NEW_GUID_HERE",
+    "AgentName": "YOUR_AGENT_NAME",
+    "Location": "Your Server Location",
+    "HeartbeatIntervalSeconds": 30,
+    "TaskPollingIntervalSeconds": 5,
+    "FilePollingIntervalSeconds": 10,
+    "ReleasePollingIntervalSeconds": 10,
+    "WorkingDirectory": "work",
+    "DownloadsDirectory": "downloads",
+    "MaxConcurrentTasks": 3,
+    "MaxConcurrentReleases": 2,
+    "ScriptTimeoutSeconds": 3600,
+    "Proxy": {
+      "Enabled": false,
+      "Address": "",
+      "Port": 8080,
+      "UseDefaultCredentials": false,
+      "Username": "",
+      "Password": "",
+      "BypassList": [],
+      "BypassOnLocal": true
+    },
+    "WebsitePings": [
+      {
+        "Name": "CygnetCI API",
+        "Url": "http://YOUR_SERVER_IP:8000/monitoring/api/ping",
+        "TimeoutSeconds": 5,
+        "Enabled": true
+      }
+    ]
+  },
+  "Logging": {
+    "LogLevel": {
+      "Default": "Information",
+      "Microsoft": "Warning",
+      "Microsoft.Hosting.Lifetime": "Information",
+      "CygnetCI.Agent": "Information"
+    }
+  }
+}

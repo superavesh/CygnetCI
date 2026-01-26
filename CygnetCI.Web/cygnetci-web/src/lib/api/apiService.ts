@@ -82,7 +82,7 @@ class ApiService {
 
   // ==================== AGENT METHODS ====================
 
-  async addAgent(agentData: { name: string; description: string; uuid: string; location: string }) {
+  async addAgent(agentData: { name: string; description: string; uuid: string; location: string; customer_id?: number }) {
     const url = `${CONFIG.api.baseUrl}/agents`;
     const response = await fetch(url, {
       method: 'POST',
@@ -91,7 +91,8 @@ class ApiService {
     });
 
     if (!response.ok) {
-      throw new Error(`HTTP error! status: ${response.status}`);
+      const errorData = await response.json().catch(() => ({}));
+      throw new Error(errorData.detail || `HTTP error! status: ${response.status}`);
     }
 
     return await response.json();

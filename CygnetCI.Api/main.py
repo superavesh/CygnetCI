@@ -95,6 +95,7 @@ class AgentCreate(BaseModel):
     description: Optional[str] = None
     uuid: str
     location: str
+    customer_id: Optional[int] = None
 
 class AgentUpdate(BaseModel):
     name: Optional[str] = None
@@ -624,12 +625,22 @@ def create_agent(agent: AgentCreate, db: Session = Depends(get_db)):
     if existing:
         raise HTTPException(status_code=400, detail="Agent with this UUID already exists")
     
+    # Validate customer_id is provided (required due to database constraint)
+    if agent.customer_id is None:
+        raise HTTPException(status_code=400, detail="Customer ID is required. Please select a customer before adding an agent.")
+
+    # Validate customer exists
+    customer = db.query(models.Customer).filter(models.Customer.id == agent.customer_id).first()
+    if not customer:
+        raise HTTPException(status_code=400, detail="Customer not found")
+
     # Create new agent
     db_agent = models.Agent(
         name=agent.name,
         uuid=agent.uuid,
         description=agent.description,
         location=agent.location,
+        customer_id=agent.customer_id,
         status="online",
         last_seen=datetime.now(),
         jobs=0,
@@ -972,30 +983,36 @@ def get_agent_drive_info(agent_uuid: str, db: Session = Depends(get_db)):
 
 @app.get("/monitoring/agents/{agent_uuid}/website-ping", tags=["🌐 UI - Monitoring"])
 def get_agent_website_ping(agent_uuid: str, db: Session = Depends(get_db)):
-    """Get website/API ping status from agent"""
+    """Get website/API ping status from agent (from agent's appsettings.json configuration)"""
     agent = db.query(models.Agent).filter(models.Agent.uuid == agent_uuid).first()
     if not agent:
         raise HTTPException(status_code=404, detail="Agent not found")
 
-    # Mock ping data - In production, agent would report this
-    pings = [
-        {
-            "url": "http://localhost:8000",
-            "name": "CygnetCI API",
-            "status": "healthy",
-            "response_time_ms": 45,
-            "last_checked": datetime.now().isoformat()
-        },
-        {
-            "url": "http://localhost:3000",
-            "name": "CygnetCI Web",
-            "status": "healthy",
-            "response_time_ms": 32,
-            "last_checked": datetime.now().isoformat()
-        }
-    ]
+    # Get the latest ping data for each URL (most recent check)
+    # Using a subquery to get the latest checked_at for each URL
+    from sqlalchemy import func as sql_func
 
-    return pings
+    # Get all pings for this agent, ordered by checked_at descending
+    pings = db.query(models.AgentWebsitePing)\
+        .filter(models.AgentWebsitePing.agent_id == agent.id)\
+        .order_by(models.AgentWebsitePing.checked_at.desc())\
+        .all()
+
+    # Deduplicate by URL, keeping only the most recent ping for each URL
+    seen_urls = set()
+    unique_pings = []
+    for ping in pings:
+        if ping.url not in seen_urls:
+            seen_urls.add(ping.url)
+            unique_pings.append({
+                "url": ping.url,
+                "name": ping.name,
+                "status": ping.status,
+                "response_time_ms": ping.response_time_ms,
+                "last_checked": ping.checked_at.isoformat() if ping.checked_at else datetime.now().isoformat()
+            })
+
+    return unique_pings
 
 @app.get("/monitoring/agents/{agent_uuid}/logs/{service_name}", tags=["🌐 UI - Monitoring"])
 def get_service_logs(

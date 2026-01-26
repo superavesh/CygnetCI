@@ -1,0 +1,79 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Wix xmlns="http://wixtoolset.org/schemas/v4/wxs"
+     xmlns:ui="http://wixtoolset.org/schemas/v4/wxs/ui">
+
+  <!-- Custom Dialog Definition for Agent Configuration -->
+  <Fragment>
+    <UI>
+      <!-- Custom Configuration Dialog -->
+      <Dialog Id="AgentConfigDlg" Width="370" Height="270" Title="[ProductName] Configuration">
+
+        <!-- Title -->
+        <Control Id="Title" Type="Text" X="15" Y="6" Width="340" Height="15" Transparent="yes" NoPrefix="yes"
+                 Text="{\WixUI_Font_Title}Agent Configuration" />
+
+        <!-- Description -->
+        <Control Id="Description" Type="Text" X="25" Y="23" Width="320" Height="20" Transparent="yes" NoPrefix="yes"
+                 Text="Please enter the Agent configuration settings." />
+
+        <!-- Horizontal Line -->
+        <Control Id="BannerLine" Type="Line" X="0" Y="44" Width="370" Height="0" />
+
+        <!-- API URL -->
+        <Control Id="ApiUrlLabel" Type="Text" X="20" Y="60" Width="100" Height="15" NoPrefix="yes"
+                 Text="API Server URL:" />
+        <Control Id="ApiUrlEdit" Type="Edit" X="20" Y="75" Width="330" Height="18" Property="API_URL"
+                 Text="{80}" />
+        <Control Id="ApiUrlHelp" Type="Text" X="20" Y="95" Width="330" Height="15" NoPrefix="yes"
+                 Text="Example: http://192.168.1.100:8000" />
+
+        <!-- Agent UUID -->
+        <Control Id="AgentUuidLabel" Type="Text" X="20" Y="120" Width="100" Height="15" NoPrefix="yes"
+                 Text="Agent UUID:" />
+        <Control Id="AgentUuidEdit" Type="Edit" X="20" Y="135" Width="330" Height="18" Property="AGENT_UUID"
+                 Text="{50}" />
+        <Control Id="AgentUuidHelp" Type="Text" X="20" Y="155" Width="330" Height="15" NoPrefix="yes"
+                 Text="Unique identifier from CygnetCI web UI" />
+
+        <!-- Agent Name -->
+        <Control Id="AgentNameLabel" Type="Text" X="20" Y="180" Width="100" Height="15" NoPrefix="yes"
+                 Text="Agent Name (optional):" />
+        <Control Id="AgentNameEdit" Type="Edit" X="20" Y="195" Width="330" Height="18" Property="AGENT_NAME"
+                 Text="{50}" />
+        <Control Id="AgentNameHelp" Type="Text" X="20" Y="215" Width="330" Height="15" NoPrefix="yes"
+                 Text="Leave blank to use computer name" />
+
+        <!-- Bottom Line -->
+        <Control Id="BottomLine" Type="Line" X="0" Y="234" Width="370" Height="0" />
+
+        <!-- Buttons -->
+        <Control Id="Back" Type="PushButton" X="180" Y="243" Width="56" Height="17" Text="&amp;Back">
+          <Publish Event="NewDialog" Value="InstallDirDlg" Condition="1" />
+        </Control>
+        <Control Id="Next" Type="PushButton" X="236" Y="243" Width="56" Height="17" Default="yes" Text="&amp;Next">
+          <Publish Event="NewDialog" Value="VerifyReadyDlg" Condition="AGENT_UUID" />
+          <Publish Event="SpawnDialog" Value="InvalidUuidDlg" Condition="NOT AGENT_UUID" />
+        </Control>
+        <Control Id="Cancel" Type="PushButton" X="304" Y="243" Width="56" Height="17" Cancel="yes" Text="Cancel">
+          <Publish Event="SpawnDialog" Value="CancelDlg" Condition="1" />
+        </Control>
+      </Dialog>
+
+      <!-- Validation Dialog for empty UUID -->
+      <Dialog Id="InvalidUuidDlg" Width="260" Height="85" Title="[ProductName]" NoMinimize="yes">
+        <Control Id="Icon" Type="Icon" X="15" Y="15" Width="24" Height="24" FixedSize="yes" IconSize="32" Text="WixUI_Ico_Exclam" />
+        <Control Id="Text" Type="Text" X="48" Y="15" Width="194" Height="30"
+                 Text="Agent UUID is required. Get the UUID from CygnetCI web UI." />
+        <Control Id="OK" Type="PushButton" X="102" Y="57" Width="56" Height="17" Default="yes" Cancel="yes" Text="OK">
+          <Publish Event="EndDialog" Value="Return" Condition="1" />
+        </Control>
+      </Dialog>
+
+      <!-- Insert Custom Dialog into Install Sequence -->
+      <Publish Dialog="InstallDirDlg" Control="Next" Event="NewDialog" Value="AgentConfigDlg" Order="4" Condition="1" />
+      <Publish Dialog="VerifyReadyDlg" Control="Back" Event="NewDialog" Value="AgentConfigDlg" Order="1" Condition="NOT Installed" />
+
+    </UI>
+  </Fragment>
+
+</Wix>

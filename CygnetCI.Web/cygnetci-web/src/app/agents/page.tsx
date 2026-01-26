@@ -28,14 +28,15 @@ export default function AgentsPage() {
     description: string;
     uuid: string;
     location: string;
+    customer_id?: number;
   }) => {
     try {
       await apiService.addAgent(agentData);
       await refetch();
       setShowAddModal(false);
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error adding agent:', error);
-      alert('Failed to add agent. Please try again.');
+      alert(error.message || 'Failed to add agent. Please try again.');
     }
   };
 
@@ -76,6 +77,14 @@ export default function AgentsPage() {
     setShowLogsModal(true);
   };
 
+  const handleOpenAddModal = () => {
+    if (!selectedCustomer) {
+      alert('Please select a customer first before adding an agent.');
+      return;
+    }
+    setShowAddModal(true);
+  };
+
   return (
     <>
       <div className="space-y-6">
@@ -90,7 +99,7 @@ export default function AgentsPage() {
               <span>Refresh</span>
             </button>
             <button
-              onClick={() => setShowAddModal(true)}
+              onClick={handleOpenAddModal}
               className="bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded-lg flex items-center space-x-2 transition-colors"
             >
               <Server className="h-4 w-4" />
@@ -128,8 +137,8 @@ export default function AgentsPage() {
             <Server className="h-16 w-16 text-gray-400 mx-auto mb-4" />
             <h3 className="text-lg font-semibold text-gray-800 mb-2">No Agents Found</h3>
             <p className="text-gray-600 mb-4">Get started by adding your first deployment agent</p>
-            <button 
-              onClick={() => setShowAddModal(true)}
+            <button
+              onClick={handleOpenAddModal}
               className="bg-green-500 hover:bg-green-600 text-white px-6 py-3 rounded-lg inline-flex items-center space-x-2 transition-colors"
             >
               <Server className="h-5 w-5" />
@@ -144,6 +153,7 @@ export default function AgentsPage() {
         isOpen={showAddModal}
         onClose={() => setShowAddModal(false)}
         onSubmit={handleAddAgent}
+        customerId={selectedCustomer?.id}
       />
 
       <ConfigureAgentModal

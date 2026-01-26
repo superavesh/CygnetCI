@@ -5,6 +5,7 @@
 import React, { useState, useEffect } from 'react';
 import { X, Rocket, Eye, CheckCircle, XCircle, PlayCircle, Clock } from 'lucide-react';
 import { ExecutionViewModal } from '../pipelines/ExecutionViewModal';
+import { CONFIG } from '@/lib/config';
 
 interface ReleaseExecutionViewModalProps {
   isOpen: boolean;
@@ -46,14 +47,14 @@ export const ReleaseExecutionViewModal: React.FC<ReleaseExecutionViewModalProps>
         setLoading(true);
 
         // Fetch release execution to get status
-        const execResponse = await fetch(`http://127.0.0.1:8000/release-executions/${executionId}`);
+        const execResponse = await fetch(`${CONFIG.api.baseUrl}/release-executions/${executionId}`);
         if (execResponse.ok) {
           const execData = await execResponse.json();
           setReleaseStatus(execData.status);
         }
 
         // Fetch pipeline executions for this release
-        const pipelineExecsResponse = await fetch(`http://127.0.0.1:8000/release-executions/${executionId}/pipeline-executions`);
+        const pipelineExecsResponse = await fetch(`${CONFIG.api.baseUrl}/release-executions/${executionId}/pipeline-executions`);
         if (pipelineExecsResponse.ok) {
           const pipelineExecsData = await pipelineExecsResponse.json();
           setPipelineExecutions(pipelineExecsData);

@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { X, Download, RefreshCw, Search, Calendar, AlertCircle, Info, CheckCircle, AlertTriangle } from 'lucide-react';
+import { CONFIG } from '@/lib/config';
 
 interface ServiceLog {
   id: number;
@@ -42,7 +43,7 @@ export const ServiceLogsModal: React.FC<ServiceLogsModalProps> = ({
       params.append('limit', '200');
 
       const response = await fetch(
-        `http://127.0.0.1:8000/monitoring/agents/${agentUuid}/logs/${serviceName}?${params}`
+        `${CONFIG.api.baseUrl}/monitoring/agents/${agentUuid}/logs/${serviceName}?${params}`
       );
 
       if (response.ok) {

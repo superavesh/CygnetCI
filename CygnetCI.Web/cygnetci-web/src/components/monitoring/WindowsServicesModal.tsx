@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import { X, Play, Square, RefreshCw, CheckCircle, XCircle, FileText, Loader } from 'lucide-react';
 import { ServiceLogsModal } from './ServiceLogsModal';
+import { CONFIG } from '@/lib/config';
 
 interface WindowsService {
   name: string;
@@ -36,7 +37,7 @@ export const WindowsServicesModal: React.FC<WindowsServicesModalProps> = ({
     setLoading(true);
     try {
       const response = await fetch(
-        `http://127.0.0.1:8000/monitoring/agents/${agentUuid}/windows-services`
+        `${CONFIG.api.baseUrl}/monitoring/agents/${agentUuid}/windows-services`
       );
       if (response.ok) {
         const data = await response.json();
@@ -53,7 +54,7 @@ export const WindowsServicesModal: React.FC<WindowsServicesModalProps> = ({
     setActionLoading(serviceName);
     try {
       const response = await fetch(
-        `http://127.0.0.1:8000/monitoring/agents/${agentUuid}/windows-services/control?service_name=${serviceName}&action=${action}`,
+        `${CONFIG.api.baseUrl}/monitoring/agents/${agentUuid}/windows-services/control?service_name=${serviceName}&action=${action}`,
         { method: 'POST' }
       );
 

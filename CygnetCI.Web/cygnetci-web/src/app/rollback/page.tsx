@@ -7,6 +7,7 @@ import {
   Upload, Database, FileText, RefreshCw, Trash2, Download,
   CheckCircle, XCircle, Clock, AlertCircle, Loader, FileDown, Eye
 } from 'lucide-react';
+import { CONFIG } from '@/lib/config';
 
 interface RollbackScript {
   id: number;
@@ -72,7 +73,7 @@ export default function RollbackPage() {
   const fetchScripts = async () => {
     setLoading(true);
     try {
-      const response = await fetch('http://127.0.0.1:8000/rollback/scripts');
+      const response = await fetch(`${CONFIG.api.baseUrl}/rollback/scripts`);
       if (response.ok) {
         const data = await response.json();
         setScripts(data);
@@ -131,7 +132,7 @@ export default function RollbackPage() {
       if (description) formData.append('description', description);
       if (uploadedBy) formData.append('uploaded_by', uploadedBy);
 
-      const response = await fetch('http://127.0.0.1:8000/rollback/upload', {
+      const response = await fetch(`${CONFIG.api.baseUrl}/rollback/upload`, {
         method: 'POST',
         body: formData
       });
@@ -162,7 +163,7 @@ export default function RollbackPage() {
   const handleAnalyze = async (scriptId: number) => {
     setAnalyzing(scriptId);
     try {
-      const response = await fetch(`http://127.0.0.1:8000/rollback/${scriptId}/analyze`, {
+      const response = await fetch(`${CONFIG.api.baseUrl}/rollback/${scriptId}/analyze`, {
         method: 'POST'
       });
 
@@ -184,7 +185,7 @@ export default function RollbackPage() {
 
   const handleViewDetails = async (scriptId: number) => {
     try {
-      const response = await fetch(`http://127.0.0.1:8000/rollback/${scriptId}`);
+      const response = await fetch(`${CONFIG.api.baseUrl}/rollback/${scriptId}`);
       if (response.ok) {
         const data = await response.json();
         setSelectedScript(data);
@@ -206,7 +207,7 @@ export default function RollbackPage() {
     setDeleteConfirmation(null);
 
     try {
-      const response = await fetch(`http://127.0.0.1:8000/rollback/${scriptId}`, {
+      const response = await fetch(`${CONFIG.api.baseUrl}/rollback/${scriptId}`, {
         method: 'DELETE'
       });
 
@@ -232,7 +233,7 @@ export default function RollbackPage() {
   };
 
   const handleDownload = (scriptId: number) => {
-    window.open(`http://127.0.0.1:8000/rollback/${scriptId}/download`, '_blank');
+    window.open(`${CONFIG.api.baseUrl}/rollback/${scriptId}/download`, '_blank');
   };
 
   const handleDownloadResultsJSON = () => {

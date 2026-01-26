@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { X, Calendar, TrendingUp, RefreshCw, Trash2, ChevronLeft, ChevronRight, AlertTriangle } from 'lucide-react';
+import { CONFIG } from '@/lib/config';
 
 interface MetricHistory {
   id?: number;
@@ -44,7 +45,7 @@ export const MetricDetailModal: React.FC<MetricDetailModalProps> = ({
   const fetchHistory = async () => {
     setLoading(true);
     try {
-      let url = `http://127.0.0.1:8000/monitoring/agents/${agentUuid}/metrics/history`;
+      let url = `${CONFIG.api.baseUrl}/monitoring/agents/${agentUuid}/metrics/history`;
 
       if (useCustomRange && startDate && endDate) {
         url += `?start_date=${startDate}&end_date=${endDate}`;
@@ -84,7 +85,7 @@ export const MetricDetailModal: React.FC<MetricDetailModalProps> = ({
 
     setDeleting(true);
     try {
-      const url = `http://127.0.0.1:8000/monitoring/agents/${agentUuid}/metrics/history?start_date=${startDateTime.toISOString()}&end_date=${endDateTime.toISOString()}`;
+      const url = `${CONFIG.api.baseUrl}/monitoring/agents/${agentUuid}/metrics/history?start_date=${startDateTime.toISOString()}&end_date=${endDateTime.toISOString()}`;
 
       const response = await fetch(url, {
         method: 'DELETE'

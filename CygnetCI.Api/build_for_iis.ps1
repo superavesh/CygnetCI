@@ -1,8 +1,10 @@
 # CygnetCI API Build Script for IIS Deployment
-# This script creates a self-contained deployment package
+# This script creates a FULLY SELF-CONTAINED deployment package
+# including Python runtime - NO Python installation required on server
 
 param(
     [string]$OutputPath = ".\dist",
+    [string]$PythonVersion = "3.12.8",
     [switch]$CreateZip
 )
 
@@ -10,31 +12,90 @@ $ErrorActionPreference = "Stop"
 
 Write-Host "========================================" -ForegroundColor Cyan
 Write-Host "CygnetCI API Build for IIS" -ForegroundColor Cyan
+Write-Host "(Self-Contained with Embedded Python)" -ForegroundColor Cyan
 Write-Host "========================================" -ForegroundColor Cyan
 
 $SourcePath = $PSScriptRoot
 $DistPath = Join-Path $SourcePath $OutputPath
+$PythonDir = Join-Path $DistPath "python"
+$SitePackagesDir = Join-Path $PythonDir "Lib\site-packages"
 
 # Step 1: Clean previous build
-Write-Host "`n[1/6] Cleaning previous build..." -ForegroundColor Yellow
+Write-Host "`n[1/7] Cleaning previous build..." -ForegroundColor Yellow
 if (Test-Path $DistPath) {
     Remove-Item -Recurse -Force $DistPath
 }
 New-Item -ItemType Directory -Force -Path $DistPath | Out-Null
 
-# Step 2: Create virtual environment in dist folder
-Write-Host "`n[2/6] Creating virtual environment..." -ForegroundColor Yellow
-$VenvPath = Join-Path $DistPath "venv"
-python -m venv $VenvPath
+# Step 2: Download Python Embeddable Package
+Write-Host "`n[2/7] Downloading Python $PythonVersion embeddable package..." -ForegroundColor Yellow
+$PythonZipUrl = "https://www.python.org/ftp/python/$PythonVersion/python-$PythonVersion-embed-amd64.zip"
+$PythonZipPath = Join-Path $env:TEMP "python-embed.zip"
 
-# Step 3: Install dependencies
-Write-Host "`n[3/6] Installing dependencies..." -ForegroundColor Yellow
-$PipPath = Join-Path $VenvPath "Scripts\pip.exe"
-& $PipPath install --upgrade pip
-& $PipPath install -r (Join-Path $SourcePath "requirements.txt")
+try {
+    Invoke-WebRequest -Uri $PythonZipUrl -OutFile $PythonZipPath -UseBasicParsing
+    Write-Host "  Downloaded Python embeddable package" -ForegroundColor Gray
+} catch {
+    Write-Host "  Failed to download Python. Trying alternative version..." -ForegroundColor Yellow
+    $PythonVersion = "3.11.9"
+    $PythonZipUrl = "https://www.python.org/ftp/python/$PythonVersion/python-$PythonVersion-embed-amd64.zip"
+    Invoke-WebRequest -Uri $PythonZipUrl -OutFile $PythonZipPath -UseBasicParsing
+    Write-Host "  Downloaded Python $PythonVersion embeddable package" -ForegroundColor Gray
+}
 
-# Step 4: Copy application files
-Write-Host "`n[4/6] Copying application files..." -ForegroundColor Yellow
+# Extract Python
+Write-Host "  Extracting Python..." -ForegroundColor Gray
+New-Item -ItemType Directory -Force -Path $PythonDir | Out-Null
+Expand-Archive -Path $PythonZipPath -DestinationPath $PythonDir -Force
+Remove-Item $PythonZipPath
+
+# Step 3: Configure Python for pip and packages
+Write-Host "`n[3/7] Configuring Python for packages..." -ForegroundColor Yellow
+
+# Find and modify the python*._pth file to enable site-packages
+$PthFile = Get-ChildItem -Path $PythonDir -Filter "python*._pth" | Select-Object -First 1
+if ($PthFile) {
+    $pthContent = @"
+python312.zip
+.
+Lib\site-packages
+import site
+"@
+    $pthContent | Set-Content $PthFile.FullName
+    Write-Host "  Configured $($PthFile.Name) for site-packages" -ForegroundColor Gray
+}
+
+# Create Lib\site-packages directory
+New-Item -ItemType Directory -Force -Path $SitePackagesDir | Out-Null
+
+# Step 4: Download and install pip
+Write-Host "`n[4/7] Installing pip..." -ForegroundColor Yellow
+$GetPipUrl = "https://bootstrap.pypa.io/get-pip.py"
+$GetPipPath = Join-Path $env:TEMP "get-pip.py"
+Invoke-WebRequest -Uri $GetPipUrl -OutFile $GetPipPath -UseBasicParsing
+
+$PythonExe = Join-Path $PythonDir "python.exe"
+& $PythonExe $GetPipPath --target=$SitePackagesDir --no-warn-script-location 2>&1 | Out-Null
+Remove-Item $GetPipPath
+Write-Host "  Pip installed" -ForegroundColor Gray
+
+# Step 5: Install dependencies
+Write-Host "`n[5/7] Installing dependencies..." -ForegroundColor Yellow
+$RequirementsPath = Join-Path $SourcePath "requirements.txt"
+
+# Install each package to site-packages (--upgrade to handle existing packages)
+$pipOutput = & $PythonExe -m pip install --target=$SitePackagesDir --upgrade --no-warn-script-location -r $RequirementsPath 2>&1
+$pipOutput | ForEach-Object {
+    $line = $_.ToString()
+    if ($line -match "Successfully installed") {
+        Write-Host "  $line" -ForegroundColor Gray
+    }
+}
+
+Write-Host "  Dependencies installed" -ForegroundColor Green
+
+# Step 6: Copy application files
+Write-Host "`n[6/7] Copying application files..." -ForegroundColor Yellow
 $FilesToCopy = @(
     "main.py",
     "models.py",
@@ -44,9 +105,7 @@ $FilesToCopy = @(
     "claude_service.py",
     "email_service.py",
     "requirements.txt",
-    "config.ini",
-    "web.config",
-    "run_server.py"
+    "config.ini"
 )
 
 foreach ($file in $FilesToCopy) {
@@ -57,29 +116,20 @@ foreach ($file in $FilesToCopy) {
     }
 }
 
-# Copy __pycache__ exclusion
-$ExcludeFolders = @("__pycache__", "venv", "dist", ".git", ".idea", ".vscode")
+# Step 7: Create startup files and web.config
+Write-Host "`n[7/7] Creating startup files..." -ForegroundColor Yellow
 
-# Step 5: Create startup files
-Write-Host "`n[5/6] Creating startup files..." -ForegroundColor Yellow
+# Create logs directory
+New-Item -ItemType Directory -Force -Path (Join-Path $DistPath "logs") | Out-Null
 
-# Create run_server.py if not exists
-$RunServerContent = @"
-# run_server.py - Entry point for IIS
-import uvicorn
-from main import app
-
-if __name__ == "__main__":
-    uvicorn.run(app, host="127.0.0.1", port=8000)
-"@
-$RunServerContent | Set-Content (Join-Path $DistPath "run_server.py")
-
-# Create start_api.bat
+# Create start_api.bat for manual testing
 $StartBatContent = @"
 @echo off
 cd /d %~dp0
-call venv\Scripts\activate.bat
-python -m uvicorn main:app --host 127.0.0.1 --port 8000
+echo Starting CygnetCI API...
+echo Press Ctrl+C to stop
+python\python.exe -m uvicorn main:app --host 127.0.0.1 --port 8000
+pause
 "@
 $StartBatContent | Set-Content (Join-Path $DistPath "start_api.bat")
 
@@ -91,14 +141,16 @@ $WebConfigContent = @"
         <handlers>
             <add name="PythonHandler" path="*" verb="*" modules="httpPlatformHandler" resourceType="Unspecified"/>
         </handlers>
-        <httpPlatform processPath="%HOME%\venv\Scripts\python.exe"
+        <httpPlatform processPath="%APPL_PHYSICAL_PATH%\python\python.exe"
                       arguments="-m uvicorn main:app --host 127.0.0.1 --port %HTTP_PLATFORM_PORT%"
                       stdoutLogEnabled="true"
-                      stdoutLogFile=".\logs\python-stdout"
-                      startupTimeLimit="60"
-                      processesPerApplication="1">
+                      stdoutLogFile="%APPL_PHYSICAL_PATH%\logs\python"
+                      startupTimeLimit="120"
+                      processesPerApplication="1"
+                      requestTimeout="00:05:00">
             <environmentVariables>
-                <environmentVariable name="PYTHONPATH" value="%HOME%"/>
+                <environmentVariable name="PYTHONPATH" value="%APPL_PHYSICAL_PATH%"/>
+                <environmentVariable name="PYTHONDONTWRITEBYTECODE" value="1"/>
             </environmentVariables>
         </httpPlatform>
     </system.webServer>
@@ -106,11 +158,7 @@ $WebConfigContent = @"
 "@
 $WebConfigContent | Set-Content (Join-Path $DistPath "web.config")
 
-# Create logs directory
-New-Item -ItemType Directory -Force -Path (Join-Path $DistPath "logs") | Out-Null
-
-# Step 6: Create config.ini template
-Write-Host "`n[6/6] Creating configuration template..." -ForegroundColor Yellow
+# Create config.ini template
 $ConfigTemplate = @"
 # CygnetCI Configuration File
 # IMPORTANT: Update these settings for your production environment
@@ -159,6 +207,9 @@ temperature = 0
 "@
 $ConfigTemplate | Set-Content (Join-Path $DistPath "config.ini.template")
 
+# Calculate total size
+$TotalSize = (Get-ChildItem $DistPath -Recurse | Measure-Object -Property Length -Sum).Sum / 1MB
+
 # Create ZIP if requested
 if ($CreateZip) {
     Write-Host "`nCreating ZIP archive..." -ForegroundColor Yellow
@@ -166,23 +217,34 @@ if ($CreateZip) {
     if (Test-Path $ZipPath) {
         Remove-Item $ZipPath
     }
-    Compress-Archive -Path "$DistPath\*" -DestinationPath $ZipPath
-    Write-Host "ZIP created: $ZipPath" -ForegroundColor Green
+    Compress-Archive -Path "$DistPath\*" -DestinationPath $ZipPath -CompressionLevel Optimal
+    $ZipSize = (Get-Item $ZipPath).Length / 1MB
+    Write-Host "  ZIP created: $ZipPath ($([math]::Round($ZipSize, 2)) MB)" -ForegroundColor Green
 }
 
 # Summary
 Write-Host "`n========================================" -ForegroundColor Green
-Write-Host "Build Complete!" -ForegroundColor Green
+Write-Host "Build Complete! (Self-Contained)" -ForegroundColor Green
 Write-Host "========================================" -ForegroundColor Green
 Write-Host ""
 Write-Host "Output directory: $DistPath" -ForegroundColor Cyan
+Write-Host "Total size: $([math]::Round($TotalSize, 2)) MB" -ForegroundColor Cyan
+Write-Host "Python version: $PythonVersion (embedded)" -ForegroundColor Cyan
 Write-Host ""
 Write-Host "Contents:" -ForegroundColor Yellow
-Get-ChildItem $DistPath | ForEach-Object { Write-Host "  - $($_.Name)" }
+Write-Host "  - python\          (Embedded Python runtime)" -ForegroundColor Gray
+Write-Host "  - main.py          (FastAPI application)" -ForegroundColor Gray
+Write-Host "  - web.config       (IIS configuration)" -ForegroundColor Gray
+Write-Host "  - start_api.bat    (Manual start script)" -ForegroundColor Gray
+Write-Host "  - config.ini.template" -ForegroundColor Gray
+Write-Host "  - logs\            (Log directory)" -ForegroundColor Gray
 Write-Host ""
-Write-Host "Next Steps:" -ForegroundColor Yellow
-Write-Host "  1. Copy the 'dist' folder contents to your server"
-Write-Host "  2. Rename 'config.ini.template' to 'config.ini'"
-Write-Host "  3. Update config.ini with your production settings"
-Write-Host "  4. Configure IIS (see DEPLOYMENT_FASTAPI.md)"
+Write-Host "Deployment Steps:" -ForegroundColor Yellow
+Write-Host "  1. Copy 'dist' folder (or extract ZIP) to server" -ForegroundColor White
+Write-Host "  2. Rename 'config.ini.template' to 'config.ini'" -ForegroundColor White
+Write-Host "  3. Update config.ini with your database settings" -ForegroundColor White
+Write-Host "  4. Test: Run 'start_api.bat' to verify it works" -ForegroundColor White
+Write-Host "  5. Configure IIS site pointing to this folder" -ForegroundColor White
+Write-Host ""
+Write-Host "NO Python installation required on server!" -ForegroundColor Green
 Write-Host ""

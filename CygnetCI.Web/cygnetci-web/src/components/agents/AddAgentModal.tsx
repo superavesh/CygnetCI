@@ -13,10 +13,12 @@ interface AddAgentModalProps {
     description: string;
     uuid: string;
     location: string;
+    customer_id?: number;
   }) => void;
+  customerId?: number;
 }
 
-export const AddAgentModal: React.FC<AddAgentModalProps> = ({ isOpen, onClose, onSubmit }) => {
+export const AddAgentModal: React.FC<AddAgentModalProps> = ({ isOpen, onClose, onSubmit, customerId }) => {
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
   const [location, setLocation] = useState('');
@@ -63,13 +65,14 @@ export const AddAgentModal: React.FC<AddAgentModalProps> = ({ isOpen, onClose, o
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     if (validateForm()) {
       onSubmit({
         name: name.trim(),
         description: description.trim(),
         uuid: uuid.trim(),
-        location: location.trim()
+        location: location.trim(),
+        customer_id: customerId
       });
       
       // Reset form

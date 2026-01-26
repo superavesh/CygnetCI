@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { X, Globe, CheckCircle, XCircle, RefreshCw, Clock } from 'lucide-react';
+import { CONFIG } from '@/lib/config';
 
 interface WebsitePing {
   url: string;
@@ -33,7 +34,7 @@ export const WebsitePingModal: React.FC<WebsitePingModalProps> = ({
     setRefreshing(true);
     try {
       const response = await fetch(
-        `http://127.0.0.1:8000/monitoring/agents/${agentUuid}/website-ping`
+        `${CONFIG.api.baseUrl}/monitoring/agents/${agentUuid}/website-ping`
       );
       if (response.ok) {
         const data = await response.json();

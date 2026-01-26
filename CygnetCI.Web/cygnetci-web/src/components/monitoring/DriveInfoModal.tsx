@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { X, HardDrive, RefreshCw } from 'lucide-react';
+import { CONFIG } from '@/lib/config';
 
 interface DriveInfo {
   letter: string;
@@ -32,7 +33,7 @@ export const DriveInfoModal: React.FC<DriveInfoModalProps> = ({
     setLoading(true);
     try {
       const response = await fetch(
-        `http://127.0.0.1:8000/monitoring/agents/${agentUuid}/drive-info`
+        `${CONFIG.api.baseUrl}/monitoring/agents/${agentUuid}/drive-info`
       );
       if (response.ok) {
         const data = await response.json();
