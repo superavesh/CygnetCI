@@ -513,4 +513,70 @@ public class CygnetApiClient : ICygnetApiClient
             _logger.LogError(ex, "Failed to complete pipeline pickup {PickupId}", pickupId);
         }
     }
+
+    // Agent Command Methods
+    public async Task<List<AgentCommandInfo>> GetPendingCommandsAsync(CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            var response = await _httpClient.GetAsync(
+                $"/commands/agent/{_config.AgentUuid}/pending",
+                cancellationToken);
+
+            response.EnsureSuccessStatusCode();
+
+            var json = await response.Content.ReadAsStringAsync(cancellationToken);
+            return JsonSerializer.Deserialize<List<AgentCommandInfo>>(json, _jsonOptions) ?? new List<AgentCommandInfo>();
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Failed to get pending commands");
+            return new List<AgentCommandInfo>();
+        }
+    }
+
+    public async Task StartCommandAsync(int commandId, CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            var response = await _httpClient.PostAsync(
+                $"/commands/{commandId}/start",
+                null,
+                cancellationToken);
+
+            response.EnsureSuccessStatusCode();
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Failed to start command {CommandId}", commandId);
+        }
+    }
+
+    public async Task CompleteCommandAsync(int commandId, bool success, string? result = null, CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            var payload = new
+            {
+                success = success,
+                result = result
+            };
+
+            var content = new StringContent(
+                JsonSerializer.Serialize(payload, _jsonOptions),
+                Encoding.UTF8,
+                "application/json");
+
+            var response = await _httpClient.PostAsync(
+                $"/commands/{commandId}/complete",
+                content,
+                cancellationToken);
+
+            response.EnsureSuccessStatusCode();
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Failed to complete command {CommandId}", commandId);
+        }
+    }
 }

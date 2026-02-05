@@ -33,3 +33,17 @@ public class MonitoringData
     public List<DriveInfo> Drives { get; set; } = new();
     public List<WebsitePingInfo> WebsitePings { get; set; } = new();
 }
+
+public class AgentCommandInfo
+{
+    public int Id { get; set; }
+    public string CommandType { get; set; } = string.Empty;
+    public string CommandData { get; set; } = string.Empty;
+    public DateTime? CreatedAt { get; set; }
+}
+
+public class ServiceControlCommand
+{
+    public string ServiceName { get; set; } = string.Empty;
+    public string Action { get; set; } = string.Empty;  // "start" or "stop"
+}

@@ -14,6 +14,7 @@ public class AgentWorker : BackgroundService
     private readonly IFileTransferService _fileTransferService;
     private readonly IReleaseExecutionService _releaseExecutionService;
     private readonly IPipelineExecutionService _pipelineExecutionService;
+    private readonly ICommandExecutionService _commandExecutionService;
     private readonly ICygnetApiClient _apiClient;
 
     public AgentWorker(
@@ -24,6 +25,7 @@ public class AgentWorker : BackgroundService
         IFileTransferService fileTransferService,
         IReleaseExecutionService releaseExecutionService,
         IPipelineExecutionService pipelineExecutionService,
+        ICommandExecutionService commandExecutionService,
         ICygnetApiClient apiClient)
     {
         _logger = logger;
@@ -33,6 +35,7 @@ public class AgentWorker : BackgroundService
         _fileTransferService = fileTransferService;
         _releaseExecutionService = releaseExecutionService;
         _pipelineExecutionService = pipelineExecutionService;
+        _commandExecutionService = commandExecutionService;
         _apiClient = apiClient;
     }
 
@@ -55,7 +58,8 @@ public class AgentWorker : BackgroundService
                 _taskExecutionService.StartAsync(stoppingToken),
                 _fileTransferService.StartAsync(stoppingToken),
                 _releaseExecutionService.StartAsync(stoppingToken),
-                _pipelineExecutionService.StartAsync(stoppingToken)
+                _pipelineExecutionService.StartAsync(stoppingToken),
+                _commandExecutionService.StartAsync(stoppingToken)
             };
 
             _logger.LogInformation("All services started. Agent is now running.");

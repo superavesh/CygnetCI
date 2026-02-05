@@ -130,6 +130,26 @@ class AgentWebsitePing(Base):
     )
 
 
+class AgentCommand(Base):
+    """Commands queued for agents to execute (e.g., start/stop Windows services)"""
+    __tablename__ = "agent_commands"
+
+    id = Column(Integer, primary_key=True, index=True)
+    agent_id = Column(Integer, ForeignKey("agents.id", ondelete="CASCADE"), nullable=False, index=True)
+    command_type = Column(String(50), nullable=False)  # e.g., 'service_control'
+    command_data = Column(Text, nullable=False)  # JSON data with command details
+    status = Column(String(50), nullable=False, default="pending")  # pending, in_progress, completed, failed
+    result = Column(Text)  # JSON result or error message
+    created_at = Column(TIMESTAMP, nullable=False, server_default=func.now())
+    started_at = Column(TIMESTAMP)
+    completed_at = Column(TIMESTAMP)
+
+    __table_args__ = (
+        CheckConstraint("status IN ('pending', 'in_progress', 'completed', 'failed')", name="check_command_status"),
+        CheckConstraint("command_type IN ('service_control', 'execute_script', 'system_command')", name="check_command_type"),
+    )
+
+
 # ===================================================
 # PIPELINE MODELS
 # ===================================================

@@ -139,6 +139,7 @@ class ApiService {
         description: pipelineData.description,
         branch: pipelineData.branch,
         agentId: pipelineData.agentId,
+        customerId: pipelineData.customerId,
         steps: pipelineData.steps || [],
         parameters: pipelineData.parameters || []
       })

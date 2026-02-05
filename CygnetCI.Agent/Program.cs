@@ -96,6 +96,7 @@ var builder = Host.CreateDefaultBuilder(args)
         services.AddSingleton<IFileTransferService, FileTransferService>();
         services.AddSingleton<IReleaseExecutionService, ReleaseExecutionService>();
         services.AddSingleton<IPipelineExecutionService, PipelineExecutionService>();
+        services.AddSingleton<ICommandExecutionService, CommandExecutionService>();
 
         // Main worker
         services.AddHostedService<AgentWorker>();

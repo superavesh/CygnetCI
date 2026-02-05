@@ -28,10 +28,17 @@ export default function ReleasesPage() {
   const [filterQuery, setFilterQuery] = useState('');
 
   const fetchData = useCallback(async () => {
+    // Don't fetch if no customer is selected
+    if (!selectedCustomer?.id) {
+      setReleases([]);
+      setLoading(false);
+      return;
+    }
+
     try {
       setLoading(true);
       const [releasesData, environmentsData] = await Promise.all([
-        apiService.getReleases(selectedCustomer?.id),
+        apiService.getReleases(selectedCustomer.id),
         apiService.getEnvironments()
       ]);
       setReleases(releasesData);

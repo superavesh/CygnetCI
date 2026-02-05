@@ -28,8 +28,15 @@ export default function PipelinesPage() {
   const [currentExecutionId, setCurrentExecutionId] = useState<number | null>(null);
 
   const handleCreatePipeline = async (data: PipelineFormData) => {
+    if (!selectedCustomer) {
+      alert('Please select a customer first');
+      return;
+    }
     try {
-      await apiService.createPipeline(data);
+      await apiService.createPipeline({
+        ...data,
+        customerId: selectedCustomer.id
+      });
       refetch();
       setShowCreateModal(false);
     } catch (err) {

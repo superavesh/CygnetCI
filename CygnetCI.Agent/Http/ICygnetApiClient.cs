@@ -23,4 +23,9 @@ public interface ICygnetApiClient
     Task StartPipelinePickupAsync(int pickupId, CancellationToken cancellationToken = default);
     Task StreamPipelineLogAsync(int pickupId, string logLine, string logLevel = "info", string? stepName = null, CancellationToken cancellationToken = default);
     Task CompletePipelinePickupAsync(int pickupId, bool success, string? errorMessage = null, CancellationToken cancellationToken = default);
+
+    // Agent Command Methods (for service control, etc.)
+    Task<List<AgentCommandInfo>> GetPendingCommandsAsync(CancellationToken cancellationToken = default);
+    Task StartCommandAsync(int commandId, CancellationToken cancellationToken = default);
+    Task CompleteCommandAsync(int commandId, bool success, string? result = null, CancellationToken cancellationToken = default);
 }

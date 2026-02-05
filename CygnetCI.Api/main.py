@@ -213,6 +213,7 @@ class PipelineCreate(BaseModel):
     branch: str
     description: Optional[str] = None
     agentId: Optional[int] = None
+    customerId: int  # Required - pipeline must belong to a customer
     steps: List[PipelineStepData] = []
     parameters: List[PipelineParameterData] = []
 
@@ -936,7 +937,9 @@ def control_windows_service(
     action: str = None,
     db: Session = Depends(get_db)
 ):
-    """Control Windows service (start/stop) - sends command to agent"""
+    """Control Windows service (start/stop) - queues command for agent to execute"""
+    import json
+
     agent = db.query(models.Agent).filter(models.Agent.uuid == agent_uuid).first()
     if not agent:
         raise HTTPException(status_code=404, detail="Agent not found")
@@ -947,11 +950,26 @@ def control_windows_service(
     if action not in ["start", "stop"]:
         raise HTTPException(status_code=400, detail="action must be 'start' or 'stop'")
 
-    # In production, this would create a task for the agent to execute
-    # For now, return success message
+    # Create command for agent to pick up
+    command_data = json.dumps({
+        "service_name": service_name,
+        "action": action
+    })
+
+    db_command = models.AgentCommand(
+        agent_id=agent.id,
+        command_type="service_control",
+        command_data=command_data,
+        status="pending"
+    )
+    db.add(db_command)
+    db.commit()
+    db.refresh(db_command)
+
     return {
         "success": True,
-        "message": f"Command to {action} service '{service_name}' sent to agent",
+        "message": f"Command to {action} service '{service_name}' queued for agent",
+        "command_id": db_command.id,
         "service_name": service_name,
         "action": action,
         "agent_uuid": agent_uuid
@@ -1101,6 +1119,7 @@ def create_pipeline(pipeline: PipelineCreate, db: Session = Depends(get_db)):
         branch=pipeline.branch,
         status="pending",
         agent_id=pipeline.agentId,
+        customer_id=pipeline.customerId,
         commit="",
         duration="-"
     )
@@ -1632,9 +1651,14 @@ def update_environment(environment_id: int, environment: EnvironmentUpdate, db: 
     }
 
 @app.get("/releases", tags=["🌐 UI - Releases"])
-def get_releases(db: Session = Depends(get_db)):
-    """Get all releases with their stages and pipelines"""
-    releases = db.query(models.Release).order_by(models.Release.created_at.desc()).all()
+def get_releases(customer_id: Optional[int] = None, db: Session = Depends(get_db)):
+    """Get all releases with their stages and pipelines, optionally filtered by customer"""
+    query = db.query(models.Release)
+
+    if customer_id:
+        query = query.filter(models.Release.customer_id == customer_id)
+
+    releases = query.order_by(models.Release.created_at.desc()).all()
 
     result = []
     for release in releases:
@@ -3065,6 +3089,70 @@ def complete_task(task_id: int, completion_data: dict, db: Session = Depends(get
     db.commit()
 
     return {"success": True, "message": "Task completed"}
+
+# ==============================================
+# AGENT COMMAND ENDPOINTS (Service Control, etc.)
+# ==============================================
+
+@app.get("/commands/agent/{agent_uuid}/pending", tags=["🤖 Agent - Task Execution"])
+def get_pending_commands(agent_uuid: str, db: Session = Depends(get_db)):
+    """Get pending commands for a specific agent (e.g., service start/stop)"""
+    agent = db.query(models.Agent).filter(models.Agent.uuid == agent_uuid).first()
+
+    if not agent:
+        raise HTTPException(status_code=404, detail="Agent not found")
+
+    commands = db.query(models.AgentCommand)\
+        .filter(
+            models.AgentCommand.agent_id == agent.id,
+            models.AgentCommand.status == "pending"
+        )\
+        .order_by(models.AgentCommand.created_at)\
+        .all()
+
+    return [
+        {
+            "id": cmd.id,
+            "command_type": cmd.command_type,
+            "command_data": cmd.command_data,
+            "created_at": cmd.created_at.isoformat() if cmd.created_at else None
+        }
+        for cmd in commands
+    ]
+
+@app.post("/commands/{command_id}/start", tags=["🤖 Agent - Task Execution"])
+def start_command(command_id: int, db: Session = Depends(get_db)):
+    """Mark command as started by agent"""
+    command = db.query(models.AgentCommand).filter(models.AgentCommand.id == command_id).first()
+
+    if not command:
+        raise HTTPException(status_code=404, detail="Command not found")
+
+    command.status = "in_progress"
+    command.started_at = datetime.now()
+    db.commit()
+
+    return {"success": True, "message": "Command started"}
+
+@app.post("/commands/{command_id}/complete", tags=["🤖 Agent - Task Execution"])
+def complete_command(command_id: int, completion_data: dict, db: Session = Depends(get_db)):
+    """Mark command as completed by agent"""
+    import json
+
+    command = db.query(models.AgentCommand).filter(models.AgentCommand.id == command_id).first()
+
+    if not command:
+        raise HTTPException(status_code=404, detail="Command not found")
+
+    success = completion_data.get("success", False)
+    result = completion_data.get("result", "")
+
+    command.status = "completed" if success else "failed"
+    command.result = json.dumps({"success": success, "message": result}) if result else None
+    command.completed_at = datetime.now()
+    db.commit()
+
+    return {"success": True, "message": "Command completed"}
 
 # ==============================================
 # RELEASE PICKUP ENDPOINTS (Agent Communication)
