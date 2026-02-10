@@ -1083,20 +1083,23 @@ def get_service_logs(
 
 @app.get("/pipelines", tags=["🌐 UI - Pipelines"])
 def get_pipelines(
+    customer_id: Optional[int] = None,
     status: Optional[str] = None,
     branch: Optional[str] = None,
     db: Session = Depends(get_db)
 ):
-    """Get all pipelines with optional filtering"""
+    """Get all pipelines with optional filtering by customer"""
     query = db.query(models.Pipeline)
-    
+
+    if customer_id:
+        query = query.filter(models.Pipeline.customer_id == customer_id)
     if status:
         query = query.filter(models.Pipeline.status == status)
     if branch:
         query = query.filter(models.Pipeline.branch == branch)
-    
+
     pipelines = query.order_by(models.Pipeline.last_run.desc()).all()
-    
+
     # Return pipelines with steps and parameters
     return [format_pipeline_full(pipeline, db) for pipeline in pipelines]
 
@@ -2567,13 +2570,16 @@ async def upload_file(
         # Save file
         file_path = os.path.join(folder_path, file.filename)
 
-        # Check file size (optional validation)
-        # Note: FastAPI doesn't provide file size before reading, so we check after saving
+        # Write file in chunks to handle large files efficiently
+        file_size = 0
+        chunk_size = 1024 * 1024  # 1 MB chunks
         with open(file_path, "wb") as buffer:
-            shutil.copyfileobj(file.file, buffer)
-
-        # Get file size
-        file_size = os.path.getsize(file_path)
+            while True:
+                chunk = await file.read(chunk_size)
+                if not chunk:
+                    break
+                buffer.write(chunk)
+                file_size += len(chunk)
 
         # Validate file size
         max_size = app_config.get_max_file_size_bytes()
@@ -2652,8 +2658,12 @@ async def upload_file(
             }
         }
 
+    except HTTPException:
+        raise  # Re-raise HTTP exceptions as-is (e.g. file too large)
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Upload failed: {str(e)}")
+        import traceback
+        print(f"Upload failed: {traceback.format_exc()}")
+        raise HTTPException(status_code=500, detail=f"Upload failed: {type(e).__name__}: {str(e)}")
 
 @app.get("/transfer/files", tags=["🌐 UI - File Management"])
 def get_transfer_files(

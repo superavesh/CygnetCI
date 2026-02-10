@@ -411,8 +411,10 @@ class ApiService {
     return await response.json();
   }
 
-  async getPipelines() {
-    const url = `${CONFIG.api.baseUrl}/pipelines`;
+  async getPipelines(customerId?: number) {
+    const url = customerId
+      ? `${CONFIG.api.baseUrl}/pipelines?customer_id=${customerId}`
+      : `${CONFIG.api.baseUrl}/pipelines`;
     const response = await fetch(url, {
       method: 'GET',
       headers: CONFIG.api.headers
@@ -453,6 +455,52 @@ class ApiService {
     }
 
     return await response.json();
+  }
+
+  uploadFileWithProgress(
+    fileData: FormData,
+    onProgress: (percent: number, loaded: number, total: number) => void
+  ): Promise<any> {
+    const url = `${CONFIG.api.baseUrl}/transfer/upload`;
+
+    return new Promise((resolve, reject) => {
+      const xhr = new XMLHttpRequest();
+
+      xhr.upload.addEventListener('progress', (event) => {
+        if (event.lengthComputable) {
+          const percent = Math.round((event.loaded / event.total) * 100);
+          onProgress(percent, event.loaded, event.total);
+        }
+      });
+
+      xhr.addEventListener('load', () => {
+        if (xhr.status >= 200 && xhr.status < 300) {
+          try {
+            resolve(JSON.parse(xhr.responseText));
+          } catch {
+            resolve({ success: true });
+          }
+        } else {
+          try {
+            const errorData = JSON.parse(xhr.responseText);
+            reject(new Error(errorData.detail || `Upload failed with status ${xhr.status}`));
+          } catch {
+            reject(new Error(`Upload failed with status ${xhr.status}`));
+          }
+        }
+      });
+
+      xhr.addEventListener('error', () => {
+        reject(new Error('Network error during upload'));
+      });
+
+      xhr.addEventListener('abort', () => {
+        reject(new Error('Upload cancelled'));
+      });
+
+      xhr.open('POST', url);
+      xhr.send(fileData);
+    });
   }
 
   async getTransferFiles(fileType?: string, version?: string): Promise<TransferFile[]> {

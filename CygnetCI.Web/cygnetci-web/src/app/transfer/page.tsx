@@ -21,6 +21,9 @@ export default function TransferPage() {
   const [uploadLoading, setUploadLoading] = useState(false);
   const [uploadError, setUploadError] = useState<string | null>(null);
   const [uploadSuccess, setUploadSuccess] = useState<string | null>(null);
+  const [uploadProgress, setUploadProgress] = useState<number>(0);
+  const [uploadedBytes, setUploadedBytes] = useState<number>(0);
+  const [totalBytes, setTotalBytes] = useState<number>(0);
 
   // Push Section State
   const [files, setFiles] = useState<TransferFile[]>([]); // Filtered files for push dropdown
@@ -153,6 +156,9 @@ export default function TransferPage() {
 
     try {
       setUploadLoading(true);
+      setUploadProgress(0);
+      setUploadedBytes(0);
+      setTotalBytes(0);
 
       const formData = new FormData();
       formData.append('file', selectedFile);
@@ -161,9 +167,16 @@ export default function TransferPage() {
       if (uploadedBy.trim()) formData.append('uploaded_by', uploadedBy.trim());
       if (description.trim()) formData.append('description', description.trim());
 
-      const result = await apiService.uploadFile(formData);
+      const result = await apiService.uploadFileWithProgress(
+        formData,
+        (percent, loaded, total) => {
+          setUploadProgress(percent);
+          setUploadedBytes(loaded);
+          setTotalBytes(total);
+        }
+      );
 
-      setUploadSuccess(`File uploaded successfully: ${result.file.file_name}`);
+      setUploadSuccess(`File uploaded successfully: ${result.file?.file_name || selectedFile.name}`);
       // Reset form
       setSelectedFile(null);
       setUploadVersion('');
@@ -171,13 +184,15 @@ export default function TransferPage() {
       const fileInput = document.getElementById('file-input') as HTMLInputElement;
       if (fileInput) fileInput.value = '';
 
-      // Auto-refresh both files lists to show the newly uploaded file
-      fetchFiles(); // For push dropdown
-      fetchAllFiles(); // For uploaded files table
+      // Auto-refresh all lists so new file appears in push to agent section
+      fetchFiles();      // For push dropdown
+      fetchAllFiles();   // For uploaded files table
+      fetchVersions();   // For version dropdown in push section
     } catch (err: any) {
       setUploadError(err.message || 'Failed to upload file');
     } finally {
       setUploadLoading(false);
+      setUploadProgress(0);
     }
   };
 
@@ -365,6 +380,32 @@ export default function TransferPage() {
               />
             </div>
 
+            {/* Upload Progress Bar */}
+            {uploadLoading && (
+              <div className="space-y-2">
+                <div className="flex justify-between text-sm text-gray-700">
+                  <span>Uploading... {uploadProgress}%</span>
+                  <span>
+                    {formatFileSize(uploadedBytes)} / {formatFileSize(totalBytes)}
+                  </span>
+                </div>
+                <div className="w-full bg-gray-200 rounded-full h-3 overflow-hidden">
+                  <div
+                    className="h-full rounded-full transition-all duration-300 ease-out"
+                    style={{
+                      width: `${uploadProgress}%`,
+                      background: uploadProgress === 100
+                        ? 'linear-gradient(90deg, #16a34a, #22c55e)'
+                        : 'linear-gradient(90deg, #2563eb, #3b82f6)'
+                    }}
+                  />
+                </div>
+                {uploadProgress === 100 && (
+                  <p className="text-xs text-gray-500">Processing file on server...</p>
+                )}
+              </div>
+            )}
+
             {/* Messages */}
             {uploadError && (
               <div className="p-3 bg-red-50 border border-red-200 rounded-lg text-red-800 text-sm">
@@ -384,7 +425,7 @@ export default function TransferPage() {
               className="w-full px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
             >
               <Upload className="h-4 w-4" />
-              {uploadLoading ? 'Uploading...' : 'Upload File'}
+              {uploadLoading ? `Uploading... ${uploadProgress}%` : 'Upload File'}
             </button>
           </form>
         </div>

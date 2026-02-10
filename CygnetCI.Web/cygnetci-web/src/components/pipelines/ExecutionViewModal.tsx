@@ -3,7 +3,7 @@
 'use client';
 
 import React, { useState, useEffect, useRef } from 'react';
-import { X, Square, Terminal, Download, Copy, Check } from 'lucide-react';
+import { X, Square, Terminal, Download, Copy, Check, ArrowDown } from 'lucide-react';
 import { CONFIG } from '@/lib/config';
 
 interface ExecutionViewModalProps {
@@ -36,13 +36,32 @@ export const ExecutionViewModal: React.FC<ExecutionViewModalProps> = ({
   const [logs, setLogs] = useState<LogLine[]>([]);
   const [isRunning, setIsRunning] = useState(false);
   const [copied, setCopied] = useState(false);
+  const [isUserScrolledUp, setIsUserScrolledUp] = useState(false);
   const logsEndRef = useRef<HTMLDivElement>(null);
   const logsContainerRef = useRef<HTMLDivElement>(null);
 
-  // Auto-scroll to bottom
+  // Check if user is at the bottom of the scroll container
+  const handleScroll = () => {
+    if (logsContainerRef.current) {
+      const { scrollTop, scrollHeight, clientHeight } = logsContainerRef.current;
+      // Consider "at bottom" if within 50px of the bottom
+      const isAtBottom = scrollHeight - scrollTop - clientHeight < 50;
+      setIsUserScrolledUp(!isAtBottom);
+    }
+  };
+
+  // Auto-scroll to bottom only if user hasn't scrolled up
   useEffect(() => {
+    if (!isUserScrolledUp) {
+      logsEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+    }
+  }, [logs, isUserScrolledUp]);
+
+  // Scroll to bottom function for the button
+  const scrollToBottom = () => {
+    setIsUserScrolledUp(false);
     logsEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-  }, [logs]);
+  };
 
   // Fetch execution status and logs from API
   useEffect(() => {
@@ -243,11 +262,13 @@ export const ExecutionViewModal: React.FC<ExecutionViewModalProps> = ({
         </div>
 
         {/* CLI Output */}
-        <div
-          ref={logsContainerRef}
-          className="flex-1 overflow-y-auto p-6 bg-black font-mono text-sm"
-          style={{ fontFamily: 'Consolas, Monaco, "Courier New", monospace' }}
-        >
+        <div className="relative flex-1">
+          <div
+            ref={logsContainerRef}
+            onScroll={handleScroll}
+            className="absolute inset-0 overflow-y-auto p-6 bg-black font-mono text-sm"
+            style={{ fontFamily: 'Consolas, Monaco, "Courier New", monospace' }}
+          >
           {logs.length === 0 ? (
             <div className="flex items-center justify-center h-full">
               <div className="text-center">
@@ -290,6 +311,18 @@ export const ExecutionViewModal: React.FC<ExecutionViewModalProps> = ({
 
               <div ref={logsEndRef} />
             </>
+          )}
+          </div>
+
+          {/* Scroll to bottom button - shows when user has scrolled up */}
+          {isUserScrolledUp && (
+            <button
+              onClick={scrollToBottom}
+              className="absolute bottom-4 right-4 px-3 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg shadow-lg flex items-center space-x-2 transition-colors"
+            >
+              <ArrowDown className="h-4 w-4" />
+              <span>Scroll to bottom</span>
+            </button>
           )}
         </div>
 

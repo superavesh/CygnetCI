@@ -536,11 +536,3 @@ D:\Avesh\CygnetCI\SourceCode\CygnetCI\CygnetCI.Agent\obj\Release\net9.0\win-x64\
 D:\Avesh\CygnetCI\SourceCode\CygnetCI\CygnetCI.Agent\obj\Release\net9.0\win-x64\CygnetCI.Agent.pdb
 D:\Avesh\CygnetCI\SourceCode\CygnetCI\CygnetCI.Agent\obj\Release\net9.0\win-x64\CygnetCI.Agent.genruntimeconfig.cache
 D:\Avesh\CygnetCI\SourceCode\CygnetCI\CygnetCI.Agent\obj\Release\net9.0\win-x64\ref\CygnetCI.Agent.dll
-D:\Avesh\CygnetCI\SourceCode\CygnetCI\CygnetCI.Agent\bin\Release\net9.0\win-x64\dist\installer\appsettings.Development.json
-D:\Avesh\CygnetCI\SourceCode\CygnetCI\CygnetCI.Agent\bin\Release\net9.0\win-x64\dist\installer\appsettings.json
-D:\Avesh\CygnetCI\SourceCode\CygnetCI\CygnetCI.Agent\bin\Release\net9.0\win-x64\dist\installer\CygnetCI.Agent.deps.json
-D:\Avesh\CygnetCI\SourceCode\CygnetCI\CygnetCI.Agent\bin\Release\net9.0\win-x64\dist\installer\CygnetCI.Agent.runtimeconfig.json
-D:\Avesh\CygnetCI\SourceCode\CygnetCI\CygnetCI.Agent\bin\Release\net9.0\win-x64\dist\publish\appsettings.Development.json
-D:\Avesh\CygnetCI\SourceCode\CygnetCI\CygnetCI.Agent\bin\Release\net9.0\win-x64\dist\publish\appsettings.json
-D:\Avesh\CygnetCI\SourceCode\CygnetCI\CygnetCI.Agent\bin\Release\net9.0\win-x64\dist\publish\CygnetCI.Agent.deps.json
-D:\Avesh\CygnetCI\SourceCode\CygnetCI\CygnetCI.Agent\bin\Release\net9.0\win-x64\dist\publish\CygnetCI.Agent.runtimeconfig.json

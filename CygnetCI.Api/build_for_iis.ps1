@@ -138,16 +138,32 @@ $WebConfigContent = @"
 <?xml version="1.0" encoding="utf-8"?>
 <configuration>
     <system.webServer>
+        <!-- Remove WebDAV module which blocks PUT/DELETE methods -->
+        <modules>
+            <remove name="WebDAVModule"/>
+        </modules>
+
         <handlers>
+            <!-- Remove WebDAV handler -->
+            <remove name="WebDAV"/>
+            <!-- Allow all HTTP verbs for Python handler -->
             <add name="PythonHandler" path="*" verb="*" modules="httpPlatformHandler" resourceType="Unspecified"/>
         </handlers>
+
+        <!-- Allow large file uploads (~4 GB max for IIS) -->
+        <security>
+            <requestFiltering>
+                <requestLimits maxAllowedContentLength="4294967295"/>
+            </requestFiltering>
+        </security>
+
         <httpPlatform processPath="%APPL_PHYSICAL_PATH%\python\python.exe"
                       arguments="-m uvicorn main:app --host 127.0.0.1 --port %HTTP_PLATFORM_PORT%"
                       stdoutLogEnabled="true"
                       stdoutLogFile="%APPL_PHYSICAL_PATH%\logs\python"
                       startupTimeLimit="120"
                       processesPerApplication="1"
-                      requestTimeout="00:05:00">
+                      requestTimeout="00:30:00">
             <environmentVariables>
                 <environmentVariable name="PYTHONPATH" value="%APPL_PHYSICAL_PATH%"/>
                 <environmentVariable name="PYTHONDONTWRITEBYTECODE" value="1"/>

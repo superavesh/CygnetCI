@@ -200,7 +200,7 @@ export const EditPipelineModal: React.FC<EditPipelineModalProps> = ({
                   pipeline.status === 'failed' ? 'text-red-600' :
                   pipeline.status === 'running' ? 'text-blue-600' : 'text-gray-600'
                 }`}>
-                  {pipeline.status.toUpperCase()}
+                  {(pipeline.status || 'pending').toUpperCase()}
                 </p>
               </div>
             </div>
