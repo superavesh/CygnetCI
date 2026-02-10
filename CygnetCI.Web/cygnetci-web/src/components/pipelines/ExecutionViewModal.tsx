@@ -35,7 +35,9 @@ export const ExecutionViewModal: React.FC<ExecutionViewModalProps> = ({
 }) => {
   const [logs, setLogs] = useState<LogLine[]>([]);
   const [isRunning, setIsRunning] = useState(false);
+  const [executionStatus, setExecutionStatus] = useState<string>('running');
   const [copied, setCopied] = useState(false);
+  const [isStopping, setIsStopping] = useState(false);
   const [isUserScrolledUp, setIsUserScrolledUp] = useState(false);
   const logsEndRef = useRef<HTMLDivElement>(null);
   const logsContainerRef = useRef<HTMLDivElement>(null);
@@ -85,11 +87,14 @@ export const ExecutionViewModal: React.FC<ExecutionViewModalProps> = ({
 
             if (currentExecution) {
               // Check if execution is still running based on actual status from database
-              // An execution IS running ONLY if status is exactly 'running'
               const running = currentExecution.status === 'running';
               setIsRunning(running);
+              setExecutionStatus(currentExecution.status);
+              // Reset stopping state once execution is no longer running
+              if (!running) setIsStopping(false);
             } else {
               setIsRunning(false);
+              setIsStopping(false);
             }
           } else {
             setIsRunning(false);
@@ -195,14 +200,7 @@ export const ExecutionViewModal: React.FC<ExecutionViewModalProps> = ({
   };
 
   const handleStop = () => {
-    setIsRunning(false);
-    setLogs(prev => [...prev, {
-      id: Date.now(),
-      timestamp: new Date().toISOString(),
-      log_level: 'error',
-      message: 'Pipeline execution stopped by user',
-      source: 'user'
-    }]);
+    setIsStopping(true);
     onStop();
   };
 
@@ -218,6 +216,10 @@ export const ExecutionViewModal: React.FC<ExecutionViewModalProps> = ({
               <p className="text-sm text-gray-400">
                 Execution #{executionId} • {isRunning ? (
                   <span className="text-yellow-400">● Running</span>
+                ) : executionStatus === 'cancelled' ? (
+                  <span className="text-orange-400">● Cancelled</span>
+                ) : executionStatus === 'failed' ? (
+                  <span className="text-red-400">● Failed</span>
                 ) : (
                   <span className="text-green-400">● Completed</span>
                 )}
@@ -245,10 +247,13 @@ export const ExecutionViewModal: React.FC<ExecutionViewModalProps> = ({
             {isRunning && (
               <button
                 onClick={handleStop}
-                className="px-3 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg flex items-center space-x-2 transition-colors"
+                disabled={isStopping}
+                className={`px-3 py-2 text-white rounded-lg flex items-center space-x-2 transition-colors ${
+                  isStopping ? 'bg-red-800 cursor-not-allowed' : 'bg-red-600 hover:bg-red-700'
+                }`}
               >
                 <Square className="h-4 w-4" />
-                <span>Stop</span>
+                <span>{isStopping ? 'Stopping...' : 'Stop'}</span>
               </button>
             )}
 

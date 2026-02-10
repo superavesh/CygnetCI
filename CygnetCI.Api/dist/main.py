@@ -1344,14 +1344,50 @@ def get_pipeline_executions(
 
 @app.post("/pipelines/{pipeline_id}/stop", tags=["🌐 UI - Pipeline Execution"])
 def stop_pipeline(pipeline_id: int, db: Session = Depends(get_db)):
-    """Stop a running pipeline"""
+    """Stop a running pipeline by cancelling its active execution and pickup"""
     db_pipeline = db.query(models.Pipeline).filter(models.Pipeline.id == pipeline_id).first()
     if not db_pipeline:
         raise HTTPException(status_code=404, detail="Pipeline not found")
-    
+
+    # Find the currently running execution for this pipeline
+    running_execution = db.query(models.PipelineExecution)\
+        .filter(models.PipelineExecution.pipeline_id == pipeline_id)\
+        .filter(models.PipelineExecution.status == "running")\
+        .order_by(models.PipelineExecution.started_at.desc())\
+        .first()
+
+    if running_execution:
+        # Mark execution as cancelled
+        running_execution.status = "cancelled"
+        running_execution.completed_at = datetime.now()
+        if running_execution.started_at:
+            duration = running_execution.completed_at - running_execution.started_at
+            running_execution.duration = str(int(duration.total_seconds()))
+
+        # Find and cancel the active pickup for this execution
+        active_pickup = db.query(models.PipelinePickup)\
+            .filter(models.PipelinePickup.pipeline_execution_id == running_execution.id)\
+            .filter(models.PipelinePickup.status.in_(["pending", "picked_up", "in_progress"]))\
+            .first()
+
+        if active_pickup:
+            active_pickup.status = "cancelled"
+            active_pickup.completed_at = datetime.now()
+            active_pickup.error_message = "Cancelled by user"
+
+        # Add a cancellation log entry
+        cancel_log = models.PipelineExecutionLog(
+            pipeline_execution_id=running_execution.id,
+            message="Pipeline execution cancelled by user",
+            log_level="warning",
+            source="system"
+        )
+        db.add(cancel_log)
+
+    # Reset pipeline status to pending
     db_pipeline.status = "pending"
     db.commit()
-    
+
     return {"success": True, "message": "Pipeline stopped"}
 
 # ==================== TASKS ====================
@@ -3578,6 +3614,16 @@ def complete_pipeline_pickup(pickup_id: int, completion_data: dict, db: Session 
     db.commit()
 
     return {"success": True, "message": "Pipeline execution completed"}
+
+@app.get("/pipelines/pickup/{pickup_id}/status", tags=["🤖 Agent - Pipeline Execution"])
+def get_pipeline_pickup_status(pickup_id: int, db: Session = Depends(get_db)):
+    """Agent checks if a pipeline pickup has been cancelled"""
+    pickup = db.query(models.PipelinePickup).filter(models.PipelinePickup.id == pickup_id).first()
+
+    if not pickup:
+        raise HTTPException(status_code=404, detail="Pickup not found")
+
+    return {"pickup_id": pickup_id, "status": pickup.status}
 
 @app.post("/pipelines/pickup/{pickup_id}/log", tags=["🤖 Agent - Pipeline Execution"])
 def add_pipeline_pickup_log(pickup_id: int, log_data: dict, db: Session = Depends(get_db)):

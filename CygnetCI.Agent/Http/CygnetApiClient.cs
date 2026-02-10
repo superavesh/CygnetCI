@@ -514,6 +514,30 @@ public class CygnetApiClient : ICygnetApiClient
         }
     }
 
+    public async Task<string> CheckPipelinePickupStatusAsync(int pickupId, CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            var response = await _httpClient.GetAsync(
+                $"/pipelines/pickup/{pickupId}/status",
+                cancellationToken);
+
+            if (response.IsSuccessStatusCode)
+            {
+                var json = await response.Content.ReadAsStringAsync(cancellationToken);
+                using var doc = System.Text.Json.JsonDocument.Parse(json);
+                return doc.RootElement.GetProperty("status").GetString() ?? "unknown";
+            }
+
+            return "unknown";
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Failed to check pipeline pickup status for {PickupId}", pickupId);
+            return "unknown";
+        }
+    }
+
     // Agent Command Methods
     public async Task<List<AgentCommandInfo>> GetPendingCommandsAsync(CancellationToken cancellationToken = default)
     {

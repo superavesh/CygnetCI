@@ -67,6 +67,13 @@ public class PipelineExecutionService : IPipelineExecutionService
         // Wait for available slot
         await _semaphore.WaitAsync(cancellationToken);
 
+        // Create a linked CTS so we can cancel this specific pipeline execution
+        using var pipelineCts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+        var pipelineToken = pipelineCts.Token;
+
+        // Start background cancellation polling task
+        var cancellationPollTask = PollForCancellationAsync(pickup.PickupId, pipelineCts, cancellationToken);
+
         try
         {
             _logger.LogInformation("Executing pipeline {PipelineName} (Execution ID: {ExecutionId})",
@@ -93,22 +100,43 @@ public class PipelineExecutionService : IPipelineExecutionService
 
             // Execute each step in order
             var allStepsSucceeded = true;
+            var wasCancelled = false;
             var errorMessage = string.Empty;
 
             foreach (var step in pickup.Steps.OrderBy(s => s.OrderIndex))
             {
+                // Check if cancelled before starting next step
+                if (pipelineToken.IsCancellationRequested)
+                {
+                    wasCancelled = true;
+                    _logger.LogInformation("Pipeline {PipelineName} was cancelled by user before step '{StepName}'",
+                        pickup.PipelineName, step.Name);
+                    await _apiClient.StreamPipelineLogAsync(pickup.PickupId,
+                        $"Pipeline cancelled by user before step '{step.Name}'", "warning", step.Name, cancellationToken);
+                    break;
+                }
+
                 await _apiClient.StreamPipelineLogAsync(pickup.PickupId,
-                    $"", "info", step.Name, cancellationToken);
+                    $"", "info", step.Name, pipelineToken);
                 await _apiClient.StreamPipelineLogAsync(pickup.PickupId,
-                    $"===== Executing Step: {step.Name} =====", "info", step.Name, cancellationToken);
+                    $"===== Executing Step: {step.Name} =====", "info", step.Name, pipelineToken);
 
                 try
                 {
-                    var stepSuccess = await ExecuteStepAsync(pickup, step, cancellationToken);
+                    var stepSuccess = await ExecuteStepAsync(pickup, step, pipelineToken);
 
                     if (!stepSuccess)
                     {
-                        if (step.ContinueOnError)
+                        if (pipelineToken.IsCancellationRequested)
+                        {
+                            wasCancelled = true;
+                            _logger.LogInformation("Pipeline {PipelineName} was cancelled by user during step '{StepName}'",
+                                pickup.PipelineName, step.Name);
+                            await _apiClient.StreamPipelineLogAsync(pickup.PickupId,
+                                $"Pipeline cancelled by user during step '{step.Name}'", "warning", step.Name, cancellationToken);
+                            break;
+                        }
+                        else if (step.ContinueOnError)
                         {
                             await _apiClient.StreamPipelineLogAsync(pickup.PickupId,
                                 $"Step '{step.Name}' failed but continuing (continue_on_error=true)", "warning", step.Name, cancellationToken);
@@ -127,6 +155,15 @@ public class PipelineExecutionService : IPipelineExecutionService
                         await _apiClient.StreamPipelineLogAsync(pickup.PickupId,
                             $"Step '{step.Name}' completed successfully", "success", step.Name, cancellationToken);
                     }
+                }
+                catch (OperationCanceledException) when (pipelineToken.IsCancellationRequested)
+                {
+                    wasCancelled = true;
+                    _logger.LogInformation("Pipeline {PipelineName} was cancelled by user during step '{StepName}'",
+                        pickup.PipelineName, step.Name);
+                    await _apiClient.StreamPipelineLogAsync(pickup.PickupId,
+                        $"Pipeline cancelled by user during step '{step.Name}'", "warning", step.Name, cancellationToken);
+                    break;
                 }
                 catch (Exception ex)
                 {
@@ -147,8 +184,18 @@ public class PipelineExecutionService : IPipelineExecutionService
                 }
             }
 
-            // Complete the pipeline
-            if (allStepsSucceeded)
+            // Complete the pipeline (use the original cancellationToken, not pipelineToken, to ensure we can report back)
+            if (wasCancelled)
+            {
+                await _apiClient.StreamPipelineLogAsync(pickup.PickupId,
+                    $"", "warning", null, cancellationToken);
+                await _apiClient.StreamPipelineLogAsync(pickup.PickupId,
+                    $"===== Pipeline execution cancelled by user =====", "warning", null, cancellationToken);
+                await _apiClient.CompletePipelinePickupAsync(pickup.PickupId, false, "Cancelled by user", cancellationToken);
+
+                _logger.LogInformation("Pipeline {PipelineName} was cancelled by user", pickup.PipelineName);
+            }
+            else if (allStepsSucceeded)
             {
                 await _apiClient.StreamPipelineLogAsync(pickup.PickupId,
                     $"", "success", null, cancellationToken);
@@ -165,8 +212,16 @@ public class PipelineExecutionService : IPipelineExecutionService
                 await _apiClient.CompletePipelinePickupAsync(pickup.PickupId, false, errorMessage, cancellationToken);
             }
 
-            _logger.LogInformation("Pipeline {PipelineName} completed with result: {Success}",
-                pickup.PipelineName, allStepsSucceeded ? "Success" : "Failed");
+            _logger.LogInformation("Pipeline {PipelineName} completed with result: {Result}",
+                pickup.PipelineName, wasCancelled ? "Cancelled" : allStepsSucceeded ? "Success" : "Failed");
+        }
+        catch (OperationCanceledException) when (pipelineToken.IsCancellationRequested && !cancellationToken.IsCancellationRequested)
+        {
+            // Pipeline was cancelled by user (not by service shutdown)
+            _logger.LogInformation("Pipeline {PipelineName} cancelled by user", pickup.PipelineName);
+            await _apiClient.StreamPipelineLogAsync(pickup.PickupId,
+                $"===== Pipeline execution cancelled by user =====", "warning", null, cancellationToken);
+            await _apiClient.CompletePipelinePickupAsync(pickup.PickupId, false, "Cancelled by user", cancellationToken);
         }
         catch (Exception ex)
         {
@@ -175,7 +230,44 @@ public class PipelineExecutionService : IPipelineExecutionService
         }
         finally
         {
+            // Cancel the polling task
+            await pipelineCts.CancelAsync();
             _semaphore.Release();
+        }
+    }
+
+    /// <summary>
+    /// Background task that polls the API to check if the pipeline pickup has been cancelled.
+    /// When cancelled is detected, it cancels the CancellationTokenSource to stop the running process.
+    /// </summary>
+    private async Task PollForCancellationAsync(int pickupId, CancellationTokenSource pipelineCts, CancellationToken serviceCancellationToken)
+    {
+        try
+        {
+            using var timer = new PeriodicTimer(TimeSpan.FromSeconds(3));
+
+            while (await timer.WaitForNextTickAsync(serviceCancellationToken))
+            {
+                if (pipelineCts.IsCancellationRequested)
+                    break;
+
+                var status = await _apiClient.CheckPipelinePickupStatusAsync(pickupId, serviceCancellationToken);
+
+                if (status == "cancelled")
+                {
+                    _logger.LogInformation("Pipeline pickup {PickupId} has been cancelled by user, triggering cancellation", pickupId);
+                    await pipelineCts.CancelAsync();
+                    break;
+                }
+            }
+        }
+        catch (OperationCanceledException)
+        {
+            // Expected when pipeline completes or service shuts down
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error in cancellation polling for pickup {PickupId}", pickupId);
         }
     }
 
