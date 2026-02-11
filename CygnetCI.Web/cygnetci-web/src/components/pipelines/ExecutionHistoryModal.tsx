@@ -254,7 +254,6 @@ export const ExecutionHistoryModal: React.FC<ExecutionHistoryModalProps> = ({
                     <button
                       onClick={() => {
                         onViewLogs(execution.id);
-                        onClose();
                       }}
                       className="ml-4 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg flex items-center space-x-2 transition-colors text-sm font-medium"
                     >

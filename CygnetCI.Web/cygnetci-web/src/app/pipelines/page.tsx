@@ -26,6 +26,7 @@ export default function PipelinesPage() {
   const [showRunModal, setShowRunModal] = useState(false);
   const [selectedPipeline, setSelectedPipeline] = useState<any | null>(null);
   const [currentExecutionId, setCurrentExecutionId] = useState<number | null>(null);
+  const [openedLogsFromHistory, setOpenedLogsFromHistory] = useState(false);
 
   const handleCreatePipeline = async (data: PipelineFormData) => {
     if (!selectedCustomer) {
@@ -161,6 +162,7 @@ export default function PipelinesPage() {
 
   const handleViewLogs = (executionId: number) => {
     setCurrentExecutionId(executionId);
+    setOpenedLogsFromHistory(true);
     setShowExecutionModal(true);
   };
 
@@ -363,7 +365,7 @@ export default function PipelinesPage() {
       />
 
       <ExecutionHistoryModal
-        isOpen={showHistoryModal}
+        isOpen={showHistoryModal && !showExecutionModal}
         onClose={() => {
           setShowHistoryModal(false);
           setSelectedPipeline(null);
@@ -378,6 +380,11 @@ export default function PipelinesPage() {
         onClose={() => {
           setShowExecutionModal(false);
           setCurrentExecutionId(null);
+          // If opened from history, go back to history modal
+          if (openedLogsFromHistory) {
+            setOpenedLogsFromHistory(false);
+            // showHistoryModal is still true, so it will re-appear
+          }
         }}
         onStop={handleStopPipeline}
         pipelineId={selectedPipeline?.id || 0}
