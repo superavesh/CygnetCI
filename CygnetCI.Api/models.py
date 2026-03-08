@@ -27,13 +27,16 @@ class Agent(Base):
     cpu = Column(Integer, default=0)
     memory = Column(Integer, default=0)
     customer_id = Column(Integer, ForeignKey("customers.id", ondelete="CASCADE"), index=True)
+    parent_agent_id = Column(Integer, ForeignKey("agents.id", ondelete="SET NULL"), nullable=True, index=True)
     created_at = Column(TIMESTAMP, server_default=func.now())
     updated_at = Column(TIMESTAMP, server_default=func.now(), onupdate=func.now())
-    
+
     # Relationships
     resource_data = relationship("AgentResourceData", back_populates="agent", cascade="all, delete-orphan")
     logs = relationship("AgentLog", back_populates="agent", cascade="all, delete-orphan")
     tasks = relationship("Task", back_populates="agent")
+    sub_agents = relationship("Agent", foreign_keys="Agent.parent_agent_id", back_populates="parent_agent")
+    parent_agent = relationship("Agent", foreign_keys="Agent.parent_agent_id", back_populates="sub_agents", remote_side="Agent.id")
     
     __table_args__ = (
         CheckConstraint("status IN ('online', 'offline', 'busy')", name="check_status"),

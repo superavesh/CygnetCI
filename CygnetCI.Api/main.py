@@ -1,5 +1,5 @@
 # main.py - Complete FastAPI Implementation with Database
-from fastapi import FastAPI, HTTPException, Depends, Query, UploadFile, File, Form
+from fastapi import FastAPI, HTTPException, Depends, Query, UploadFile, File, Form, Response
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse
 from pydantic import BaseModel, Field
@@ -96,6 +96,7 @@ class AgentCreate(BaseModel):
     uuid: str
     location: str
     customer_id: Optional[int] = None
+    parent_agent_id: Optional[int] = None
 
 class AgentUpdate(BaseModel):
     name: Optional[str] = None
@@ -252,7 +253,7 @@ def relative_time(timestamp):
         days = int(seconds / 86400)
         return f"{days} day{'s' if days > 1 else ''} ago"
 
-def format_agent(agent):
+def format_agent(agent, parent_name=None):
     """Format agent for API response"""
     return {
         "id": agent.id,
@@ -265,6 +266,8 @@ def format_agent(agent):
         "cpu": agent.cpu,
         "memory": agent.memory,
         "customerId": agent.customer_id,
+        "parentAgentId": agent.parent_agent_id,
+        "parentAgentName": parent_name,
         "resourceData": []
     }
 
@@ -623,10 +626,14 @@ def get_agents(db: Session = Depends(get_db)):
         # Re-query agents fresh after rollback
         agents = db.query(models.Agent).all()
 
+    # Build agent name lookup for parent resolution
+    agent_names = {a.id: a.name for a in agents}
+
     # Build response with computed effective status
     result = []
     for agent in agents:
-        agent_data = format_agent(agent)
+        parent_name = agent_names.get(agent.parent_agent_id) if agent.parent_agent_id else None
+        agent_data = format_agent(agent, parent_name)
         # Override status based on heartbeat even if DB update failed
         if agent.last_seen and agent.last_seen < offline_threshold:
             agent_data["status"] = "offline"
@@ -636,15 +643,20 @@ def get_agents(db: Session = Depends(get_db)):
 
     return result
 
-@app.post("/agents", status_code=201, tags=["🤖 Agent - Registration & Health"])
-def create_agent(agent: AgentCreate, db: Session = Depends(get_db)):
-    """Register a new agent (called by agent on startup)"""
-    
-    # Check if UUID already exists
+@app.post("/agents", tags=["🤖 Agent - Registration & Health"])
+def create_agent(agent: AgentCreate, response: Response, db: Session = Depends(get_db)):
+    """Register a new agent (called by agent on startup). Returns existing agent if UUID already registered."""
+
+    # Check if UUID already exists — return existing data so agent always gets its own ID
     existing = db.query(models.Agent).filter(models.Agent.uuid == agent.uuid).first()
     if existing:
-        raise HTTPException(status_code=400, detail="Agent with this UUID already exists")
-    
+        # Update parent_agent_id if provided (sub-agent reconnecting after parent restart)
+        if agent.parent_agent_id is not None and existing.parent_agent_id != agent.parent_agent_id:
+            existing.parent_agent_id = agent.parent_agent_id
+            db.commit()
+            db.refresh(existing)
+        return format_agent(existing)
+
     # Validate customer_id is provided (required due to database constraint)
     if agent.customer_id is None:
         raise HTTPException(status_code=400, detail="Customer ID is required. Please select a customer before adding an agent.")
@@ -654,6 +666,12 @@ def create_agent(agent: AgentCreate, db: Session = Depends(get_db)):
     if not customer:
         raise HTTPException(status_code=400, detail="Customer not found")
 
+    # Validate parent agent exists if provided
+    if agent.parent_agent_id is not None:
+        parent = db.query(models.Agent).filter(models.Agent.id == agent.parent_agent_id).first()
+        if not parent:
+            raise HTTPException(status_code=400, detail="Parent agent not found")
+
     # Create new agent
     db_agent = models.Agent(
         name=agent.name,
@@ -661,17 +679,19 @@ def create_agent(agent: AgentCreate, db: Session = Depends(get_db)):
         description=agent.description,
         location=agent.location,
         customer_id=agent.customer_id,
+        parent_agent_id=agent.parent_agent_id,
         status="online",
         last_seen=datetime.now(),
         jobs=0,
         cpu=0,
         memory=0
     )
-    
+
     db.add(db_agent)
     db.commit()
     db.refresh(db_agent)
-    
+
+    response.status_code = 201
     return format_agent(db_agent)
 
 @app.get("/agents/{agent_id}", tags=["🌐 UI - Agents"])

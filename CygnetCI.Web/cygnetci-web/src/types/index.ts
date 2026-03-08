@@ -10,6 +10,8 @@ export interface Agent {
   cpu: number;
   memory: number;
   resourceData: ResourceDataPoint[];
+  parentAgentId?: number | null;
+  parentAgentName?: string | null;
 }
 
 export interface ResourceDataPoint {

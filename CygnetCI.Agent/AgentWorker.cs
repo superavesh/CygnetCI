@@ -16,6 +16,7 @@ public class AgentWorker : BackgroundService
     private readonly IPipelineExecutionService _pipelineExecutionService;
     private readonly ICommandExecutionService _commandExecutionService;
     private readonly ICygnetApiClient _apiClient;
+    private readonly AgentIdentityService _agentIdentity;
 
     public AgentWorker(
         ILogger<AgentWorker> logger,
@@ -26,7 +27,8 @@ public class AgentWorker : BackgroundService
         IReleaseExecutionService releaseExecutionService,
         IPipelineExecutionService pipelineExecutionService,
         ICommandExecutionService commandExecutionService,
-        ICygnetApiClient apiClient)
+        ICygnetApiClient apiClient,
+        AgentIdentityService agentIdentity)
     {
         _logger = logger;
         _heartbeatService = heartbeatService;
@@ -37,6 +39,7 @@ public class AgentWorker : BackgroundService
         _pipelineExecutionService = pipelineExecutionService;
         _commandExecutionService = commandExecutionService;
         _apiClient = apiClient;
+        _agentIdentity = agentIdentity;
     }
 
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
@@ -46,9 +49,10 @@ public class AgentWorker : BackgroundService
 
         try
         {
-            // Register agent with server
-            await _apiClient.RegisterAgentAsync(stoppingToken);
-            _logger.LogInformation("Agent registered successfully");
+            // Register agent with server and store our own DB ID (used by SubAgentProxyService)
+            var agentId = await _apiClient.RegisterAgentAsync(stoppingToken);
+            _agentIdentity.SetAgentId(agentId);
+            _logger.LogInformation("Agent registered successfully with ID {AgentId}", agentId);
 
             // Start all background services
             var tasks = new[]

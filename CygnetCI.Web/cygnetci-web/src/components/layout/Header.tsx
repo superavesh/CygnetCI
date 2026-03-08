@@ -26,20 +26,14 @@ export const Header: React.FC<HeaderProps> = ({ onRefresh }) => {
   const userMenuRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    const fetchCurrentUser = async () => {
-      try {
-        const response = await fetch(`${CONFIG.api.baseUrl}/users`);
-        if (response.ok) {
-          const users = await response.json();
-          const user = users.find((u: CurrentUser) => u.is_superuser) || users[0];
-          setCurrentUser(user);
-        }
-      } catch (error) {
-        console.error('Failed to fetch current user:', error);
+    try {
+      const stored = localStorage.getItem('user');
+      if (stored) {
+        setCurrentUser(JSON.parse(stored));
       }
-    };
-
-    fetchCurrentUser();
+    } catch (error) {
+      console.error('Failed to load current user:', error);
+    }
   }, []);
 
   useEffect(() => {
@@ -58,13 +52,16 @@ export const Header: React.FC<HeaderProps> = ({ onRefresh }) => {
     };
   }, [showUserMenu]);
 
-  const getUserInitials = (fullName: string) => {
-    return fullName
+  const getDisplayName = () => currentUser?.full_name || currentUser?.username || 'User';
+
+  const getUserInitials = (name: string) => {
+    return name
       .split(' ')
       .map(n => n[0])
+      .filter(Boolean)
       .join('')
       .toUpperCase()
-      .substring(0, 2);
+      .substring(0, 2) || '?';
   };
 
   const handleLogout = () => {
@@ -114,12 +111,12 @@ export const Header: React.FC<HeaderProps> = ({ onRefresh }) => {
               <button
                 onClick={() => setShowUserMenu(!showUserMenu)}
                 className="p-1 bg-gradient-to-r from-blue-50 to-purple-50 hover:from-blue-100 hover:to-purple-100 rounded-full border border-blue-200 shadow-md transition-all"
-                title={currentUser?.full_name || 'User Menu'}
+                title={getDisplayName()}
               >
                 <div className="h-9 w-9 rounded-full flex items-center justify-center bg-gradient-to-br from-blue-500 to-purple-600">
                   {currentUser ? (
                     <span className="text-sm font-bold text-white">
-                      {getUserInitials(currentUser.full_name)}
+                      {getUserInitials(getDisplayName())}
                     </span>
                   ) : (
                     <User className="h-5 w-5 text-white" />
@@ -136,13 +133,13 @@ export const Header: React.FC<HeaderProps> = ({ onRefresh }) => {
                       <div className="h-14 w-14 rounded-full flex items-center justify-center shadow-lg bg-gradient-to-br from-orange-500 to-pink-500">
                         {currentUser && (
                           <span className="text-xl font-bold text-white">
-                            {getUserInitials(currentUser.full_name)}
+                            {getUserInitials(getDisplayName())}
                           </span>
                         )}
                       </div>
                       <div className="flex-1">
                         <p className="text-sm font-semibold text-gray-800">
-                          {currentUser?.full_name || 'Loading...'}
+                          {getDisplayName()}
                         </p>
                         <p className="text-xs text-gray-500">{currentUser?.email}</p>
                         {currentUser?.is_superuser && (

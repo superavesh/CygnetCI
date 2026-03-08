@@ -27,7 +27,7 @@ public class CygnetApiClient : ICygnetApiClient
         };
     }
 
-    public async Task RegisterAgentAsync(CancellationToken cancellationToken = default)
+    public async Task<int> RegisterAgentAsync(CancellationToken cancellationToken = default)
     {
         try
         {
@@ -55,17 +55,21 @@ public class CygnetApiClient : ICygnetApiClient
 
             if (response.IsSuccessStatusCode)
             {
-                _logger.LogInformation("Agent registered successfully");
-            }
-            else if (response.StatusCode == System.Net.HttpStatusCode.BadRequest)
-            {
-                // Agent already exists, that's okay
-                _logger.LogInformation("Agent already registered");
+                var json = await response.Content.ReadAsStringAsync(cancellationToken);
+                using var doc = JsonDocument.Parse(json);
+                if (doc.RootElement.TryGetProperty("id", out var idElement))
+                {
+                    var agentId = idElement.GetInt32();
+                    _logger.LogInformation("Agent registered successfully with ID {AgentId}", agentId);
+                    return agentId;
+                }
             }
             else
             {
                 response.EnsureSuccessStatusCode();
             }
+
+            return 0;
         }
         catch (Exception ex)
         {

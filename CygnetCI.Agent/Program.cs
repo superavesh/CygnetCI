@@ -88,6 +88,7 @@ var builder = Host.CreateDefaultBuilder(args)
         });
 
         // Services
+        services.AddSingleton<AgentIdentityService>();
         services.AddSingleton<ISystemMonitorService, SystemMonitorService>();
         services.AddSingleton<IHeartbeatService, HeartbeatService>();
         services.AddSingleton<IMonitoringDataCollector, MonitoringDataCollector>();
@@ -97,6 +98,12 @@ var builder = Host.CreateDefaultBuilder(args)
         services.AddSingleton<IReleaseExecutionService, ReleaseExecutionService>();
         services.AddSingleton<IPipelineExecutionService, PipelineExecutionService>();
         services.AddSingleton<ICommandExecutionService, CommandExecutionService>();
+
+        // Sub-agent proxy (only when enabled in config)
+        if (config.SubAgentProxy.Enabled)
+        {
+            services.AddHostedService<SubAgentProxyService>();
+        }
 
         // Main worker
         services.AddHostedService<AgentWorker>();

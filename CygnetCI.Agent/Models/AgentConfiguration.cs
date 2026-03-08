@@ -22,6 +22,9 @@ public class AgentConfiguration
     // Proxy Configuration
     public ProxySettings Proxy { get; set; } = new ProxySettings();
 
+    // Sub-agent proxy server (enable on jump server to relay sub-agent requests)
+    public SubAgentProxySettings SubAgentProxy { get; set; } = new SubAgentProxySettings();
+
     // Website/API Health Check Configuration
     public List<WebsitePingConfig> WebsitePings { get; set; } = new List<WebsitePingConfig>();
 }
@@ -36,6 +39,12 @@ public class ProxySettings
     public string Password { get; set; } = string.Empty;
     public string[] BypassList { get; set; } = Array.Empty<string>();
     public bool BypassOnLocal { get; set; } = true;
+}
+
+public class SubAgentProxySettings
+{
+    public bool Enabled { get; set; } = false;
+    public int Port { get; set; } = 5001;
 }
 
 public class WebsitePingConfig

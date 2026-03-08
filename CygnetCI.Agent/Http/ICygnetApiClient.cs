@@ -4,7 +4,7 @@ namespace CygnetCI.Agent.Http;
 
 public interface ICygnetApiClient
 {
-    Task RegisterAgentAsync(CancellationToken cancellationToken = default);
+    Task<int> RegisterAgentAsync(CancellationToken cancellationToken = default);
     Task SendHeartbeatAsync(SystemMetrics metrics, CancellationToken cancellationToken = default);
     Task SendMonitoringDataAsync(MonitoringData data, CancellationToken cancellationToken = default);
     Task<List<TaskInfo>> GetPendingTasksAsync(CancellationToken cancellationToken = default);
