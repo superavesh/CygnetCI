@@ -601,21 +601,40 @@ def get_agents(db: Session = Depends(get_db)):
     """Get all agents with automatic status update based on last heartbeat"""
     agents = db.query(models.Agent).all()
 
-    # Auto-update agent status based on last heartbeat (2 minutes timeout)
+    # Compute effective status based on last heartbeat (2 minutes timeout)
     offline_threshold = datetime.now() - timedelta(minutes=2)
 
-    for agent in agents:
-        if agent.last_seen and agent.last_seen < offline_threshold:
-            if agent.status != "offline":
-                agent.status = "offline"
-                db.commit()
-        elif agent.last_seen and agent.last_seen >= offline_threshold:
-            # Agent is active but status might be offline, update to online
-            if agent.status == "offline":
-                agent.status = "online"
-                db.commit()
+    # Try to update statuses in DB, but fall back to computed status if DB is read-only
+    try:
+        needs_commit = False
+        for agent in agents:
+            if agent.last_seen and agent.last_seen < offline_threshold:
+                if agent.status != "offline":
+                    agent.status = "offline"
+                    needs_commit = True
+            elif agent.last_seen and agent.last_seen >= offline_threshold:
+                if agent.status == "offline":
+                    agent.status = "online"
+                    needs_commit = True
+        if needs_commit:
+            db.commit()
+    except Exception:
+        db.rollback()
+        # Re-query agents fresh after rollback
+        agents = db.query(models.Agent).all()
 
-    return [format_agent(agent) for agent in agents]
+    # Build response with computed effective status
+    result = []
+    for agent in agents:
+        agent_data = format_agent(agent)
+        # Override status based on heartbeat even if DB update failed
+        if agent.last_seen and agent.last_seen < offline_threshold:
+            agent_data["status"] = "offline"
+        elif agent.last_seen and agent.last_seen >= offline_threshold and agent.status == "offline":
+            agent_data["status"] = "online"
+        result.append(agent_data)
+
+    return result
 
 @app.post("/agents", status_code=201, tags=["🤖 Agent - Registration & Health"])
 def create_agent(agent: AgentCreate, db: Session = Depends(get_db)):

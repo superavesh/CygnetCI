@@ -329,109 +329,138 @@ public class PipelineExecutionService : IPipelineExecutionService
             // Add the actual command
             powerShell.AddScript(command);
 
-            // Execute with timeout
+            // Use a concurrent queue to collect output in real-time from event handlers
+            var logQueue = new System.Collections.Concurrent.ConcurrentQueue<(string message, string level)>();
+
+            // Create output collection that streams data as it arrives
+            var outputCollection = new PSDataCollection<PSObject>();
+            outputCollection.DataAdded += (sender, e) =>
+            {
+                if (sender is PSDataCollection<PSObject> collection)
+                {
+                    var output = collection[e.Index]?.ToString();
+                    if (!string.IsNullOrEmpty(output))
+                    {
+                        _logger.LogInformation("[Pipeline {PickupId}] {Output}", pickup.PickupId, output);
+                        logQueue.Enqueue((output, "info"));
+                    }
+                }
+            };
+
+            // Subscribe to streams for real-time output
+            powerShell.Streams.Information.DataAdded += (sender, e) =>
+            {
+                if (sender is PSDataCollection<InformationRecord> collection)
+                {
+                    var msg = collection[e.Index]?.MessageData?.ToString();
+                    if (!string.IsNullOrEmpty(msg))
+                    {
+                        _logger.LogInformation("[Pipeline {PickupId}] {Output}", pickup.PickupId, msg);
+                        logQueue.Enqueue((msg, "info"));
+                    }
+                }
+            };
+
+            powerShell.Streams.Warning.DataAdded += (sender, e) =>
+            {
+                if (sender is PSDataCollection<WarningRecord> collection)
+                {
+                    var msg = collection[e.Index]?.Message;
+                    if (!string.IsNullOrEmpty(msg))
+                    {
+                        _logger.LogWarning("[Pipeline {PickupId}] {Warning}", pickup.PickupId, msg);
+                        logQueue.Enqueue(($"WARNING: {msg}", "warning"));
+                    }
+                }
+            };
+
+            powerShell.Streams.Error.DataAdded += (sender, e) =>
+            {
+                if (sender is PSDataCollection<ErrorRecord> collection)
+                {
+                    var msg = collection[e.Index]?.ToString();
+                    if (!string.IsNullOrEmpty(msg))
+                    {
+                        _logger.LogError("[Pipeline {PickupId}] {Error}", pickup.PickupId, msg);
+                        logQueue.Enqueue((msg, "error"));
+                    }
+                }
+            };
+
+            powerShell.Streams.Verbose.DataAdded += (sender, e) =>
+            {
+                if (sender is PSDataCollection<VerboseRecord> collection)
+                {
+                    var msg = collection[e.Index]?.Message;
+                    if (!string.IsNullOrEmpty(msg))
+                    {
+                        _logger.LogDebug("[Pipeline {PickupId}] VERBOSE: {Output}", pickup.PickupId, msg);
+                        logQueue.Enqueue(($"VERBOSE: {msg}", "debug"));
+                    }
+                }
+            };
+
+            powerShell.Streams.Debug.DataAdded += (sender, e) =>
+            {
+                if (sender is PSDataCollection<DebugRecord> collection)
+                {
+                    var msg = collection[e.Index]?.Message;
+                    if (!string.IsNullOrEmpty(msg))
+                    {
+                        _logger.LogDebug("[Pipeline {PickupId}] DEBUG: {Output}", pickup.PickupId, msg);
+                        logQueue.Enqueue(($"DEBUG: {msg}", "debug"));
+                    }
+                }
+            };
+
+            // Execute with timeout using BeginInvoke for real-time streaming
             var timeout = TimeSpan.FromSeconds(_config.ScriptTimeoutSeconds);
             var cts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
             cts.CancelAfter(timeout);
 
-            var invokeTask = Task.Run(() =>
-            {
-                var results = powerShell.Invoke();
-                return results;
-            }, cts.Token);
+            var inputCollection = new PSDataCollection<PSObject>();
+            inputCollection.Complete();
 
+            var asyncResult = powerShell.BeginInvoke(inputCollection, outputCollection);
+
+            // Drain the log queue while the script is running
             try
             {
-                var results = await invokeTask;
-
-                // Stream standard output
-                foreach (var result in results)
+                while (!asyncResult.IsCompleted)
                 {
-                    if (result != null)
+                    // Flush any queued logs to the API
+                    while (logQueue.TryDequeue(out var logEntry))
                     {
-                        var output = result.ToString();
-                        _logger.LogInformation("[Pipeline {PickupId}] {Output}", pickup.PickupId, output);
-                        await _apiClient.StreamPipelineLogAsync(pickup.PickupId, output, "info", step.Name, cancellationToken);
+                        await _apiClient.StreamPipelineLogAsync(pickup.PickupId, logEntry.message, logEntry.level, step.Name, cancellationToken);
                     }
+
+                    // Check for cancellation
+                    if (cts.Token.IsCancellationRequested)
+                    {
+                        powerShell.Stop();
+                        throw new OperationCanceledException(cts.Token);
+                    }
+
+                    await Task.Delay(200, cts.Token);
                 }
 
-                // Stream Information stream (Write-Host, Write-Information)
-                if (powerShell.Streams.Information.Count > 0)
+                // Script finished — flush remaining logs
+                powerShell.EndInvoke(asyncResult);
+
+                while (logQueue.TryDequeue(out var logEntry))
                 {
-                    foreach (var info in powerShell.Streams.Information)
-                    {
-                        var infoMessage = info.MessageData?.ToString();
-                        if (!string.IsNullOrEmpty(infoMessage))
-                        {
-                            _logger.LogInformation("[Pipeline {PickupId}] {Output}", pickup.PickupId, infoMessage);
-                            await _apiClient.StreamPipelineLogAsync(pickup.PickupId, infoMessage, "info", step.Name, cancellationToken);
-                        }
-                    }
+                    await _apiClient.StreamPipelineLogAsync(pickup.PickupId, logEntry.message, logEntry.level, step.Name, cancellationToken);
                 }
 
-                // Stream Verbose stream
-                if (powerShell.Streams.Verbose.Count > 0)
-                {
-                    foreach (var verbose in powerShell.Streams.Verbose)
-                    {
-                        var verboseMessage = verbose.Message;
-                        if (!string.IsNullOrEmpty(verboseMessage))
-                        {
-                            _logger.LogInformation("[Pipeline {PickupId}] VERBOSE: {Output}", pickup.PickupId, verboseMessage);
-                            await _apiClient.StreamPipelineLogAsync(pickup.PickupId, $"VERBOSE: {verboseMessage}", "debug", step.Name, cancellationToken);
-                        }
-                    }
-                }
-
-                // Stream Warning stream
-                if (powerShell.Streams.Warning.Count > 0)
-                {
-                    foreach (var warning in powerShell.Streams.Warning)
-                    {
-                        var warningMessage = warning.Message;
-                        if (!string.IsNullOrEmpty(warningMessage))
-                        {
-                            _logger.LogWarning("[Pipeline {PickupId}] {Warning}", pickup.PickupId, warningMessage);
-                            await _apiClient.StreamPipelineLogAsync(pickup.PickupId, $"WARNING: {warningMessage}", "warning", step.Name, cancellationToken);
-                        }
-                    }
-                }
-
-                // Stream Debug stream
-                if (powerShell.Streams.Debug.Count > 0)
-                {
-                    foreach (var debug in powerShell.Streams.Debug)
-                    {
-                        var debugMessage = debug.Message;
-                        if (!string.IsNullOrEmpty(debugMessage))
-                        {
-                            _logger.LogDebug("[Pipeline {PickupId}] DEBUG: {Output}", pickup.PickupId, debugMessage);
-                            await _apiClient.StreamPipelineLogAsync(pickup.PickupId, $"DEBUG: {debugMessage}", "debug", step.Name, cancellationToken);
-                        }
-                    }
-                }
-
-                // Stream errors
-                if (powerShell.Streams.Error.Count > 0)
-                {
-                    foreach (var error in powerShell.Streams.Error)
-                    {
-                        var errorMessage = error.ToString();
-                        _logger.LogError("[Pipeline {PickupId}] {Error}", pickup.PickupId, errorMessage);
-                        await _apiClient.StreamPipelineLogAsync(pickup.PickupId, errorMessage, "error", step.Name, cancellationToken);
-                    }
-                    return false;
-                }
-
-                return powerShell.HadErrors == false;
+                return powerShell.HadErrors == false && powerShell.Streams.Error.Count == 0;
             }
             catch (OperationCanceledException)
             {
                 powerShell.Stop();
-                _logger.LogWarning("PowerShell step {StepName} timed out after {Timeout}s",
+                _logger.LogWarning("PowerShell step {StepName} timed out or was cancelled after {Timeout}s",
                     step.Name, timeout.TotalSeconds);
                 await _apiClient.StreamPipelineLogAsync(pickup.PickupId,
-                    $"Step timed out after {timeout.TotalSeconds}s", "error", step.Name, cancellationToken);
+                    $"Step timed out or was cancelled after {timeout.TotalSeconds}s", "error", step.Name, cancellationToken);
                 return false;
             }
         }
@@ -478,22 +507,24 @@ public class PipelineExecutionService : IPipelineExecutionService
 
             using var process = new Process { StartInfo = processInfo };
 
-            // Handle output
-            process.OutputDataReceived += async (sender, e) =>
+            // Use a concurrent queue to collect output from event handlers (avoids async void)
+            var logQueue = new System.Collections.Concurrent.ConcurrentQueue<(string message, string level)>();
+
+            process.OutputDataReceived += (sender, e) =>
             {
                 if (!string.IsNullOrEmpty(e.Data))
                 {
                     _logger.LogInformation("[Pipeline {PickupId}] {Output}", pickup.PickupId, e.Data);
-                    await _apiClient.StreamPipelineLogAsync(pickup.PickupId, e.Data, "info", step.Name, cancellationToken);
+                    logQueue.Enqueue((e.Data, "info"));
                 }
             };
 
-            process.ErrorDataReceived += async (sender, e) =>
+            process.ErrorDataReceived += (sender, e) =>
             {
                 if (!string.IsNullOrEmpty(e.Data))
                 {
                     _logger.LogError("[Pipeline {PickupId}] {Error}", pickup.PickupId, e.Data);
-                    await _apiClient.StreamPipelineLogAsync(pickup.PickupId, e.Data, "error", step.Name, cancellationToken);
+                    logQueue.Enqueue((e.Data, "error"));
                 }
             };
 
@@ -501,18 +532,59 @@ public class PipelineExecutionService : IPipelineExecutionService
             process.BeginOutputReadLine();
             process.BeginErrorReadLine();
 
-            // Wait with timeout
+            // Wait with timeout, draining the log queue in real-time
             var timeout = TimeSpan.FromSeconds(_config.ScriptTimeoutSeconds);
+            using var timeoutCts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+            timeoutCts.CancelAfter(timeout);
 
             try
             {
-                await process.WaitForExitAsync(cancellationToken).WaitAsync(timeout, cancellationToken);
+                // Drain log queue while process is running
+                while (!process.HasExited)
+                {
+                    // Flush queued logs to the API
+                    while (logQueue.TryDequeue(out var logEntry))
+                    {
+                        await _apiClient.StreamPipelineLogAsync(pickup.PickupId, logEntry.message, logEntry.level, step.Name, cancellationToken);
+                    }
+
+                    // Check for cancellation or timeout
+                    if (timeoutCts.Token.IsCancellationRequested)
+                    {
+                        process.Kill(true);
+                        if (cancellationToken.IsCancellationRequested)
+                            throw new OperationCanceledException(cancellationToken);
+                        // Timeout
+                        _logger.LogWarning("Pipeline step {StepName} timed out after {Timeout}s, killing process",
+                            step.Name, timeout.TotalSeconds);
+                        await _apiClient.StreamPipelineLogAsync(pickup.PickupId,
+                            $"Step timed out after {timeout.TotalSeconds}s", "error", step.Name, cancellationToken);
+                        return false;
+                    }
+
+                    await Task.Delay(200, timeoutCts.Token);
+                }
+
+                // Process exited — wait briefly for any final output events to fire
+                await Task.Delay(300);
+
+                // Flush remaining queued logs
+                while (logQueue.TryDequeue(out var logEntry))
+                {
+                    await _apiClient.StreamPipelineLogAsync(pickup.PickupId, logEntry.message, logEntry.level, step.Name, cancellationToken);
+                }
             }
-            catch (TimeoutException)
+            catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
             {
+                process.Kill(true);
+                throw;
+            }
+            catch (OperationCanceledException)
+            {
+                // Timeout from timeoutCts
+                process.Kill(true);
                 _logger.LogWarning("Pipeline step {StepName} timed out after {Timeout}s, killing process",
                     step.Name, timeout.TotalSeconds);
-                process.Kill(true);
                 await _apiClient.StreamPipelineLogAsync(pickup.PickupId,
                     $"Step timed out after {timeout.TotalSeconds}s", "error", step.Name, cancellationToken);
                 return false;
@@ -526,6 +598,10 @@ public class PipelineExecutionService : IPipelineExecutionService
             }
 
             return success;
+        }
+        catch (OperationCanceledException)
+        {
+            throw;
         }
         catch (Exception ex)
         {

@@ -1,7 +1,7 @@
 // src/components/monitoring/WindowsServicesModal.tsx
 
-import React, { useState, useEffect } from 'react';
-import { X, Play, Square, RefreshCw, CheckCircle, XCircle, FileText, Loader } from 'lucide-react';
+import React, { useState, useEffect, useMemo } from 'react';
+import { X, Play, Square, RefreshCw, CheckCircle, XCircle, FileText, Loader, Search } from 'lucide-react';
 import { ServiceLogsModal } from './ServiceLogsModal';
 import { CONFIG } from '@/lib/config';
 
@@ -28,6 +28,8 @@ export const WindowsServicesModal: React.FC<WindowsServicesModalProps> = ({
   const [services, setServices] = useState<WindowsService[]>([]);
   const [loading, setLoading] = useState(false);
   const [actionLoading, setActionLoading] = useState<string | null>(null);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [statusFilter, setStatusFilter] = useState<'all' | 'running' | 'stopped'>('all');
 
   // Log viewer state
   const [showLogsModal, setShowLogsModal] = useState(false);
@@ -79,8 +81,29 @@ export const WindowsServicesModal: React.FC<WindowsServicesModalProps> = ({
   useEffect(() => {
     if (isOpen) {
       fetchServices();
+      setSearchQuery('');
+      setStatusFilter('all');
     }
   }, [isOpen, agentUuid]);
+
+  const filteredServices = useMemo(() => {
+    return services.filter(service => {
+      // Status filter
+      if (statusFilter !== 'all' && service.status.toLowerCase() !== statusFilter) {
+        return false;
+      }
+      // Search filter - match against name, display_name, or description
+      if (searchQuery.trim()) {
+        const query = searchQuery.toLowerCase();
+        return (
+          service.name.toLowerCase().includes(query) ||
+          service.display_name.toLowerCase().includes(query) ||
+          (service.description && service.description.toLowerCase().includes(query))
+        );
+      }
+      return true;
+    });
+  }, [services, searchQuery, statusFilter]);
 
   if (!isOpen) return null;
 
@@ -102,21 +125,47 @@ export const WindowsServicesModal: React.FC<WindowsServicesModalProps> = ({
             </button>
           </div>
 
-          {/* Controls */}
-          <div className="p-4 border-b border-gray-200 bg-gray-50">
-            <div className="flex items-center justify-between">
-              <p className="text-sm text-gray-600">
-                Showing all Windows services starting with "CI"
-              </p>
+          {/* Controls & Filters */}
+          <div className="p-4 border-b border-gray-200 bg-gray-50 space-y-3">
+            <div className="flex items-center gap-3">
+              {/* Search */}
+              <div className="relative flex-1">
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+                <input
+                  type="text"
+                  placeholder="Search by name or description..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
+                  style={{ color: '#111827', backgroundColor: '#ffffff' }}
+                />
+              </div>
+
+              {/* Status Filter */}
+              <select
+                value={statusFilter}
+                onChange={(e) => setStatusFilter(e.target.value as 'all' | 'running' | 'stopped')}
+                className="px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
+                style={{ color: '#111827', backgroundColor: '#ffffff' }}
+              >
+                <option value="all">All Status</option>
+                <option value="running">Running</option>
+                <option value="stopped">Stopped</option>
+              </select>
+
+              {/* Refresh */}
               <button
                 onClick={fetchServices}
-                className="px-3 py-1.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors flex items-center gap-2"
+                className="px-3 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors flex items-center gap-2"
                 disabled={loading}
               >
                 <RefreshCw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
                 Refresh
               </button>
             </div>
+            <p className="text-xs text-gray-500">
+              Showing {filteredServices.length} of {services.length} services
+            </p>
           </div>
 
           {/* Services List */}
@@ -131,9 +180,15 @@ export const WindowsServicesModal: React.FC<WindowsServicesModalProps> = ({
                 <p className="text-lg font-medium">No CI services found</p>
                 <p className="text-sm">No Windows services starting with "CI" are installed</p>
               </div>
+            ) : filteredServices.length === 0 ? (
+              <div className="flex flex-col items-center justify-center h-64 text-gray-500">
+                <Search className="h-12 w-12 mb-3" />
+                <p className="text-lg font-medium">No matching services</p>
+                <p className="text-sm">Try adjusting your search or filter</p>
+              </div>
             ) : (
               <div className="space-y-3">
-                {services.map((service) => {
+                {filteredServices.map((service) => {
                   const isRunning = service.status.toLowerCase() === 'running';
                   const isLoading = actionLoading === service.name;
 
@@ -216,9 +271,12 @@ export const WindowsServicesModal: React.FC<WindowsServicesModalProps> = ({
           <div className="p-4 border-t border-gray-200 bg-gray-50">
             <div className="flex items-center justify-between">
               <p className="text-sm text-gray-600">
-                Total Services: {services.length} |
+                Total: {services.length} |
                 Running: {services.filter(s => s.status.toLowerCase() === 'running').length} |
                 Stopped: {services.filter(s => s.status.toLowerCase() === 'stopped').length}
+                {filteredServices.length !== services.length && (
+                  <span> | Showing: {filteredServices.length}</span>
+                )}
               </p>
               <button
                 onClick={onClose}
