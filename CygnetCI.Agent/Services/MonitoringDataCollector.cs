@@ -46,13 +46,20 @@ public class MonitoringDataCollector : IMonitoringDataCollector
 
     private List<WindowsServiceInfo> GetWindowsServices()
     {
-        var services = new List<WindowsServiceInfo>();
+        if (OperatingSystem.IsWindows())
+            return GetWindowsServicesInternal();
 
+        if (OperatingSystem.IsLinux())
+            return GetLinuxServicesInternal();
+
+        return new List<WindowsServiceInfo>();
+    }
+
+    private List<WindowsServiceInfo> GetWindowsServicesInternal()
+    {
+        var services = new List<WindowsServiceInfo>();
         try
         {
-            if (!OperatingSystem.IsWindows())
-                return services;
-
             // Get all services starting with "CI"
             var allServices = ServiceController.GetServices();
             foreach (var service in allServices)
@@ -80,7 +87,80 @@ public class MonitoringDataCollector : IMonitoringDataCollector
         {
             _logger.LogError(ex, "Failed to get Windows services");
         }
+        return services;
+    }
 
+    /// <summary>
+    /// Runs `systemctl list-units --type=service` and parses the output
+    /// into the same WindowsServiceInfo structure used by the UI.
+    /// Returns all loaded systemd services (same scope as Windows "all services").
+    /// </summary>
+    private List<WindowsServiceInfo> GetLinuxServicesInternal()
+    {
+        var services = new List<WindowsServiceInfo>();
+        try
+        {
+            using var process = new System.Diagnostics.Process();
+            process.StartInfo = new System.Diagnostics.ProcessStartInfo
+            {
+                FileName = "systemctl",
+                // --no-pager --no-legend: plain output, no headers/footers
+                // --type=service --state=loaded: all loaded services (running + stopped)
+                Arguments = "list-units --type=service --state=loaded --no-pager --no-legend",
+                RedirectStandardOutput = true,
+                RedirectStandardError = true,
+                UseShellExecute = false,
+                CreateNoWindow = true
+            };
+
+            process.Start();
+            var output = process.StandardOutput.ReadToEnd();
+            process.WaitForExit(5000);
+
+            // Each line: "  cygnetci-agent.service  loaded active running  CygnetCI Agent"
+            // Fields (space-separated, variable widths): UNIT LOAD ACTIVE SUB DESCRIPTION
+            foreach (var line in output.Split('\n', StringSplitOptions.RemoveEmptyEntries))
+            {
+                var trimmed = line.Trim();
+                if (string.IsNullOrWhiteSpace(trimmed)) continue;
+
+                var parts = trimmed.Split(new[] { ' ' }, StringSplitOptions.RemoveEmptyEntries);
+                if (parts.Length < 4) continue;
+
+                var unitName = parts[0]; // e.g. "nginx.service"
+                var active   = parts[2]; // "active" | "inactive" | "failed"
+                var sub      = parts[3]; // "running" | "exited" | "dead" | "failed"
+                var description = parts.Length > 4
+                    ? string.Join(" ", parts[4..])
+                    : unitName;
+
+                // Normalise status to match the Windows values the UI already handles
+                var status = (active, sub) switch
+                {
+                    ("active", "running") => "Running",
+                    ("active", _)         => "Running",
+                    ("failed", _)         => "Stopped",
+                    _                     => "Stopped"
+                };
+
+                // Strip ".service" suffix for a cleaner display name
+                var displayName = unitName.EndsWith(".service")
+                    ? unitName[..^8]
+                    : unitName;
+
+                services.Add(new WindowsServiceInfo
+                {
+                    Name        = unitName,
+                    DisplayName = displayName,
+                    Status      = status,
+                    Description = description
+                });
+            }
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Failed to get Linux systemd services");
+        }
         return services;
     }
 

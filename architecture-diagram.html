@@ -1,0 +1,553 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<title>CygnetCI — Deployment Architecture</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Segoe UI',system-ui,-apple-system,sans-serif;background:#f1f5f9;color:#374151;min-height:100vh;display:flex;flex-direction:column}
+
+/* ── Header ── */
+.hdr{background:#fff;box-shadow:0 2px 8px rgba(0,0,0,.08);border-bottom:1px solid #e2e8f0;padding:0 32px;height:64px;display:flex;align-items:center;gap:14px;position:sticky;top:0;z-index:50;flex-shrink:0}
+.hdr-logo{width:40px;height:40px;background:linear-gradient(135deg,#6366f1,#8b5cf6);border-radius:10px;display:flex;align-items:center;justify-content:center;font-weight:900;font-size:18px;color:#fff;box-shadow:0 2px 10px rgba(99,102,241,.4);flex-shrink:0}
+.hdr-name{font-size:22px;font-weight:800;background:linear-gradient(to right,#2563eb,#7c3aed,#4f46e5);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+.hdr-sub{font-size:11px;color:#94a3b8;margin-top:1px}
+.hdr-badge{margin-left:auto;font-size:11.5px;color:#4f46e5;background:#eef2ff;border:1px solid #c7d2fe;padding:5px 16px;border-radius:20px;font-weight:600;white-space:nowrap}
+
+/* ── Canvas ── */
+.canvas{flex:1;padding:36px 28px 56px;overflow-x:auto}
+
+/* ── Two-DC layout ── */
+.dc-row{display:flex;align-items:stretch;gap:0;min-width:900px;max-width:1300px;margin:0 auto}
+
+/* ── Data Center Zone ── */
+.dc{
+  flex:1;border-radius:16px;border:2px solid transparent;
+  display:flex;flex-direction:column;overflow:hidden;
+  box-shadow:0 4px 24px rgba(0,0,0,.07);
+}
+
+.dc-header{padding:14px 20px;display:flex;align-items:center;gap:12px;flex-shrink:0}
+.dc-header-icon{width:36px;height:36px;border-radius:9px;display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0}
+.dc-header-label{font-size:9px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;margin-bottom:2px}
+.dc-header-name{font-size:15px;font-weight:800;line-height:1.2}
+.dc-header-desc{font-size:10.5px;opacity:.7;margin-top:1px}
+
+.dc-body{flex:1;padding:16px;display:flex;flex-direction:column;gap:12px}
+
+/* Cygnet DC — blue-indigo */
+.dc-cygnet{background:#fafbff;border-color:#c7d2fe}
+.dc-cygnet .dc-header{background:linear-gradient(135deg,#eef2ff,#e0e7ff);border-bottom:1px solid #c7d2fe}
+.dc-cygnet .dc-header-icon{background:linear-gradient(135deg,#818cf8,#6366f1)}
+.dc-cygnet .dc-header-label{color:#4f46e5}
+.dc-cygnet .dc-header-name{background:linear-gradient(to right,#2563eb,#4f46e5);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+.dc-cygnet .dc-header-desc{color:#3730a3}
+
+/* Client DC — emerald */
+.dc-client{background:#fafffe;border-color:#a7f3d0}
+.dc-client .dc-header{background:linear-gradient(135deg,#ecfdf5,#d1fae5);border-bottom:1px solid #a7f3d0}
+.dc-client .dc-header-icon{background:linear-gradient(135deg,#34d399,#059669)}
+.dc-client .dc-header-label{color:#059669}
+.dc-client .dc-header-name{background:linear-gradient(to right,#047857,#059669);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+.dc-client .dc-header-desc{color:#065f46}
+
+/* ── Middle channel (internet) ── */
+.internet-col{
+  display:flex;flex-direction:column;align-items:center;justify-content:center;
+  width:130px;flex-shrink:0;position:relative;gap:16px;padding:0 8px;
+}
+.internet-badge{
+  background:#fff;border:2px solid #e2e8f0;border-radius:12px;
+  padding:12px 10px;text-align:center;box-shadow:0 2px 12px rgba(0,0,0,.08);
+  width:100%;
+}
+.inet-icon{font-size:22px;margin-bottom:4px}
+.inet-label{font-size:10px;font-weight:800;color:#475569;letter-spacing:.05em}
+.inet-sub{font-size:9px;color:#94a3b8;margin-top:2px;line-height:1.4}
+
+.ip-badge{
+  background:linear-gradient(135deg,#fff7ed,#ffedd5);
+  border:1.5px dashed #fdba74;border-radius:10px;
+  padding:8px 10px;text-align:center;width:100%;
+}
+.ip-icon{font-size:16px;margin-bottom:3px}
+.ip-label{font-size:9.5px;font-weight:700;color:#c2410c;line-height:1.3}
+
+/* Double-headed arrow */
+.dbl-arrow{display:flex;flex-direction:column;align-items:center;gap:0;width:100%}
+.arr-up{width:0;height:0;border-left:7px solid transparent;border-right:7px solid transparent;border-bottom:10px solid #94a3b8}
+.arr-line{width:2px;height:36px;background:linear-gradient(to bottom,#94a3b8,#cbd5e1)}
+.arr-label-box{background:#f8fafc;border:1px solid #e2e8f0;border-radius:6px;padding:4px 8px;font-size:9px;font-weight:600;color:#64748b;text-align:center;white-space:nowrap;width:100%}
+.arr-line2{width:2px;height:36px;background:linear-gradient(to bottom,#cbd5e1,#94a3b8)}
+.arr-dn{width:0;height:0;border-left:7px solid transparent;border-right:7px solid transparent;border-top:10px solid #94a3b8}
+
+/* ── Component cards (inside DC) ── */
+.comp{
+  border-radius:12px;border:1.5px solid #e2e8f0;background:#fff;
+  overflow:hidden;cursor:pointer;
+  box-shadow:0 1px 0 rgba(0,0,0,.04),0 2px 8px rgba(0,0,0,.06);
+  transition:transform .16s ease,box-shadow .16s ease;
+  user-select:none;flex-shrink:0;
+}
+.comp:hover{transform:translateY(-3px);box-shadow:0 1px 0 rgba(0,0,0,.04),0 10px 28px rgba(0,0,0,.11)}
+.comp-stripe{height:4px}
+.comp-inner{display:flex;align-items:center;gap:12px;padding:14px 16px}
+.comp-icon-wrap{width:42px;height:42px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:20px;flex-shrink:0}
+.comp-texts{flex:1;min-width:0}
+.comp-label{font-size:9px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;margin-bottom:2px}
+.comp-name{font-size:14px;font-weight:800;line-height:1.2}
+.comp-desc{font-size:11px;color:#64748b;margin-top:2px;line-height:1.4}
+.comp-arrow{font-size:16px;color:#cbd5e1;flex-shrink:0;transition:transform .15s}
+.comp:hover .comp-arrow{transform:translateX(3px);color:#94a3b8}
+
+/* UI — blue */
+.comp-ui .comp-stripe{background:linear-gradient(to right,#3b82f6,#6366f1)}
+.comp-ui .comp-inner{background:linear-gradient(135deg,#f8faff,#f5f3ff)}
+.comp-ui .comp-icon-wrap{background:linear-gradient(135deg,#dbeafe,#e0e7ff)}
+.comp-ui .comp-label{color:#4f46e5}
+.comp-ui .comp-name{background:linear-gradient(to right,#2563eb,#4f46e5);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+.comp-ui:hover{border-color:#a5b4fc;box-shadow:0 1px 0 rgba(99,102,241,.1),0 10px 28px rgba(99,102,241,.1)}
+
+/* API — purple */
+.comp-api .comp-stripe{background:linear-gradient(to right,#7c3aed,#a855f7)}
+.comp-api .comp-inner{background:linear-gradient(135deg,#faf5ff,#fdf4ff)}
+.comp-api .comp-icon-wrap{background:linear-gradient(135deg,#ede9fe,#fae8ff)}
+.comp-api .comp-label{color:#7c3aed}
+.comp-api .comp-name{background:linear-gradient(to right,#7c3aed,#a855f7);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+.comp-api:hover{border-color:#d8b4fe;box-shadow:0 1px 0 rgba(124,58,237,.1),0 10px 28px rgba(124,58,237,.1)}
+
+/* DB — emerald */
+.comp-db .comp-stripe{background:linear-gradient(to right,#059669,#10b981)}
+.comp-db .comp-inner{background:linear-gradient(135deg,#f0fdf9,#ecfdf5)}
+.comp-db .comp-icon-wrap{background:linear-gradient(135deg,#d1fae5,#a7f3d0)}
+.comp-db .comp-label{color:#059669}
+.comp-db .comp-name{background:linear-gradient(to right,#047857,#059669);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+.comp-db:hover{border-color:#6ee7b7;box-shadow:0 1px 0 rgba(5,150,105,.1),0 10px 28px rgba(5,150,105,.1)}
+
+/* ── Internal arrow (within Cygnet DC) ── */
+.int-arrow{display:flex;justify-content:center;align-items:center;height:28px;position:relative}
+.int-arrow::before{content:'';position:absolute;left:50%;top:0;bottom:0;width:2px;background:linear-gradient(to bottom,#c7d2fe,#d8b4fe);transform:translateX(-50%)}
+.int-arrow::after{content:'';position:absolute;left:50%;bottom:0;transform:translateX(-50%);width:0;height:0;border-left:6px solid transparent;border-right:6px solid transparent;border-top:8px solid #d8b4fe}
+.int-label{font-size:9.5px;color:#6b7280;background:#fff;padding:1px 8px;border-radius:10px;border:1px solid #e5e7eb;position:relative;z-index:1;font-weight:500}
+
+/* ── Scenario section ── */
+.scenario-title{
+  font-size:9px;font-weight:700;letter-spacing:.13em;text-transform:uppercase;
+  color:#64748b;padding:2px 0 8px;
+  display:flex;align-items:center;gap:6px;
+}
+.scenario-title::after{content:'';flex:1;height:1px;background:#e2e8f0}
+
+/* ── Agent wrapper inside client DC ── */
+.agent-wrap{
+  border-radius:12px;border:1.5px solid #fed7aa;
+  background:#fff;overflow:hidden;
+  box-shadow:0 1px 0 rgba(0,0,0,.04),0 2px 8px rgba(0,0,0,.06);
+}
+.agent-wrap-stripe{height:4px;background:linear-gradient(to right,#f97316,#ea580c)}
+.agent-wrap-head{
+  display:flex;align-items:center;gap:10px;padding:12px 14px;
+  background:linear-gradient(135deg,#fff7ed,#ffedd5);border-bottom:1px solid #fed7aa;
+}
+.agent-wrap-icon{width:34px;height:34px;border-radius:8px;background:linear-gradient(135deg,#fde68a,#fbbf24);display:flex;align-items:center;justify-content:center;font-size:17px;flex-shrink:0}
+.agent-wrap-label{font-size:9px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:#c2410c;margin-bottom:1px}
+.agent-wrap-name{font-size:13px;font-weight:800;background:linear-gradient(to right,#c2410c,#d97706);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+.agent-wrap-desc{font-size:10px;color:#92400e}
+
+/* ── Standalone agent card ── */
+.comp-agent .comp-stripe{background:linear-gradient(to right,#f97316,#ea580c)}
+.comp-agent .comp-inner{background:linear-gradient(135deg,#fff7ed,#ffedd5)}
+.comp-agent .comp-icon-wrap{background:linear-gradient(135deg,#fed7aa,#fdba74)}
+.comp-agent .comp-label{color:#c2410c}
+.comp-agent .comp-name{background:linear-gradient(to right,#c2410c,#ea580c);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+.comp-agent:hover{border-color:#fdba74;box-shadow:0 1px 0 rgba(234,88,12,.1),0 10px 28px rgba(234,88,12,.1)}
+
+/* ── Proxy badge ── */
+.proxy-pill{
+  margin:10px 14px 12px;
+  display:flex;align-items:center;gap:6px;justify-content:center;
+  background:#fff7ed;border:1.5px dashed #fdba74;
+  color:#c2410c;font-size:10px;font-weight:700;
+  padding:6px 12px;border-radius:8px;
+}
+
+/* ── Sub-agents row ── */
+.sub-row{display:flex;gap:10px;padding:0 14px 14px}
+.sub-box{
+  flex:1;border-radius:9px;border:1.5px solid #fecdd3;
+  overflow:hidden;cursor:pointer;background:#fff;
+  box-shadow:0 1px 4px rgba(0,0,0,.05);
+  transition:transform .15s,box-shadow .15s;
+  user-select:none;
+}
+.sub-box:hover{transform:translateY(-2px);box-shadow:0 6px 20px rgba(225,29,72,.12);border-color:#fda4af}
+.sub-box-stripe{height:3px;background:linear-gradient(to right,#f43f5e,#e11d48)}
+.sub-box-inner{padding:12px;text-align:center;background:linear-gradient(135deg,#fff1f2,#ffe4e6)}
+.sub-box-icon{font-size:18px;margin-bottom:5px;display:block}
+.sub-box-label{font-size:8.5px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:#9f1239;margin-bottom:2px}
+.sub-box-name{font-size:12px;font-weight:800;background:linear-gradient(to right,#9f1239,#e11d48);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+.sub-box-desc{font-size:10px;color:#9ca3af;margin-top:2px}
+
+/* Internal arrow between parent and sub */
+.internal-conn{display:flex;justify-content:center;padding:4px 0 2px}
+.internal-conn-inner{display:flex;flex-direction:column;align-items:center;gap:0}
+.ic-line{width:2px;height:14px;background:#fed7aa}
+.ic-arr{width:0;height:0;border-left:5px solid transparent;border-right:5px solid transparent;border-top:7px solid #fdba74}
+.ic-label{font-size:9px;color:#92400e;background:#fff7ed;padding:1px 8px;border-radius:8px;border:1px solid #fed7aa;font-weight:600;margin-bottom:2px}
+
+/* OR divider */
+.or-divider{
+  display:flex;align-items:center;gap:10px;margin:4px 0;
+}
+.or-line{flex:1;height:1.5px;background:linear-gradient(to right,transparent,#e2e8f0)}
+.or-line-r{background:linear-gradient(to left,transparent,#e2e8f0)}
+.or-text{font-size:10px;font-weight:700;color:#94a3b8;letter-spacing:.1em;flex-shrink:0}
+
+/* ── Modal ── */
+.overlay{position:fixed;inset:0;background:rgba(15,23,42,.45);display:none;z-index:200;align-items:center;justify-content:center;backdrop-filter:blur(8px)}
+.overlay.open{display:flex}
+.modal{background:#fff;border:1px solid #e2e8f0;border-radius:20px;width:min(720px,94vw);max-height:88vh;overflow:hidden;display:flex;flex-direction:column;box-shadow:0 32px 80px rgba(15,23,42,.2);animation:pop .16s ease}
+@keyframes pop{from{transform:scale(.95);opacity:0}to{transform:scale(1);opacity:1}}
+.m-stripe{height:5px;flex-shrink:0}
+.m-hdr{padding:20px 24px 16px;border-bottom:1px solid #f1f5f9;display:flex;align-items:center;gap:14px;flex-shrink:0}
+.m-icon{width:46px;height:46px;border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:22px;flex-shrink:0}
+.m-title{font-size:17px;font-weight:800;color:#0f172a}
+.m-sub{font-size:11px;color:#94a3b8;margin-top:2px}
+.m-close{margin-left:auto;width:34px;height:34px;border-radius:9px;border:1.5px solid #e2e8f0;background:#fff;color:#94a3b8;cursor:pointer;font-size:15px;display:flex;align-items:center;justify-content:center;flex-shrink:0;transition:all .15s}
+.m-close:hover{background:#f8fafc;border-color:#cbd5e1;color:#475569}
+.m-body{padding:22px 24px 28px;overflow-y:auto;flex:1}
+.ds{margin-bottom:20px}
+.ds h3{font-size:10px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:#94a3b8;margin-bottom:9px;padding-bottom:5px;border-bottom:1.5px solid #f1f5f9}
+.chips{display:flex;flex-wrap:wrap;gap:5px}
+.chip{font-size:11px;padding:4px 12px;border-radius:6px;border:1px solid transparent;font-weight:500;line-height:1.4}
+.flow{display:flex;flex-wrap:wrap;align-items:center;gap:5px;margin-top:4px}
+.step{font-size:11px;font-weight:600;padding:5px 12px;border-radius:7px;white-space:nowrap;background:#f8fafc;border:1px solid #e2e8f0;color:#334155}
+.arr-s{color:#cbd5e1;font-size:16px}
+.note{background:#f8fafc;border-left:3px solid #cbd5e1;border-radius:0 8px 8px 0;padding:11px 14px;font-size:11.5px;color:#475569;line-height:1.75;margin-top:6px}
+.egrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:5px;margin-top:4px}
+.ep{display:flex;align-items:center;gap:7px;background:#f8fafc;border:1px solid #f1f5f9;border-radius:7px;padding:6px 10px;font-size:11px;color:#334155}
+.mbadge{font-size:9px;font-weight:800;letter-spacing:.04em;padding:2px 7px;border-radius:5px;flex-shrink:0}
+.bg-get{background:#dcfce7;color:#15803d}.bg-post{background:#dbeafe;color:#1d4ed8}.bg-put{background:#fef9c3;color:#a16207}.bg-del{background:#fee2e2;color:#b91c1c}
+</style>
+</head>
+<body>
+
+<div class="hdr">
+  <div class="hdr-logo">C</div>
+  <div>
+    <div class="hdr-name">CygnetCI</div>
+    <div class="hdr-sub">Deployment Architecture · Click any component for details</div>
+  </div>
+  <div class="hdr-badge">🖱 Click any component for details</div>
+</div>
+
+<div class="canvas">
+<div class="dc-row">
+
+  <!-- ════════════════════════════════
+       LEFT — CYGNET DATA CENTER
+  ════════════════════════════════ -->
+  <div class="dc dc-cygnet">
+    <div class="dc-header">
+      <div class="dc-header-icon">🏢</div>
+      <div>
+        <div class="dc-header-label">Cygnet's Data Center</div>
+        <div class="dc-header-name">Cygnet Infrastructure</div>
+        <div class="dc-header-desc">Platform hosted &amp; managed by Cygnet</div>
+      </div>
+    </div>
+    <div class="dc-body">
+
+      <!-- Next.js UI -->
+      <div class="comp comp-ui" onclick="show('ui')">
+        <div class="comp-stripe"></div>
+        <div class="comp-inner">
+          <div class="comp-icon-wrap">⚛️</div>
+          <div class="comp-texts">
+            <div class="comp-label">Presentation Layer</div>
+            <div class="comp-name">Next.js 15 UI</div>
+            <div class="comp-desc">React 19 · TypeScript · Tailwind CSS · Served via Nginx / CDN</div>
+          </div>
+          <div class="comp-arrow">›</div>
+        </div>
+      </div>
+
+      <div class="int-arrow"><span class="int-label">HTTP REST — fetch()</span></div>
+
+      <!-- FastAPI -->
+      <div class="comp comp-api" onclick="show('api')">
+        <div class="comp-stripe"></div>
+        <div class="comp-inner">
+          <div class="comp-icon-wrap">🐍</div>
+          <div class="comp-texts">
+            <div class="comp-label">API Layer</div>
+            <div class="comp-name">FastAPI + Uvicorn</div>
+            <div class="comp-desc">Python 3.11 · SQLAlchemy · Port 8000 · HTTPS via reverse proxy</div>
+          </div>
+          <div class="comp-arrow">›</div>
+        </div>
+      </div>
+
+      <div class="int-arrow"><span class="int-label">SQLAlchemy ORM · psycopg2</span></div>
+
+      <!-- PostgreSQL -->
+      <div class="comp comp-db" onclick="show('db')">
+        <div class="comp-stripe"></div>
+        <div class="comp-inner">
+          <div class="comp-icon-wrap">🐘</div>
+          <div class="comp-texts">
+            <div class="comp-label">Data Layer</div>
+            <div class="comp-name">PostgreSQL 15</div>
+            <div class="comp-desc">Primary data store · 15+ tables · Self-referential agent FK</div>
+          </div>
+          <div class="comp-arrow">›</div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ════════════════════════════════
+       MIDDLE — INTERNET CHANNEL
+  ════════════════════════════════ -->
+  <div class="internet-col">
+
+    <div class="internet-badge">
+      <div class="inet-icon">🌐</div>
+      <div class="inet-label">Internet / HTTPS</div>
+      <div class="inet-sub">TLS encrypted<br/>outbound polling</div>
+    </div>
+
+    <div class="dbl-arrow">
+      <div class="arr-up"></div>
+      <div class="arr-line"></div>
+      <div class="arr-label-box">Agent → API<br/>HTTPS polling</div>
+      <div class="arr-line2"></div>
+      <div class="arr-dn"></div>
+    </div>
+
+    <div class="ip-badge">
+      <div class="ip-icon">🔒</div>
+      <div class="ip-label">IP Restriction<br/>Allowlist per client</div>
+    </div>
+
+  </div>
+
+  <!-- ════════════════════════════════
+       RIGHT — CLIENT DATA CENTER
+  ════════════════════════════════ -->
+  <div class="dc dc-client">
+    <div class="dc-header">
+      <div class="dc-header-icon">🏭</div>
+      <div>
+        <div class="dc-header-label">Client's Data Center</div>
+        <div class="dc-header-name">Client Infrastructure</div>
+        <div class="dc-header-desc">Agents deployed &amp; managed on client's own servers</div>
+      </div>
+    </div>
+    <div class="dc-body">
+
+      <!-- Scenario A -->
+      <div class="scenario-title">Scenario A — Direct Agent on Application Server</div>
+
+      <div class="comp comp-agent" onclick="show('standalone')">
+        <div class="comp-stripe"></div>
+        <div class="comp-inner">
+          <div class="comp-icon-wrap">🖥️</div>
+          <div class="comp-texts">
+            <div class="comp-label">Application Server</div>
+            <div class="comp-name">CygnetCI Agent</div>
+            <div class="comp-desc">Standalone · ServerUrl → Cygnet API (HTTPS) · No proxy needed</div>
+          </div>
+          <div class="comp-arrow">›</div>
+        </div>
+      </div>
+
+      <!-- OR divider -->
+      <div class="or-divider">
+        <div class="or-line"></div>
+        <div class="or-text">OR</div>
+        <div class="or-line or-line-r"></div>
+      </div>
+
+      <!-- Scenario B -->
+      <div class="scenario-title">Scenario B — Jump Server + Sub-Agents</div>
+
+      <!-- Jump server / Parent Agent -->
+      <div class="agent-wrap">
+        <div class="agent-wrap-stripe"></div>
+        <div class="agent-wrap-head">
+          <div class="agent-wrap-icon">🖥️</div>
+          <div>
+            <div class="agent-wrap-label">Jump Server · Client Data Center</div>
+            <div class="agent-wrap-name">Parent Agent</div>
+            <div class="agent-wrap-desc">.NET 9 · C# · Direct HTTPS access to Cygnet API</div>
+          </div>
+        </div>
+        <div style="cursor:pointer" onclick="show('parent')">
+          <div class="proxy-pill">🔀 SubAgentProxyService — HttpListener :5001 (configurable)</div>
+        </div>
+
+        <!-- Internal arrow down to sub-agents -->
+        <div class="internal-conn">
+          <div class="internal-conn-inner">
+            <div class="ic-label">Internal network (no internet needed)</div>
+            <div class="ic-line"></div>
+            <div class="ic-arr"></div>
+          </div>
+        </div>
+
+        <!-- Sub-agents -->
+        <div class="sub-row">
+          <div class="sub-box" onclick="show('sub')">
+            <div class="sub-box-stripe"></div>
+            <div class="sub-box-inner">
+              <span class="sub-box-icon">🖧</span>
+              <div class="sub-box-label">App Server</div>
+              <div class="sub-box-name">Sub-Agent A</div>
+              <div class="sub-box-desc">ApiUrl → :5001</div>
+            </div>
+          </div>
+          <div class="sub-box" onclick="show('sub')">
+            <div class="sub-box-stripe"></div>
+            <div class="sub-box-inner">
+              <span class="sub-box-icon">🖧</span>
+              <div class="sub-box-label">DB Server</div>
+              <div class="sub-box-name">Sub-Agent B</div>
+              <div class="sub-box-desc">ApiUrl → :5001</div>
+            </div>
+          </div>
+          <div class="sub-box" onclick="show('sub')" style="border-style:dashed;opacity:.7">
+            <div class="sub-box-stripe" style="background:linear-gradient(to right,#f43f5e,#e11d48);opacity:.5"></div>
+            <div class="sub-box-inner" style="background:#fafafa">
+              <span class="sub-box-icon">🖧</span>
+              <div class="sub-box-label">Any Server</div>
+              <div class="sub-box-name" style="-webkit-text-fill-color:#9ca3af;color:#9ca3af">Sub-Agent N</div>
+              <div class="sub-box-desc">unlimited</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+</div><!-- /dc-row -->
+</div><!-- /canvas -->
+
+<!-- Modal -->
+<div class="overlay" id="overlay" onclick="closeM(event)">
+  <div class="modal">
+    <div class="m-stripe" id="m-stripe"></div>
+    <div class="m-hdr">
+      <div class="m-icon" id="m-icon"></div>
+      <div><div class="m-title" id="m-title"></div><div class="m-sub" id="m-sub"></div></div>
+      <button class="m-close" onclick="closeM()">✕</button>
+    </div>
+    <div class="m-body" id="m-body"></div>
+  </div>
+</div>
+
+<script>
+const D={
+  ui:{
+    icon:'⚛️',title:'Next.js 15 UI — Presentation Layer',sub:'Hosted at Cygnet Data Center · Served via Nginx / CDN',
+    stripe:'linear-gradient(to right,#3b82f6,#6366f1,#8b5cf6)',
+    iconBg:'linear-gradient(135deg,#dbeafe,#e0e7ff)',chipBg:'#eef2ff',chipBorder:'#c7d2fe',chipColor:'#3730a3',noteBorder:'#c7d2fe',
+    s:[
+      {h:'Hosting',note:'Deployed at Cygnet\'s data center. Accessible by client teams via browser over the internet (standard HTTPS). Served via Nginx as a static export, no SSR server needed.'},
+      {h:'Tech Stack',chips:['Next.js 15','React 19','TypeScript','Tailwind CSS','App Router','Static Export','lucide-react icons']},
+      {h:'Pages',chips:['🏠 Overview / Dashboard','⚙️ Pipelines','🚀 Releases','📋 Tasks','📡 Agents','📊 Monitoring','📁 File Transfer','↩️ Rollback','📧 Email Alerts','🏢 Customers','👥 Users']},
+      {h:'Key Components',chips:['AuthWrapper — route guard (localStorage token check)','Header — reads logged-in user from localStorage','Navigation — collapsible sidebar with active gradient','CustomerSelector — multi-tenant filter','AgentCard — parent/sub-agent badge & indigo border','PipelineTable — execution history & real-time status','ExecutionViewModal — live log streaming','ReleaseStageLogsModal — per-stage logs']},
+      {h:'Auth Flow',flow:['User opens browser','POST /auth/login to Cygnet API','Receive access_token + user object','localStorage: auth_token + user','Redirect to dashboard']}
+    ]
+  },
+  api:{
+    icon:'🐍',title:'FastAPI + Uvicorn — API Layer',sub:'Hosted at Cygnet Data Center · HTTPS · Port 8000',
+    stripe:'linear-gradient(to right,#7c3aed,#a855f7,#c026d3)',
+    iconBg:'linear-gradient(135deg,#ede9fe,#fae8ff)',chipBg:'#f5f3ff',chipBorder:'#d8b4fe',chipColor:'#6b21a8',noteBorder:'#d8b4fe',
+    s:[
+      {h:'Hosting & Network',note:'Hosted at Cygnet\'s data center behind a reverse proxy (Nginx). Accessible over HTTPS from:\n  • Next.js UI (same data center — fast LAN calls)\n  • Client agents over the internet via HTTPS (IP-restricted per client)'},
+      {h:'Tech Stack',chips:['FastAPI','Uvicorn (ASGI)','SQLAlchemy ORM','Psycopg2','Pydantic v2','Python 3.11+']},
+      {h:'IP Restriction',note:'Each client\'s outbound IP (or their jump server IP) is allowlisted on Cygnet\'s firewall / API gateway. Only registered client IPs can reach the agent polling endpoints. The UI endpoints are publicly accessible (with auth token).'},
+      {h:'Agent Endpoints',endpoints:[{m:'post',p:'/agents  (upsert by UUID)'},{m:'post',p:'/agents/heartbeat'},{m:'get',p:'/agents/{id}/pending-pipelines'},{m:'get',p:'/agents/{id}/pending-releases'},{m:'get',p:'/agents/{id}/pending-tasks'},{m:'get',p:'/agents/{id}/pending-downloads'},{m:'get',p:'/agents/{id}/pending-commands'},{m:'post',p:'/pipeline-pickups/{id}/log'},{m:'post',p:'/pipeline-pickups/{id}/complete'},{m:'post',p:'/release-pickups/{id}/log'},{m:'post',p:'/release-pickups/{id}/complete'}]},
+      {h:'UI / Auth Endpoints',endpoints:[{m:'post',p:'/auth/login'},{m:'get',p:'/pipelines'},{m:'post',p:'/pipelines/{id}/trigger'},{m:'get',p:'/releases'},{m:'post',p:'/releases/{id}/deploy'},{m:'get',p:'/agents'},{m:'get',p:'/monitoring/{agentId}/latest'},{m:'get',p:'/customers'},{m:'get',p:'/data  (health check)'}]}
+    ]
+  },
+  db:{
+    icon:'🐘',title:'PostgreSQL 15 — Data Layer',sub:'Hosted at Cygnet Data Center · LAN access from API only',
+    stripe:'linear-gradient(to right,#059669,#10b981,#34d399)',
+    iconBg:'linear-gradient(135deg,#d1fae5,#a7f3d0)',chipBg:'#ecfdf5',chipBorder:'#a7f3d0',chipColor:'#065f46',noteBorder:'#6ee7b7',
+    s:[
+      {h:'Hosting & Security',note:'Hosted at Cygnet\'s data center. NOT exposed to the internet — accessible only from the FastAPI server on the same LAN. Client agents never connect directly to the database.'},
+      {h:'Core Tables',chips:['users','agents (+ parent_agent_id FK)','customers']},
+      {h:'Pipeline Tables',chips:['pipelines','pipeline_pickups','pipeline_pickup_logs']},
+      {h:'Release Tables',chips:['releases','release_stages','release_stage_pickups','release_stage_pickup_logs']},
+      {h:'Other Tables',chips:['tasks','task_pickups','file_transfer_pickups','monitoring_reports','agent_commands','email_alert_configs']},
+      {h:'Agent Self-Referential FK',note:'agents.parent_agent_id → agents.id  (ON DELETE SET NULL)\nAllows sub-agents (on client app/DB servers) to be linked to their parent (on client jump server). Visualised in the UI as "Sub-agent via <ParentName>" badge.'}
+    ]
+  },
+  standalone:{
+    icon:'🖥️',title:'Standalone Agent — Client Application Server',sub:'Scenario A · Client Data Center · Direct HTTPS to Cygnet API',
+    stripe:'linear-gradient(to right,#f97316,#ea580c)',
+    iconBg:'linear-gradient(135deg,#ffedd5,#fed7aa)',chipBg:'#fff7ed',chipBorder:'#fed7aa',chipColor:'#c2410c',noteBorder:'#fdba74',
+    s:[
+      {h:'When to use',note:'Client has a single application server (or all apps/services on one server). No need for a jump server. The agent is deployed directly on that server and talks to Cygnet\'s API over the internet via HTTPS.'},
+      {h:'Configuration (appsettings.json)',chips:['ServerUrl = https://cygnetci-api.cygnet.one','AgentName = client-app-server','SubAgentProxy.Enabled = false','SubAgentProxy.Port = 5001 (unused)']},
+      {h:'Network Flow',flow:['Agent starts on app server','POST /agents → Cygnet API (HTTPS)','Polls for pipeline/release/task work','Executes scripts on local server','Streams logs back to Cygnet API (HTTPS)']},
+      {h:'Services Running',chips:['AgentWorker','CygnetApiClient → Cygnet API','HeartbeatService (CPU/RAM/Disk)','PipelineExecutionService','ReleaseExecutionService','TaskExecutionService','FileTransferService','CommandExecutionService','MonitoringReportService']},
+      {h:'Firewall',note:'Client must allow outbound HTTPS (port 443) from the app server to Cygnet API\'s IP. Cygnet allowlists the client\'s outbound IP on their firewall.'}
+    ]
+  },
+  parent:{
+    icon:'🖥️',title:'Parent Agent — Jump Server (Client Data Center)',sub:'Scenario B · Gateway between sub-agents and Cygnet API',
+    stripe:'linear-gradient(to right,#f97316,#ea580c,#dc2626)',
+    iconBg:'linear-gradient(135deg,#ffedd5,#fed7aa)',chipBg:'#fff7ed',chipBorder:'#fed7aa',chipColor:'#c2410c',noteBorder:'#fdba74',
+    s:[
+      {h:'Role',note:'The jump server is the ONLY machine in the client data center that needs outbound HTTPS access to Cygnet\'s API. It acts as a gateway for all sub-agents on internal servers (app server, DB server) that have no internet access.'},
+      {h:'Configuration (appsettings.json)',chips:['ServerUrl = https://cygnetci-api.cygnet.one','AgentName = client-jump-server','SubAgentProxy.Enabled = true','SubAgentProxy.Port = 5001']},
+      {h:'Network Access',note:'Jump server → Cygnet API: outbound HTTPS (internet, IP-restricted)\nSub-agents → Jump server :5001: internal network only (no internet needed from sub-agents)'},
+      {h:'SubAgentProxyService',note:'Embedded HttpListener on http://*:5001/. Sub-agents point their ApiUrl to http://jump-server:5001.\n\n• POST /agents: injects parent_agent_id automatically\n• All other requests: forwarded transparently to Cygnet API\n\nWindows one-time setup:\n  netsh http add urlacl url=http://*:5001/ user=Everyone'},
+      {h:'AgentIdentityService',note:'After the jump server registers with POST /agents and receives its DB ID, AgentIdentityService holds that ID in memory. The proxy reads it to inject parent_agent_id into every sub-agent registration.'},
+      {h:'All Running Services',chips:['AgentWorker — orchestrator','AgentIdentityService — stores own DB ID','CygnetApiClient → Cygnet API (HTTPS)','HeartbeatService','PipelineExecutionService','ReleaseExecutionService','TaskExecutionService','FileTransferService','CommandExecutionService','MonitoringReportService','SubAgentProxyService — HTTP proxy :5001']}
+    ]
+  },
+  sub:{
+    icon:'🖧',title:'Sub-Agent — Client App / DB Server',sub:'Scenario B · Internal network only · No internet access required',
+    stripe:'linear-gradient(to right,#f43f5e,#e11d48,#be123c)',
+    iconBg:'linear-gradient(135deg,#ffe4e6,#fecdd3)',chipBg:'#fff1f2',chipBorder:'#fecdd3',chipColor:'#9f1239',noteBorder:'#fda4af',
+    s:[
+      {h:'Key Design Point',note:'Sub-agents have NO direct internet access to Cygnet\'s API. They communicate only with the jump server\'s proxy on the internal network (port 5001). The jump server then forwards everything to Cygnet over HTTPS.\n\nThis is ideal for DB servers or app servers locked down to internal networks only.'},
+      {h:'Configuration (appsettings.json)',chips:['ServerUrl = http://jump-server-ip:5001  ← proxy, NOT Cygnet API','AgentName = client-app-server  (or db-server)','SubAgentProxy.Enabled = false']},
+      {h:'Registration Flow',flow:['Sub-agent starts','POST /agents → :5001 (jump server proxy)','Proxy injects parent_agent_id','Proxy forwards to Cygnet API (HTTPS)','Stored in DB with parent link','Sub-agent receives its own DB ID']},
+      {h:'Firewall Rules needed',note:'Sub-agent server → Jump server :5001: internal network port only\nNo outbound internet access required from sub-agent servers.'},
+      {h:'UI Visibility',note:'Sub-agents appear as separate agent cards on the Agents page at Cygnet\'s UI. Each card shows an indigo left border and "Sub-agent via <JumpServerName>" badge. Pipelines/releases can be targeted to specific agents (parent or sub).'},
+      {h:'Services Running',chips:['AgentWorker','CygnetApiClient (→ jump server :5001)','HeartbeatService','PipelineExecutionService','ReleaseExecutionService','TaskExecutionService','FileTransferService','CommandExecutionService','MonitoringReportService']},
+      {h:'NOT Running',chips:['SubAgentProxyService  (Enabled = false)']}
+    ]
+  }
+};
+
+function show(key){
+  const d=D[key];if(!d)return;
+  document.getElementById('m-stripe').style.background=d.stripe;
+  const icon=document.getElementById('m-icon');icon.textContent=d.icon;icon.style.background=d.iconBg;
+  document.getElementById('m-title').textContent=d.title;
+  document.getElementById('m-sub').textContent=d.sub;
+  let html='';
+  for(const s of d.s){
+    html+=`<div class="ds"><h3>${s.h}</h3>`;
+    if(s.chips)html+='<div class="chips">'+s.chips.map(c=>`<span class="chip" style="background:${d.chipBg};border-color:${d.chipBorder};color:${d.chipColor}">${c}</span>`).join('')+'</div>';
+    if(s.flow)html+='<div class="flow">'+s.flow.map((f,i)=>`<span class="step">${f}</span>${i<s.flow.length-1?'<span class="arr-s">›</span>':''}`).join('')+'</div>';
+    if(s.endpoints)html+='<div class="egrid">'+s.endpoints.map(e=>`<div class="ep"><span class="mbadge bg-${e.m}">${e.m.toUpperCase()}</span>${e.p}</div>`).join('')+'</div>';
+    if(s.note)html+=`<div class="note" style="border-left-color:${d.noteBorder}">${s.note.replace(/\n/g,'<br/>')}</div>`;
+    html+='</div>';
+  }
+  document.getElementById('m-body').innerHTML=html;
+  document.getElementById('overlay').classList.add('open');
+}
+function closeM(e){if(!e||e.target===document.getElementById('overlay'))document.getElementById('overlay').classList.remove('open')}
+document.addEventListener('keydown',e=>{if(e.key==='Escape')document.getElementById('overlay').classList.remove('open')});
+</script>
+</body>
+</html>

@@ -286,7 +286,9 @@ public class PipelineExecutionService : IPipelineExecutionService
             {
                 "powershell" => await ExecutePowerShellAsync(pickup, step, command, cancellationToken),
                 "bash" => await ExecuteProcessAsync(pickup, step, command, "/bin/bash", $"-c \"{command.Replace("\"", "\\\"")}\"", cancellationToken),
-                "cmd" or _ => await ExecuteProcessAsync(pickup, step, command, "cmd.exe", $"/c {command}", cancellationToken)
+                "cmd" or _ => OperatingSystem.IsLinux()
+                    ? await ExecuteProcessAsync(pickup, step, command, "/bin/bash", $"-c \"{command.Replace("\"", "\\\"")}\"", cancellationToken)
+                    : await ExecuteProcessAsync(pickup, step, command, "cmd.exe", $"/c {command}", cancellationToken)
             };
         }
         catch (Exception ex)

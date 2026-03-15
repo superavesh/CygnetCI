@@ -114,7 +114,7 @@ export const WindowsServicesModal: React.FC<WindowsServicesModalProps> = ({
           {/* Header */}
           <div className="flex items-center justify-between p-6 border-b border-gray-200">
             <div>
-              <h2 className="text-2xl font-bold text-gray-900">Windows Services (CI*)</h2>
+              <h2 className="text-2xl font-bold text-gray-900">Services</h2>
               <p className="text-sm text-gray-600 mt-1">Agent: {agentName}</p>
             </div>
             <button

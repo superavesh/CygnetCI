@@ -44,29 +44,24 @@ public class SystemMonitorService : ISystemMonitorService
         {
             if (OperatingSystem.IsWindows() && _cpuCounter != null && _ramCounter != null)
             {
-                // Windows-specific performance counters
                 metrics.CpuUsage = (int)_cpuCounter.NextValue();
                 metrics.MemoryUsage = (int)_ramCounter.NextValue();
             }
-            else
+            else if (OperatingSystem.IsLinux())
             {
-                // Fallback for Linux/macOS - use Process metrics as approximation
-                using var currentProcess = Process.GetCurrentProcess();
-                metrics.CpuUsage = (int)(currentProcess.TotalProcessorTime.TotalMilliseconds / Environment.ProcessorCount / 10);
-
-                var totalMemory = GC.GetGCMemoryInfo().TotalAvailableMemoryBytes;
-                var usedMemory = GC.GetTotalMemory(false);
-                metrics.MemoryUsage = totalMemory > 0 ? (int)((usedMemory * 100) / totalMemory) : 0;
+                metrics.CpuUsage = GetLinuxCpuUsage();
+                metrics.MemoryUsage = GetLinuxMemoryUsage();
             }
 
-            // Get disk usage for C: drive
+            // Disk: primary drive (C:\ on Windows, / on Linux)
             try
             {
-                var cDrive = System.IO.DriveInfo.GetDrives().FirstOrDefault(d => d.Name == "C:\\");
-                if (cDrive != null && cDrive.IsReady)
+                var driveName = OperatingSystem.IsWindows() ? "C:\\" : "/";
+                var drive = System.IO.DriveInfo.GetDrives().FirstOrDefault(d => d.Name == driveName);
+                if (drive != null && drive.IsReady)
                 {
-                    var usedSpace = cDrive.TotalSize - cDrive.AvailableFreeSpace;
-                    metrics.DiskUsage = (int)((usedSpace * 100) / cDrive.TotalSize);
+                    var usedSpace = drive.TotalSize - drive.AvailableFreeSpace;
+                    metrics.DiskUsage = (int)((usedSpace * 100) / drive.TotalSize);
                 }
             }
             catch (Exception diskEx)
@@ -74,7 +69,6 @@ public class SystemMonitorService : ISystemMonitorService
                 _logger.LogWarning(diskEx, "Failed to get disk usage");
             }
 
-            // Clamp values to 0-100 range
             metrics.CpuUsage = Math.Clamp(metrics.CpuUsage, 0, 100);
             metrics.MemoryUsage = Math.Clamp(metrics.MemoryUsage, 0, 100);
             metrics.DiskUsage = Math.Clamp(metrics.DiskUsage, 0, 100);
@@ -85,6 +79,84 @@ public class SystemMonitorService : ISystemMonitorService
         }
 
         return metrics;
+    }
+
+    /// <summary>
+    /// Reads /proc/stat twice (500ms apart) and computes system-wide CPU usage %.
+    /// </summary>
+    private int GetLinuxCpuUsage()
+    {
+        try
+        {
+            (long idle1, long total1) = ReadProcStatCpu();
+            System.Threading.Thread.Sleep(500);
+            (long idle2, long total2) = ReadProcStatCpu();
+
+            var totalDelta = total2 - total1;
+            var idleDelta = idle2 - idle1;
+
+            if (totalDelta <= 0) return 0;
+            return (int)(100L * (totalDelta - idleDelta) / totalDelta);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "Failed to read Linux CPU usage from /proc/stat");
+            return 0;
+        }
+    }
+
+    private static (long idle, long total) ReadProcStatCpu()
+    {
+        // First line format: cpu  user nice system idle iowait irq softirq steal guest guest_nice
+        var line = System.IO.File.ReadLines("/proc/stat").First(l => l.StartsWith("cpu "));
+        var parts = line.Split(' ', StringSplitOptions.RemoveEmptyEntries);
+        long user    = long.Parse(parts[1]);
+        long nice    = long.Parse(parts[2]);
+        long system  = long.Parse(parts[3]);
+        long idle    = long.Parse(parts[4]);
+        long iowait  = parts.Length > 5 ? long.Parse(parts[5]) : 0;
+        long irq     = parts.Length > 6 ? long.Parse(parts[6]) : 0;
+        long softirq = parts.Length > 7 ? long.Parse(parts[7]) : 0;
+        long steal   = parts.Length > 8 ? long.Parse(parts[8]) : 0;
+
+        long totalIdle = idle + iowait;
+        long total = user + nice + system + idle + iowait + irq + softirq + steal;
+        return (totalIdle, total);
+    }
+
+    /// <summary>
+    /// Reads /proc/meminfo and returns used memory as a percentage of total.
+    /// </summary>
+    private int GetLinuxMemoryUsage()
+    {
+        try
+        {
+            long memTotal = 0, memAvailable = 0;
+            foreach (var line in System.IO.File.ReadLines("/proc/meminfo"))
+            {
+                if (line.StartsWith("MemTotal:"))
+                    memTotal = ParseProcMemInfoKb(line);
+                else if (line.StartsWith("MemAvailable:"))
+                    memAvailable = ParseProcMemInfoKb(line);
+
+                if (memTotal > 0 && memAvailable > 0) break;
+            }
+
+            if (memTotal <= 0) return 0;
+            return (int)(100L * (memTotal - memAvailable) / memTotal);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "Failed to read Linux memory usage from /proc/meminfo");
+            return 0;
+        }
+    }
+
+    private static long ParseProcMemInfoKb(string line)
+    {
+        // Format: "MemTotal:       16384000 kB"
+        var parts = line.Split(':', StringSplitOptions.TrimEntries);
+        return long.TryParse(parts[1].Replace(" kB", "").Trim(), out var val) ? val : 0;
     }
 
     public void IncrementActiveJobs()

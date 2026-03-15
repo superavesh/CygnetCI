@@ -111,9 +111,14 @@ public class CommandExecutionService : ICommandExecutionService
             _logger.LogInformation("Executing service control: {Action} {ServiceName}",
                 serviceCommand.Action, serviceCommand.ServiceName);
 
+            if (OperatingSystem.IsLinux())
+            {
+                return await ExecuteLinuxServiceControlAsync(serviceCommand.ServiceName, serviceCommand.Action, cancellationToken);
+            }
+
             if (!OperatingSystem.IsWindows())
             {
-                return (false, "Service control is only supported on Windows");
+                return (false, "Service control is only supported on Windows and Linux");
             }
 
             return await Task.Run(() =>
@@ -170,5 +175,57 @@ public class CommandExecutionService : ICommandExecutionService
             _logger.LogError(ex, "Failed to parse service control command data");
             return (false, $"Failed to parse command data: {ex.Message}");
         }
+    }
+
+    private async Task<(bool success, string result)> ExecuteLinuxServiceControlAsync(
+        string serviceName, string action, CancellationToken cancellationToken)
+    {
+        var normalizedAction = action.ToLower() switch
+        {
+            "start"   => "start",
+            "stop"    => "stop",
+            "restart" => "restart",
+            _ => null
+        };
+
+        if (normalizedAction == null)
+            return (false, $"Unknown action: {action}. Supported actions: start, stop, restart");
+
+        return await Task.Run(() =>
+        {
+            try
+            {
+                using var process = new System.Diagnostics.Process();
+                process.StartInfo = new System.Diagnostics.ProcessStartInfo
+                {
+                    FileName  = "systemctl",
+                    Arguments = $"{normalizedAction} {serviceName}",
+                    RedirectStandardOutput = true,
+                    RedirectStandardError  = true,
+                    UseShellExecute  = false,
+                    CreateNoWindow   = true
+                };
+
+                process.Start();
+                var stdout = process.StandardOutput.ReadToEnd();
+                var stderr = process.StandardError.ReadToEnd();
+                process.WaitForExit(30_000);
+
+                if (process.ExitCode == 0)
+                {
+                    return (true, $"Service '{serviceName}' {normalizedAction}ed successfully");
+                }
+                else
+                {
+                    var msg = string.IsNullOrWhiteSpace(stderr) ? stdout : stderr;
+                    return (false, $"systemctl {normalizedAction} {serviceName} failed (exit {process.ExitCode}): {msg.Trim()}");
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Failed to execute systemctl {Action} {ServiceName}", normalizedAction, serviceName);
+                return (false, $"Failed to execute systemctl {normalizedAction}: {ex.Message}");
+            }
+        }, cancellationToken);
     }
 }

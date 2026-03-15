@@ -307,9 +307,9 @@ export default function MonitoringPage() {
                     <Settings className="h-5 w-5 text-green-600" />
                     <ChevronRight className="h-4 w-4 text-gray-400 group-hover:text-green-600 transition-colors" />
                   </div>
-                  <p className="text-xs text-gray-600 mb-1">Win Services</p>
+                  <p className="text-xs text-gray-600 mb-1">Services</p>
                   <p className="text-xl font-bold text-gray-900">Manage</p>
-                  <p className="text-xs text-gray-500 mt-1">CI Services</p>
+                  <p className="text-xs text-gray-500 mt-1">Managed Services</p>
                 </button>
 
                 {/* Website Ping Box */}
