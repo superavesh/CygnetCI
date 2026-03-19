@@ -3,9 +3,10 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { X, Rocket, Eye, CheckCircle, XCircle, PlayCircle, Clock } from 'lucide-react';
+import { X, Rocket, Eye, CheckCircle, XCircle, PlayCircle, Clock, StopCircle } from 'lucide-react';
 import { ExecutionViewModal } from '../pipelines/ExecutionViewModal';
 import { CONFIG } from '@/lib/config';
+import { apiService } from '@/lib/api/apiService';
 
 interface ReleaseExecutionViewModalProps {
   isOpen: boolean;
@@ -19,7 +20,7 @@ interface PipelineExecutionInfo {
   id: number;
   pipeline_id: number;
   pipeline_name: string;
-  status: 'running' | 'succeeded' | 'failed' | 'cancelled';
+  status: 'pending' | 'running' | 'succeeded' | 'failed' | 'cancelled';
   started_at: string;
   completed_at: string | null;
   duration: number | null;
@@ -35,6 +36,7 @@ export const ReleaseExecutionViewModal: React.FC<ReleaseExecutionViewModalProps>
   const [pipelineExecutions, setPipelineExecutions] = useState<PipelineExecutionInfo[]>([]);
   const [releaseStatus, setReleaseStatus] = useState<string>('in_progress');
   const [loading, setLoading] = useState(true);
+  const [aborting, setAborting] = useState(false);
   const [selectedPipelineExecution, setSelectedPipelineExecution] = useState<PipelineExecutionInfo | null>(null);
   const [showPipelineLogsModal, setShowPipelineLogsModal] = useState(false);
 
@@ -158,6 +160,20 @@ export const ReleaseExecutionViewModal: React.FC<ReleaseExecutionViewModalProps>
     setShowPipelineLogsModal(true);
   };
 
+  const handleAbort = async () => {
+    if (!executionId) return;
+    if (!confirm('Abort this release? All running pipelines will be stopped and pending pipelines will be cancelled.')) return;
+    try {
+      setAborting(true);
+      await apiService.abortReleaseExecution(executionId);
+      setReleaseStatus('cancelled');
+    } catch (err: any) {
+      alert(err.message || 'Failed to abort release execution');
+    } finally {
+      setAborting(false);
+    }
+  };
+
   return (
     <>
       <div className="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-50 p-4">
@@ -173,12 +189,25 @@ export const ReleaseExecutionViewModal: React.FC<ReleaseExecutionViewModalProps>
                 </p>
               </div>
             </div>
-            <button
-              onClick={onClose}
-              className="p-2 hover:bg-gray-100 rounded-lg transition-colors text-gray-500 hover:text-gray-700"
-            >
-              <X className="h-6 w-6" />
-            </button>
+            <div className="flex items-center gap-2">
+              {releaseStatus === 'in_progress' && (
+                <button
+                  onClick={handleAbort}
+                  disabled={aborting}
+                  className="flex items-center gap-2 px-4 py-2 bg-red-600 hover:bg-red-700 disabled:bg-red-400 text-white rounded-lg text-sm font-medium transition-colors"
+                  title="Abort release — stops running pipelines and cancels pending ones"
+                >
+                  <StopCircle className={`h-4 w-4 ${aborting ? 'animate-spin' : ''}`} />
+                  {aborting ? 'Aborting...' : 'Abort Release'}
+                </button>
+              )}
+              <button
+                onClick={onClose}
+                className="p-2 hover:bg-gray-100 rounded-lg transition-colors text-gray-500 hover:text-gray-700"
+              >
+                <X className="h-6 w-6" />
+              </button>
+            </div>
           </div>
 
           {/* Content */}

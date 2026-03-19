@@ -27,13 +27,16 @@ class Agent(Base):
     cpu = Column(Integer, default=0)
     memory = Column(Integer, default=0)
     customer_id = Column(Integer, ForeignKey("customers.id", ondelete="CASCADE"), index=True)
+    parent_agent_id = Column(Integer, ForeignKey("agents.id", ondelete="SET NULL"), nullable=True, index=True)
     created_at = Column(TIMESTAMP, server_default=func.now())
     updated_at = Column(TIMESTAMP, server_default=func.now(), onupdate=func.now())
-    
+
     # Relationships
     resource_data = relationship("AgentResourceData", back_populates="agent", cascade="all, delete-orphan")
     logs = relationship("AgentLog", back_populates="agent", cascade="all, delete-orphan")
     tasks = relationship("Task", back_populates="agent")
+    sub_agents = relationship("Agent", foreign_keys="Agent.parent_agent_id", back_populates="parent_agent")
+    parent_agent = relationship("Agent", foreign_keys="Agent.parent_agent_id", back_populates="sub_agents", remote_side="Agent.id")
     
     __table_args__ = (
         CheckConstraint("status IN ('online', 'offline', 'busy')", name="check_status"),
@@ -232,11 +235,14 @@ class PipelineExecution(Base):
     agent_id = Column(Integer, ForeignKey("agents.id", ondelete="SET NULL"))
     agent_name = Column(String(255))
     status = Column(String(50), nullable=False)
-    started_at = Column(TIMESTAMP, nullable=False, server_default=func.now())
+    started_at = Column(TIMESTAMP, nullable=True, server_default=func.now())
     completed_at = Column(TIMESTAMP)
     duration = Column(String(50))
     commit = Column(String(255))
     triggered_by = Column(String(255))
+    # DAG tracking — links this execution back to the release graph node
+    release_execution_id = Column(Integer, ForeignKey("release_executions.id", ondelete="SET NULL"), nullable=True)
+    release_pipeline_id = Column(Integer, ForeignKey("release_pipelines.id", ondelete="SET NULL"), nullable=True)
 
     # Relationships
     pipeline = relationship("Pipeline", back_populates="executions")
@@ -245,7 +251,8 @@ class PipelineExecution(Base):
     logs = relationship("PipelineExecutionLog", back_populates="execution", cascade="all, delete-orphan")
 
     __table_args__ = (
-        CheckConstraint("status IN ('success', 'failed', 'running', 'cancelled')", name="check_execution_status"),
+        # 'pending' = created but waiting for upstream dependency to complete
+        CheckConstraint("status IN ('pending', 'running', 'success', 'failed', 'cancelled')", name="check_execution_status"),
     )
 
 

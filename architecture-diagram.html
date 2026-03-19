@@ -2,93 +2,113 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8"/>
-<title>CygnetCI — Deployment Architecture</title>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>CygnetCI — Platform Overview</title>
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
-body{font-family:'Segoe UI',system-ui,-apple-system,sans-serif;background:#f1f5f9;color:#374151;min-height:100vh;display:flex;flex-direction:column}
+body{font-family:'Segoe UI',system-ui,-apple-system,sans-serif;background:#f1f5f9;color:#374151;min-height:100vh;overflow:hidden;display:flex;flex-direction:column}
 
 /* ── Header ── */
-.hdr{background:#fff;box-shadow:0 2px 8px rgba(0,0,0,.08);border-bottom:1px solid #e2e8f0;padding:0 32px;height:64px;display:flex;align-items:center;gap:14px;position:sticky;top:0;z-index:50;flex-shrink:0}
+.hdr{background:#fff;box-shadow:0 2px 8px rgba(0,0,0,.08);border-bottom:1px solid #e2e8f0;padding:0 28px;height:64px;display:flex;align-items:center;gap:14px;position:sticky;top:0;z-index:100;flex-shrink:0}
 .hdr-logo{width:40px;height:40px;background:linear-gradient(135deg,#6366f1,#8b5cf6);border-radius:10px;display:flex;align-items:center;justify-content:center;font-weight:900;font-size:18px;color:#fff;box-shadow:0 2px 10px rgba(99,102,241,.4);flex-shrink:0}
-.hdr-name{font-size:22px;font-weight:800;background:linear-gradient(to right,#2563eb,#7c3aed,#4f46e5);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+.hdr-name{font-size:20px;font-weight:800;background:linear-gradient(to right,#2563eb,#7c3aed,#4f46e5);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
 .hdr-sub{font-size:11px;color:#94a3b8;margin-top:1px}
-.hdr-badge{margin-left:auto;font-size:11.5px;color:#4f46e5;background:#eef2ff;border:1px solid #c7d2fe;padding:5px 16px;border-radius:20px;font-weight:600;white-space:nowrap}
+.hdr-right{margin-left:auto;display:flex;align-items:center;gap:10px}
+.slide-counter{font-size:13px;font-weight:700;color:#475569;letter-spacing:.05em;min-width:44px;text-align:right}
+.nav-btn{width:36px;height:36px;border-radius:8px;border:1.5px solid #e2e8f0;background:#fff;color:#475569;cursor:pointer;font-size:18px;display:flex;align-items:center;justify-content:center;transition:all .15s;font-weight:600;line-height:1;padding:0}
+.nav-btn:hover:not(:disabled){background:#f8fafc;border-color:#c7d2fe;color:#4f46e5;box-shadow:0 2px 8px rgba(99,102,241,.15)}
+.nav-btn:disabled{opacity:.35;cursor:not-allowed}
+.progress-bar-wrap{position:absolute;bottom:0;left:0;right:0;height:3px;background:#f1f5f9}
+.progress-bar{height:3px;background:linear-gradient(to right,#2563eb,#7c3aed,#4f46e5);transition:width .35s ease}
 
-/* ── Canvas ── */
-.canvas{flex:1;padding:36px 28px 56px;overflow-x:auto}
+/* ── Slide viewport ── */
+.slides-wrap{flex:1;position:relative;overflow:hidden}
+.slide{position:absolute;inset:0;overflow-y:auto;padding:36px 48px 76px;opacity:0;pointer-events:none;transform:translateX(40px);transition:opacity .35s ease,transform .35s ease}
+.slide.active{opacity:1;pointer-events:auto;transform:translateX(0)}
+.slide.exit-left{opacity:0;pointer-events:none;transform:translateX(-40px)}
+.slide.exit-right{opacity:0;pointer-events:none;transform:translateX(40px)}
 
-/* ── Two-DC layout ── */
-.dc-row{display:flex;align-items:stretch;gap:0;min-width:900px;max-width:1300px;margin:0 auto}
+/* ── Slide header ── */
+.slide-badge{display:inline-flex;align-items:center;gap:6px;padding:4px 12px;border-radius:20px;font-size:10px;font-weight:800;letter-spacing:.1em;text-transform:uppercase;margin-bottom:16px}
+.slide-title{font-size:32px;font-weight:800;background:linear-gradient(to right,#2563eb,#7c3aed,#4f46e5);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;line-height:1.3;padding-bottom:4px;margin-bottom:8px}
+.slide-subtitle{font-size:15px;color:#64748b;margin-bottom:32px;line-height:1.5}
 
-/* ── Data Center Zone ── */
-.dc{
-  flex:1;border-radius:16px;border:2px solid transparent;
-  display:flex;flex-direction:column;overflow:hidden;
-  box-shadow:0 4px 24px rgba(0,0,0,.07);
-}
+/* ── Cards ── */
+.card{background:#fff;border:1.5px solid #e2e8f0;border-radius:12px;box-shadow:0 1px 3px rgba(0,0,0,.05),0 2px 8px rgba(0,0,0,.06);transition:transform .16s ease,box-shadow .16s ease}
+.card:hover{transform:translateY(-3px);box-shadow:0 4px 20px rgba(0,0,0,.1)}
 
+/* ── Pain Points grid ── */
+.pain-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:16px}
+.pain-card{background:#fff;border:1.5px solid #fecaca;border-radius:14px;border-top:4px solid #ef4444;padding:20px 18px 18px;box-shadow:0 2px 8px rgba(239,68,68,.07),0 1px 3px rgba(0,0,0,.04);transition:transform .16s,box-shadow .16s;display:flex;flex-direction:column;gap:10px}
+.pain-card:hover{transform:translateY(-4px);box-shadow:0 8px 28px rgba(239,68,68,.15);border-color:#fca5a5}
+.pain-icon-wrap{width:44px;height:44px;border-radius:11px;background:linear-gradient(135deg,#fee2e2,#fecaca);display:flex;align-items:center;justify-content:center;font-size:22px;flex-shrink:0}
+.pain-body{flex:1}
+.pain-title{font-size:13.5px;font-weight:800;color:#111827;margin-bottom:6px;line-height:1.3}
+.pain-desc{font-size:11.5px;color:#6b7280;line-height:1.6}
+
+/* ── Solution slide ── */
+.hero-area{text-align:center;padding:28px 20px 32px;background:linear-gradient(135deg,#fafbff,#f5f3ff);border:1.5px solid #e0e7ff;border-radius:16px;margin-bottom:28px}
+.hero-name{font-size:48px;font-weight:900;background:linear-gradient(to right,#2563eb,#7c3aed,#4f46e5);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;line-height:1.3;padding-bottom:6px;margin-bottom:10px}
+.hero-tagline{font-size:15px;color:#64748b;font-weight:500}
+.feat-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:14px}
+.feat-card{background:#fff;border:1.5px solid #e2e8f0;border-radius:12px;padding:18px;box-shadow:0 1px 3px rgba(0,0,0,.05);transition:transform .16s,box-shadow .16s}
+.feat-card:hover{transform:translateY(-3px);box-shadow:0 6px 24px rgba(0,0,0,.1)}
+.feat-icon-wrap{width:42px;height:42px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:20px;margin-bottom:12px}
+.feat-title{font-size:13px;font-weight:700;color:#111827;margin-bottom:6px}
+.feat-desc{font-size:11.5px;color:#64748b;line-height:1.55}
+
+/* ── How It Works slide ── */
+.flow-section{background:#fff;border:1.5px solid #e2e8f0;border-radius:16px;padding:24px;margin-bottom:18px;box-shadow:0 2px 10px rgba(0,0,0,.05)}
+.flow-section-header{display:flex;align-items:center;gap:12px;margin-bottom:20px}
+.flow-section-label{font-size:9px;font-weight:800;letter-spacing:.14em;text-transform:uppercase;padding:5px 14px;border-radius:20px;display:inline-flex;align-items:center;gap:5px;white-space:nowrap}
+.flow-section-title{font-size:17px;font-weight:800;color:#111827}
+.steps-grid{display:grid;gap:12px}
+.steps-grid-3{grid-template-columns:repeat(3,1fr)}
+.steps-grid-4{grid-template-columns:repeat(4,1fr)}
+.step-card{background:#f8fafc;border:1.5px solid #e2e8f0;border-radius:13px;padding:18px 16px 16px;display:flex;flex-direction:column;gap:11px;position:relative;transition:transform .16s,box-shadow .16s}
+.step-card:hover{transform:translateY(-3px);box-shadow:0 6px 24px rgba(0,0,0,.09)}
+.step-num-badge{display:none}
+.step-icon-wrap{width:44px;height:44px;border-radius:11px;display:flex;align-items:center;justify-content:center;font-size:22px;flex-shrink:0}
+.step-card-title{font-size:13px;font-weight:800;color:#111827;line-height:1.3}
+.step-card-desc{font-size:11.5px;color:#6b7280;line-height:1.55}
+
+/* ── Architecture slide ── */
+.arch-canvas{padding:4px 0}
+.dc-row{display:flex;align-items:stretch;gap:0;min-width:860px}
+.dc{flex:1;border-radius:16px;border:2px solid transparent;display:flex;flex-direction:column;overflow:hidden;box-shadow:0 4px 24px rgba(0,0,0,.07)}
 .dc-header{padding:14px 20px;display:flex;align-items:center;gap:12px;flex-shrink:0}
 .dc-header-icon{width:36px;height:36px;border-radius:9px;display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0}
 .dc-header-label{font-size:9px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;margin-bottom:2px}
 .dc-header-name{font-size:15px;font-weight:800;line-height:1.2}
 .dc-header-desc{font-size:10.5px;opacity:.7;margin-top:1px}
-
 .dc-body{flex:1;padding:16px;display:flex;flex-direction:column;gap:12px}
-
-/* Cygnet DC — blue-indigo */
 .dc-cygnet{background:#fafbff;border-color:#c7d2fe}
 .dc-cygnet .dc-header{background:linear-gradient(135deg,#eef2ff,#e0e7ff);border-bottom:1px solid #c7d2fe}
 .dc-cygnet .dc-header-icon{background:linear-gradient(135deg,#818cf8,#6366f1)}
 .dc-cygnet .dc-header-label{color:#4f46e5}
 .dc-cygnet .dc-header-name{background:linear-gradient(to right,#2563eb,#4f46e5);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
 .dc-cygnet .dc-header-desc{color:#3730a3}
-
-/* Client DC — emerald */
 .dc-client{background:#fafffe;border-color:#a7f3d0}
 .dc-client .dc-header{background:linear-gradient(135deg,#ecfdf5,#d1fae5);border-bottom:1px solid #a7f3d0}
 .dc-client .dc-header-icon{background:linear-gradient(135deg,#34d399,#059669)}
 .dc-client .dc-header-label{color:#059669}
 .dc-client .dc-header-name{background:linear-gradient(to right,#047857,#059669);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
 .dc-client .dc-header-desc{color:#065f46}
-
-/* ── Middle channel (internet) ── */
-.internet-col{
-  display:flex;flex-direction:column;align-items:center;justify-content:center;
-  width:130px;flex-shrink:0;position:relative;gap:16px;padding:0 8px;
-}
-.internet-badge{
-  background:#fff;border:2px solid #e2e8f0;border-radius:12px;
-  padding:12px 10px;text-align:center;box-shadow:0 2px 12px rgba(0,0,0,.08);
-  width:100%;
-}
+.internet-col{display:flex;flex-direction:column;align-items:center;justify-content:center;width:130px;flex-shrink:0;position:relative;gap:16px;padding:0 8px}
+.internet-badge{background:#fff;border:2px solid #e2e8f0;border-radius:12px;padding:12px 10px;text-align:center;box-shadow:0 2px 12px rgba(0,0,0,.08);width:100%}
 .inet-icon{font-size:22px;margin-bottom:4px}
 .inet-label{font-size:10px;font-weight:800;color:#475569;letter-spacing:.05em}
 .inet-sub{font-size:9px;color:#94a3b8;margin-top:2px;line-height:1.4}
-
-.ip-badge{
-  background:linear-gradient(135deg,#fff7ed,#ffedd5);
-  border:1.5px dashed #fdba74;border-radius:10px;
-  padding:8px 10px;text-align:center;width:100%;
-}
+.ip-badge{background:linear-gradient(135deg,#fff7ed,#ffedd5);border:1.5px dashed #fdba74;border-radius:10px;padding:8px 10px;text-align:center;width:100%}
 .ip-icon{font-size:16px;margin-bottom:3px}
 .ip-label{font-size:9.5px;font-weight:700;color:#c2410c;line-height:1.3}
-
-/* Double-headed arrow */
 .dbl-arrow{display:flex;flex-direction:column;align-items:center;gap:0;width:100%}
 .arr-up{width:0;height:0;border-left:7px solid transparent;border-right:7px solid transparent;border-bottom:10px solid #94a3b8}
 .arr-line{width:2px;height:36px;background:linear-gradient(to bottom,#94a3b8,#cbd5e1)}
 .arr-label-box{background:#f8fafc;border:1px solid #e2e8f0;border-radius:6px;padding:4px 8px;font-size:9px;font-weight:600;color:#64748b;text-align:center;white-space:nowrap;width:100%}
 .arr-line2{width:2px;height:36px;background:linear-gradient(to bottom,#cbd5e1,#94a3b8)}
 .arr-dn{width:0;height:0;border-left:7px solid transparent;border-right:7px solid transparent;border-top:10px solid #94a3b8}
-
-/* ── Component cards (inside DC) ── */
-.comp{
-  border-radius:12px;border:1.5px solid #e2e8f0;background:#fff;
-  overflow:hidden;cursor:pointer;
-  box-shadow:0 1px 0 rgba(0,0,0,.04),0 2px 8px rgba(0,0,0,.06);
-  transition:transform .16s ease,box-shadow .16s ease;
-  user-select:none;flex-shrink:0;
-}
+.comp{border-radius:12px;border:1.5px solid #e2e8f0;background:#fff;overflow:hidden;cursor:pointer;box-shadow:0 1px 0 rgba(0,0,0,.04),0 2px 8px rgba(0,0,0,.06);transition:transform .16s ease,box-shadow .16s ease;user-select:none;flex-shrink:0}
 .comp:hover{transform:translateY(-3px);box-shadow:0 1px 0 rgba(0,0,0,.04),0 10px 28px rgba(0,0,0,.11)}
 .comp-stripe{height:4px}
 .comp-inner{display:flex;align-items:center;gap:12px;padding:14px 16px}
@@ -99,87 +119,46 @@ body{font-family:'Segoe UI',system-ui,-apple-system,sans-serif;background:#f1f5f
 .comp-desc{font-size:11px;color:#64748b;margin-top:2px;line-height:1.4}
 .comp-arrow{font-size:16px;color:#cbd5e1;flex-shrink:0;transition:transform .15s}
 .comp:hover .comp-arrow{transform:translateX(3px);color:#94a3b8}
-
-/* UI — blue */
 .comp-ui .comp-stripe{background:linear-gradient(to right,#3b82f6,#6366f1)}
 .comp-ui .comp-inner{background:linear-gradient(135deg,#f8faff,#f5f3ff)}
 .comp-ui .comp-icon-wrap{background:linear-gradient(135deg,#dbeafe,#e0e7ff)}
 .comp-ui .comp-label{color:#4f46e5}
 .comp-ui .comp-name{background:linear-gradient(to right,#2563eb,#4f46e5);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
 .comp-ui:hover{border-color:#a5b4fc;box-shadow:0 1px 0 rgba(99,102,241,.1),0 10px 28px rgba(99,102,241,.1)}
-
-/* API — purple */
 .comp-api .comp-stripe{background:linear-gradient(to right,#7c3aed,#a855f7)}
 .comp-api .comp-inner{background:linear-gradient(135deg,#faf5ff,#fdf4ff)}
 .comp-api .comp-icon-wrap{background:linear-gradient(135deg,#ede9fe,#fae8ff)}
 .comp-api .comp-label{color:#7c3aed}
 .comp-api .comp-name{background:linear-gradient(to right,#7c3aed,#a855f7);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
 .comp-api:hover{border-color:#d8b4fe;box-shadow:0 1px 0 rgba(124,58,237,.1),0 10px 28px rgba(124,58,237,.1)}
-
-/* DB — emerald */
 .comp-db .comp-stripe{background:linear-gradient(to right,#059669,#10b981)}
 .comp-db .comp-inner{background:linear-gradient(135deg,#f0fdf9,#ecfdf5)}
 .comp-db .comp-icon-wrap{background:linear-gradient(135deg,#d1fae5,#a7f3d0)}
 .comp-db .comp-label{color:#059669}
 .comp-db .comp-name{background:linear-gradient(to right,#047857,#059669);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
 .comp-db:hover{border-color:#6ee7b7;box-shadow:0 1px 0 rgba(5,150,105,.1),0 10px 28px rgba(5,150,105,.1)}
-
-/* ── Internal arrow (within Cygnet DC) ── */
 .int-arrow{display:flex;justify-content:center;align-items:center;height:28px;position:relative}
 .int-arrow::before{content:'';position:absolute;left:50%;top:0;bottom:0;width:2px;background:linear-gradient(to bottom,#c7d2fe,#d8b4fe);transform:translateX(-50%)}
 .int-arrow::after{content:'';position:absolute;left:50%;bottom:0;transform:translateX(-50%);width:0;height:0;border-left:6px solid transparent;border-right:6px solid transparent;border-top:8px solid #d8b4fe}
 .int-label{font-size:9.5px;color:#6b7280;background:#fff;padding:1px 8px;border-radius:10px;border:1px solid #e5e7eb;position:relative;z-index:1;font-weight:500}
-
-/* ── Scenario section ── */
-.scenario-title{
-  font-size:9px;font-weight:700;letter-spacing:.13em;text-transform:uppercase;
-  color:#64748b;padding:2px 0 8px;
-  display:flex;align-items:center;gap:6px;
-}
+.scenario-title{font-size:9px;font-weight:700;letter-spacing:.13em;text-transform:uppercase;color:#64748b;padding:2px 0 8px;display:flex;align-items:center;gap:6px}
 .scenario-title::after{content:'';flex:1;height:1px;background:#e2e8f0}
-
-/* ── Agent wrapper inside client DC ── */
-.agent-wrap{
-  border-radius:12px;border:1.5px solid #fed7aa;
-  background:#fff;overflow:hidden;
-  box-shadow:0 1px 0 rgba(0,0,0,.04),0 2px 8px rgba(0,0,0,.06);
-}
+.agent-wrap{border-radius:12px;border:1.5px solid #fed7aa;background:#fff;overflow:hidden;box-shadow:0 1px 0 rgba(0,0,0,.04),0 2px 8px rgba(0,0,0,.06)}
 .agent-wrap-stripe{height:4px;background:linear-gradient(to right,#f97316,#ea580c)}
-.agent-wrap-head{
-  display:flex;align-items:center;gap:10px;padding:12px 14px;
-  background:linear-gradient(135deg,#fff7ed,#ffedd5);border-bottom:1px solid #fed7aa;
-}
+.agent-wrap-head{display:flex;align-items:center;gap:10px;padding:12px 14px;background:linear-gradient(135deg,#fff7ed,#ffedd5);border-bottom:1px solid #fed7aa}
 .agent-wrap-icon{width:34px;height:34px;border-radius:8px;background:linear-gradient(135deg,#fde68a,#fbbf24);display:flex;align-items:center;justify-content:center;font-size:17px;flex-shrink:0}
 .agent-wrap-label{font-size:9px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:#c2410c;margin-bottom:1px}
 .agent-wrap-name{font-size:13px;font-weight:800;background:linear-gradient(to right,#c2410c,#d97706);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
 .agent-wrap-desc{font-size:10px;color:#92400e}
-
-/* ── Standalone agent card ── */
 .comp-agent .comp-stripe{background:linear-gradient(to right,#f97316,#ea580c)}
 .comp-agent .comp-inner{background:linear-gradient(135deg,#fff7ed,#ffedd5)}
 .comp-agent .comp-icon-wrap{background:linear-gradient(135deg,#fed7aa,#fdba74)}
 .comp-agent .comp-label{color:#c2410c}
 .comp-agent .comp-name{background:linear-gradient(to right,#c2410c,#ea580c);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
 .comp-agent:hover{border-color:#fdba74;box-shadow:0 1px 0 rgba(234,88,12,.1),0 10px 28px rgba(234,88,12,.1)}
-
-/* ── Proxy badge ── */
-.proxy-pill{
-  margin:10px 14px 12px;
-  display:flex;align-items:center;gap:6px;justify-content:center;
-  background:#fff7ed;border:1.5px dashed #fdba74;
-  color:#c2410c;font-size:10px;font-weight:700;
-  padding:6px 12px;border-radius:8px;
-}
-
-/* ── Sub-agents row ── */
+.proxy-pill{margin:10px 14px 12px;display:flex;align-items:center;gap:6px;justify-content:center;background:#fff7ed;border:1.5px dashed #fdba74;color:#c2410c;font-size:10px;font-weight:700;padding:6px 12px;border-radius:8px}
 .sub-row{display:flex;gap:10px;padding:0 14px 14px}
-.sub-box{
-  flex:1;border-radius:9px;border:1.5px solid #fecdd3;
-  overflow:hidden;cursor:pointer;background:#fff;
-  box-shadow:0 1px 4px rgba(0,0,0,.05);
-  transition:transform .15s,box-shadow .15s;
-  user-select:none;
-}
+.sub-box{flex:1;border-radius:9px;border:1.5px solid #fecdd3;overflow:hidden;cursor:pointer;background:#fff;box-shadow:0 1px 4px rgba(0,0,0,.05);transition:transform .15s,box-shadow .15s;user-select:none}
 .sub-box:hover{transform:translateY(-2px);box-shadow:0 6px 20px rgba(225,29,72,.12);border-color:#fda4af}
 .sub-box-stripe{height:3px;background:linear-gradient(to right,#f43f5e,#e11d48)}
 .sub-box-inner{padding:12px;text-align:center;background:linear-gradient(135deg,#fff1f2,#ffe4e6)}
@@ -187,21 +166,70 @@ body{font-family:'Segoe UI',system-ui,-apple-system,sans-serif;background:#f1f5f
 .sub-box-label{font-size:8.5px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:#9f1239;margin-bottom:2px}
 .sub-box-name{font-size:12px;font-weight:800;background:linear-gradient(to right,#9f1239,#e11d48);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
 .sub-box-desc{font-size:10px;color:#9ca3af;margin-top:2px}
-
-/* Internal arrow between parent and sub */
 .internal-conn{display:flex;justify-content:center;padding:4px 0 2px}
 .internal-conn-inner{display:flex;flex-direction:column;align-items:center;gap:0}
 .ic-line{width:2px;height:14px;background:#fed7aa}
 .ic-arr{width:0;height:0;border-left:5px solid transparent;border-right:5px solid transparent;border-top:7px solid #fdba74}
 .ic-label{font-size:9px;color:#92400e;background:#fff7ed;padding:1px 8px;border-radius:8px;border:1px solid #fed7aa;font-weight:600;margin-bottom:2px}
-
-/* OR divider */
-.or-divider{
-  display:flex;align-items:center;gap:10px;margin:4px 0;
-}
+.or-divider{display:flex;align-items:center;gap:10px;margin:4px 0}
 .or-line{flex:1;height:1.5px;background:linear-gradient(to right,transparent,#e2e8f0)}
 .or-line-r{background:linear-gradient(to left,transparent,#e2e8f0)}
 .or-text{font-size:10px;font-weight:700;color:#94a3b8;letter-spacing:.1em;flex-shrink:0}
+
+/* K8s scenario styles */
+.k8s-wrap{border-radius:12px;border:2px solid #99f6e4;background:#f0fdfa;overflow:hidden;box-shadow:0 1px 0 rgba(0,0,0,.04),0 2px 8px rgba(0,0,0,.06)}
+.k8s-wrap-stripe{height:4px;background:linear-gradient(to right,#0891b2,#06b6d4,#0e7490)}
+.k8s-scenario-label{font-size:9px;font-weight:800;letter-spacing:.14em;text-transform:uppercase;color:#0e7490;padding:8px 14px 0;display:flex;align-items:center;gap:6px}
+.k8s-scenario-label .k8s-new-badge{background:#0891b2;color:#fff;font-size:8px;padding:1px 6px;border-radius:10px;font-weight:700;letter-spacing:.05em}
+.vm-card{border-radius:10px;border:1.5px solid #fde68a;background:#fff;overflow:hidden;margin:10px 12px 0;box-shadow:0 1px 4px rgba(0,0,0,.05)}
+.vm-card-stripe{height:3px;background:linear-gradient(to right,#f59e0b,#d97706)}
+.vm-card-inner{padding:12px 14px;background:linear-gradient(135deg,#fffbeb,#fef3c7)}
+.vm-card-header{display:flex;align-items:center;gap:10px;margin-bottom:8px}
+.vm-icon{width:34px;height:34px;border-radius:8px;background:linear-gradient(135deg,#fde68a,#fbbf24);display:flex;align-items:center;justify-content:center;font-size:17px;flex-shrink:0}
+.vm-label{font-size:8.5px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:#92400e;margin-bottom:1px}
+.vm-name{font-size:12px;font-weight:800;background:linear-gradient(to right,#92400e,#b45309);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+.vm-desc{font-size:10px;color:#78350f}
+.vm-badges{display:flex;gap:6px;flex-wrap:wrap}
+.vm-badge{font-size:9px;font-weight:700;padding:3px 9px;border-radius:6px;border:1px solid transparent}
+.k8s-conn{display:flex;justify-content:center;padding:6px 0}
+.k8s-conn-inner{display:flex;flex-direction:column;align-items:center;gap:0}
+.k8s-conn-line{width:2px;height:14px;background:#99f6e4}
+.k8s-conn-arr{width:0;height:0;border-left:5px solid transparent;border-right:5px solid transparent;border-top:7px solid #0891b2}
+.k8s-conn-label{font-size:9px;color:#0e7490;background:#f0fdfa;padding:1px 8px;border-radius:8px;border:1px solid #99f6e4;font-weight:600;margin-bottom:2px;text-align:center;max-width:180px}
+.k8s-cluster-box{border-radius:10px;border:1.5px solid #99f6e4;background:#fff;overflow:hidden;margin:0 12px 12px;box-shadow:0 1px 4px rgba(0,0,0,.05)}
+.k8s-cluster-stripe{height:4px;background:linear-gradient(to right,#0891b2,#06b6d4)}
+.k8s-cluster-head{display:flex;align-items:center;gap:8px;padding:10px 12px;background:linear-gradient(135deg,#ecfeff,#cffafe);border-bottom:1px solid #a5f3fc;cursor:pointer}
+.k8s-cluster-head:hover{background:linear-gradient(135deg,#cffafe,#a5f3fc)}
+.k8s-cluster-icon{width:30px;height:30px;border-radius:8px;background:linear-gradient(135deg,#06b6d4,#0891b2);display:flex;align-items:center;justify-content:center;font-size:15px;flex-shrink:0}
+.k8s-cluster-label{font-size:8.5px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:#0e7490;margin-bottom:1px}
+.k8s-cluster-name{font-size:12px;font-weight:800;background:linear-gradient(to right,#0e7490,#0891b2);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+.k8s-cluster-desc{font-size:9.5px;color:#164e63}
+.k8s-components{display:flex;gap:8px;padding:10px 12px 12px}
+.k8s-comp{flex:1;border-radius:8px;border:1.5px solid #a5f3fc;background:linear-gradient(135deg,#ecfeff,#f0fdfe);padding:10px;cursor:pointer;transition:transform .15s,box-shadow .15s}
+.k8s-comp:hover{transform:translateY(-2px);box-shadow:0 4px 16px rgba(8,145,178,.15);border-color:#06b6d4}
+.k8s-comp-icon{font-size:16px;margin-bottom:5px}
+.k8s-comp-name{font-size:11.5px;font-weight:700;color:#0e7490;margin-bottom:3px}
+.k8s-comp-desc{font-size:9.5px;color:#0891b2;line-height:1.4}
+
+/* ── Benefits slide ── */
+.stat-row{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin-bottom:28px}
+.stat-card{background:#fff;border:1.5px solid #e2e8f0;border-radius:12px;padding:20px;text-align:center;box-shadow:0 1px 3px rgba(0,0,0,.05)}
+.stat-main{font-size:22px;font-weight:800;background:linear-gradient(to right,#2563eb,#7c3aed);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;margin-bottom:6px}
+.stat-desc{font-size:11.5px;color:#64748b;line-height:1.5}
+.benefit-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:14px}
+.benefit-card{background:#fff;border:1.5px solid #e2e8f0;border-radius:12px;border-left:4px solid #059669;padding:16px;box-shadow:0 1px 3px rgba(0,0,0,.05);transition:transform .16s,box-shadow .16s}
+.benefit-card:hover{transform:translateY(-3px);box-shadow:0 6px 24px rgba(5,150,105,.12)}
+.benefit-icon{font-size:22px;margin-bottom:8px}
+.benefit-title{font-size:13px;font-weight:700;color:#111827;margin-bottom:5px;line-height:1.3}
+.benefit-desc{font-size:11.5px;color:#64748b;line-height:1.55}
+
+/* ── Bottom nav ── */
+.bottom-nav{position:fixed;bottom:0;left:0;right:0;height:56px;background:rgba(255,255,255,.97);border-top:1px solid #e2e8f0;backdrop-filter:blur(8px);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:5px;z-index:99;padding:8px 0 6px}
+.slide-label{font-size:11px;font-weight:600;color:#64748b;letter-spacing:.04em;white-space:nowrap;line-height:1}
+.dots{display:flex;gap:8px;align-items:center}
+.dot{width:8px;height:8px;border-radius:50%;background:#cbd5e1;cursor:pointer;transition:all .25s;border:none;padding:0}
+.dot.active{width:28px;border-radius:4px;background:linear-gradient(to right,#4f46e5,#7c3aed)}
+.dot:hover:not(.active){background:#94a3b8}
 
 /* ── Modal ── */
 .overlay{position:fixed;inset:0;background:rgba(15,23,42,.45);display:none;z-index:200;align-items:center;justify-content:center;backdrop-filter:blur(8px)}
@@ -232,322 +260,872 @@ body{font-family:'Segoe UI',system-ui,-apple-system,sans-serif;background:#f1f5f
 </head>
 <body>
 
+<!-- ═══════════════════════════════════════
+     HEADER
+═══════════════════════════════════════ -->
 <div class="hdr">
   <div class="hdr-logo">C</div>
   <div>
     <div class="hdr-name">CygnetCI</div>
-    <div class="hdr-sub">Deployment Architecture · Click any component for details</div>
+    <div class="hdr-sub">Platform Overview &middot; Use &larr; &rarr; to navigate</div>
   </div>
-  <div class="hdr-badge">🖱 Click any component for details</div>
+  <div class="hdr-right">
+    <span class="slide-counter" id="slideCounter">01 / 05</span>
+    <button class="nav-btn" id="btnPrev" onclick="go(current-1)" disabled title="Previous">&#8249;</button>
+    <button class="nav-btn" id="btnNext" onclick="go(current+1)" title="Next">&#8250;</button>
+  </div>
+  <div class="progress-bar-wrap">
+    <div class="progress-bar" id="progressBar" style="width:20%"></div>
+  </div>
 </div>
 
-<div class="canvas">
-<div class="dc-row">
+<!-- ═══════════════════════════════════════
+     SLIDES WRAPPER
+═══════════════════════════════════════ -->
+<div class="slides-wrap">
 
-  <!-- ════════════════════════════════
-       LEFT — CYGNET DATA CENTER
-  ════════════════════════════════ -->
-  <div class="dc dc-cygnet">
-    <div class="dc-header">
-      <div class="dc-header-icon">🏢</div>
-      <div>
-        <div class="dc-header-label">Cygnet's Data Center</div>
-        <div class="dc-header-name">Cygnet Infrastructure</div>
-        <div class="dc-header-desc">Platform hosted &amp; managed by Cygnet</div>
-      </div>
+  <!-- ── SLIDE 1: PAIN POINTS ── -->
+  <div class="slide active" id="slide-0">
+    <div class="slide-badge" style="background:#fee2e2;color:#dc2626">
+      <span style="font-size:14px">01</span> Pain Points
     </div>
-    <div class="dc-body">
+    <div class="slide-title">The Challenge</div>
+    <div class="slide-subtitle">Why traditional deployment approaches fail at enterprise scale</div>
 
-      <!-- Next.js UI -->
-      <div class="comp comp-ui" onclick="show('ui')">
-        <div class="comp-stripe"></div>
-        <div class="comp-inner">
-          <div class="comp-icon-wrap">⚛️</div>
-          <div class="comp-texts">
-            <div class="comp-label">Presentation Layer</div>
-            <div class="comp-name">Next.js 15 UI</div>
-            <div class="comp-desc">React 19 · TypeScript · Tailwind CSS · Served via Nginx / CDN</div>
-          </div>
-          <div class="comp-arrow">›</div>
+    <div class="pain-grid">
+
+      <div class="pain-card">
+        <div class="pain-icon-wrap">🚨</div>
+        <div class="pain-body">
+          <div class="pain-title">Manual Deployments</div>
+          <div class="pain-desc">Engineers SSH into each client server manually for every release. Error-prone, slow, and unscalable across dozens of clients.</div>
         </div>
       </div>
 
-      <div class="int-arrow"><span class="int-label">HTTP REST — fetch()</span></div>
-
-      <!-- FastAPI -->
-      <div class="comp comp-api" onclick="show('api')">
-        <div class="comp-stripe"></div>
-        <div class="comp-inner">
-          <div class="comp-icon-wrap">🐍</div>
-          <div class="comp-texts">
-            <div class="comp-label">API Layer</div>
-            <div class="comp-name">FastAPI + Uvicorn</div>
-            <div class="comp-desc">Python 3.11 · SQLAlchemy · Port 8000 · HTTPS via reverse proxy</div>
-          </div>
-          <div class="comp-arrow">›</div>
+      <div class="pain-card">
+        <div class="pain-icon-wrap">🔒</div>
+        <div class="pain-body">
+          <div class="pain-title">Firewall Barriers</div>
+          <div class="pain-desc">Client servers behind strict firewalls. No inbound connections allowed from Cygnet's data center. Traditional CI/CD tools can't reach them.</div>
         </div>
       </div>
 
-      <div class="int-arrow"><span class="int-label">SQLAlchemy ORM · psycopg2</span></div>
+      <div class="pain-card">
+        <div class="pain-icon-wrap">👁️</div>
+        <div class="pain-body">
+          <div class="pain-title">Zero Visibility</div>
+          <div class="pain-desc">No centralized dashboard to see what's deployed, what's running, or what's healthy across all clients simultaneously.</div>
+        </div>
+      </div>
 
-      <!-- PostgreSQL -->
-      <div class="comp comp-db" onclick="show('db')">
-        <div class="comp-stripe"></div>
-        <div class="comp-inner">
-          <div class="comp-icon-wrap">🐘</div>
-          <div class="comp-texts">
-            <div class="comp-label">Data Layer</div>
-            <div class="comp-name">PostgreSQL 15</div>
-            <div class="comp-desc">Primary data store · 15+ tables · Self-referential agent FK</div>
-          </div>
-          <div class="comp-arrow">›</div>
+      <div class="pain-card">
+        <div class="pain-icon-wrap">🌐</div>
+        <div class="pain-body">
+          <div class="pain-title">Air-Gapped Networks</div>
+          <div class="pain-desc">Many enterprise clients have fully isolated internal networks. Internet-based CI/CD tools are completely blocked.</div>
+        </div>
+      </div>
+
+      <div class="pain-card">
+        <div class="pain-icon-wrap">🖥️</div>
+        <div class="pain-body">
+          <div class="pain-title">Platform Fragmentation</div>
+          <div class="pain-desc">Clients run Windows Server, Linux VMs, and Kubernetes clusters. Different tools needed for each — no unified approach.</div>
+        </div>
+      </div>
+
+      <div class="pain-card">
+        <div class="pain-icon-wrap">🐳</div>
+        <div class="pain-body">
+          <div class="pain-title">No Container Pipeline</div>
+          <div class="pain-desc">Building Docker images and deploying to Kubernetes requires Git access, manual image tagging, and kubectl on every developer machine.</div>
+        </div>
+      </div>
+
+      <div class="pain-card">
+        <div class="pain-icon-wrap">📊</div>
+        <div class="pain-body">
+          <div class="pain-title">Scattered Observability</div>
+          <div class="pain-desc">CPU, memory, disk, service health, and pod status are spread across RDP sessions, multiple portals, and separate monitoring tools.</div>
+        </div>
+      </div>
+
+      <div class="pain-card">
+        <div class="pain-icon-wrap">⏰</div>
+        <div class="pain-body">
+          <div class="pain-title">Slow Releases</div>
+          <div class="pain-desc">Coordinating deployments across multiple client environments takes hours of manual coordination and communication.</div>
         </div>
       </div>
 
     </div>
   </div>
 
-  <!-- ════════════════════════════════
-       MIDDLE — INTERNET CHANNEL
-  ════════════════════════════════ -->
-  <div class="internet-col">
+  <!-- ── SLIDE 2: SOLUTION ── -->
+  <div class="slide" id="slide-1">
+    <div class="slide-badge" style="background:#eef2ff;color:#6366f1">
+      <span style="font-size:14px">02</span> Solution
+    </div>
+    <div class="slide-title">Introducing CygnetCI</div>
+    <div class="slide-subtitle">A centralized deployment &amp; monitoring platform built for enterprise client environments</div>
 
-    <div class="internet-badge">
-      <div class="inet-icon">🌐</div>
-      <div class="inet-label">Internet / HTTPS</div>
-      <div class="inet-sub">TLS encrypted<br/>outbound polling</div>
+    <div class="hero-area">
+      <div class="hero-name">CygnetCI</div>
+      <div class="hero-tagline">Deploy everywhere. Monitor everything. From one place.</div>
     </div>
 
-    <div class="dbl-arrow">
-      <div class="arr-up"></div>
-      <div class="arr-line"></div>
-      <div class="arr-label-box">Agent → API<br/>HTTPS polling</div>
-      <div class="arr-line2"></div>
-      <div class="arr-dn"></div>
-    </div>
+    <div class="feat-grid">
 
-    <div class="ip-badge">
-      <div class="ip-icon">🔒</div>
-      <div class="ip-label">IP Restriction<br/>Allowlist per client</div>
-    </div>
+      <div class="feat-card">
+        <div class="feat-icon-wrap" style="background:linear-gradient(135deg,#dbeafe,#e0e7ff)">🔄</div>
+        <div class="feat-title">Outbound-Only Agent</div>
+        <div class="feat-desc">No inbound firewall rules ever needed. The agent runs on the client's server and polls Cygnet's API over HTTPS. Zero network reconfiguration for clients.</div>
+      </div>
 
+      <div class="feat-card">
+        <div class="feat-icon-wrap" style="background:linear-gradient(135deg,#f0fdf4,#dcfce7)">🌐</div>
+        <div class="feat-title">Jump Server Support</div>
+        <div class="feat-desc">Air-gapped client networks are fully supported. A parent agent on the jump server proxies all sub-agents on internal servers transparently.</div>
+      </div>
+
+      <div class="feat-card">
+        <div class="feat-icon-wrap" style="background:linear-gradient(135deg,#ecfeff,#cffafe)">☸️</div>
+        <div class="feat-title">Kubernetes Native</div>
+        <div class="feat-desc">Deploy to any K8s cluster (EKS, AKS, GKE, OpenShift, Rancher). Builds Docker images locally, pushes to Nexus, syncs via ArgoCD. No Git required.</div>
+      </div>
+
+      <div class="feat-card">
+        <div class="feat-icon-wrap" style="background:linear-gradient(135deg,#f5f3ff,#ede9fe)">📊</div>
+        <div class="feat-title">Real-Time Monitoring</div>
+        <div class="feat-desc">CPU, RAM, disk, Windows/Linux services, K8s pod health, Prometheus metrics — all collected by the agent and shown in one dashboard.</div>
+      </div>
+
+      <div class="feat-card">
+        <div class="feat-icon-wrap" style="background:linear-gradient(135deg,#fff7ed,#ffedd5)">🔁</div>
+        <div class="feat-title">Full CI/CD Pipeline</div>
+        <div class="feat-desc">Script-based pipelines (PowerShell, Bash) and K8s deployments (Docker build → Nexus → ArgoCD sync) managed from a single interface.</div>
+      </div>
+
+      <div class="feat-card">
+        <div class="feat-icon-wrap" style="background:linear-gradient(135deg,#ecfdf5,#d1fae5)">📋</div>
+        <div class="feat-title">Centralized Audit Trail</div>
+        <div class="feat-desc">Every deployment, pipeline run, and command is logged with timestamp, output, and success/failure status. Full visibility across all clients.</div>
+      </div>
+
+    </div>
   </div>
 
-  <!-- ════════════════════════════════
-       RIGHT — CLIENT DATA CENTER
-  ════════════════════════════════ -->
-  <div class="dc dc-client">
-    <div class="dc-header">
-      <div class="dc-header-icon">🏭</div>
-      <div>
-        <div class="dc-header-label">Client's Data Center</div>
-        <div class="dc-header-name">Client Infrastructure</div>
-        <div class="dc-header-desc">Agents deployed &amp; managed on client's own servers</div>
+  <!-- ── SLIDE 3: HOW IT WORKS ── -->
+  <div class="slide" id="slide-2">
+    <div class="slide-badge" style="background:#f5f3ff;color:#7c3aed">
+      <span style="font-size:14px">03</span> How It Works
+    </div>
+    <div class="slide-title">How It Works</div>
+    <div class="slide-subtitle">Two deployment models to fit any client environment</div>
+
+    <!-- Section A: Traditional Server -->
+    <div class="flow-section">
+      <div class="flow-section-header">
+        <div class="flow-section-label" style="background:#fff7ed;color:#c2410c;border:1.5px solid #fed7aa">🖥️ Windows / Linux Server</div>
+        <div class="flow-section-title">Traditional Server Deployment</div>
+      </div>
+      <div class="steps-grid steps-grid-3">
+
+        <div class="step-card" style="border-color:#fed7aa;background:linear-gradient(135deg,#fff7ed,#fff)">
+          <div class="step-num-badge" style="background:#f97316">1</div>
+          <div class="step-icon-wrap" style="background:linear-gradient(135deg,#ffedd5,#fed7aa)">🎯</div>
+          <div class="step-card-title">Trigger Release</div>
+          <div class="step-card-desc">Developer clicks "Deploy" in CygnetCI UI to initiate the release workflow.</div>
+        </div>
+
+        <div class="step-card" style="border-color:#fed7aa;background:linear-gradient(135deg,#fff7ed,#fff)">
+          <div class="step-num-badge" style="background:#f97316">2</div>
+          <div class="step-icon-wrap" style="background:linear-gradient(135deg,#ffedd5,#fed7aa)">📦</div>
+          <div class="step-card-title">FastAPI Queues</div>
+          <div class="step-card-desc">Server packages release artifacts (DLLs / files) and queues them for the target agent.</div>
+        </div>
+
+        <div class="step-card" style="border-color:#fed7aa;background:linear-gradient(135deg,#fff7ed,#fff)">
+          <div class="step-num-badge" style="background:#f97316">3</div>
+          <div class="step-icon-wrap" style="background:linear-gradient(135deg,#ffedd5,#fed7aa)">🔄</div>
+          <div class="step-card-title">Agent Downloads</div>
+          <div class="step-card-desc">Agent on the client server polls Cygnet API and downloads the release artifacts.</div>
+        </div>
+
+        <div class="step-card" style="border-color:#fed7aa;background:linear-gradient(135deg,#fff7ed,#fff)">
+          <div class="step-num-badge" style="background:#ea580c">4</div>
+          <div class="step-icon-wrap" style="background:linear-gradient(135deg,#ffedd5,#fed7aa)">⚙️</div>
+          <div class="step-card-title">Execute Scripts</div>
+          <div class="step-card-desc">Agent runs stop / deploy / start scripts in PowerShell or Bash on the target server.</div>
+        </div>
+
+        <div class="step-card" style="border-color:#fed7aa;background:linear-gradient(135deg,#fff7ed,#fff)">
+          <div class="step-num-badge" style="background:#ea580c">5</div>
+          <div class="step-icon-wrap" style="background:linear-gradient(135deg,#ffedd5,#fed7aa)">📡</div>
+          <div class="step-card-title">Stream Logs</div>
+          <div class="step-card-desc">Agent streams execution logs and final status back to Cygnet API in real time.</div>
+        </div>
+
+        <div class="step-card" style="border-color:#a7f3d0;background:linear-gradient(135deg,#f0fdf9,#fff)">
+          <div class="step-num-badge" style="background:#059669">6</div>
+          <div class="step-icon-wrap" style="background:linear-gradient(135deg,#d1fae5,#a7f3d0)">✅</div>
+          <div class="step-card-title">Release Complete</div>
+          <div class="step-card-desc">UI shows deployment status, duration, and full execution log per stage.</div>
+        </div>
+
       </div>
     </div>
-    <div class="dc-body">
 
-      <!-- Scenario A -->
-      <div class="scenario-title">Scenario A — Direct Agent on Application Server</div>
+    <!-- Section B: Kubernetes -->
+    <div class="flow-section">
+      <div class="flow-section-header">
+        <div class="flow-section-label" style="background:#ecfeff;color:#0e7490;border:1.5px solid #a5f3fc">☸️ K8s via ArgoCD + Nexus</div>
+        <div class="flow-section-title">Kubernetes Deployment</div>
+      </div>
+      <div class="steps-grid steps-grid-4">
 
-      <div class="comp comp-agent" onclick="show('standalone')">
-        <div class="comp-stripe"></div>
-        <div class="comp-inner">
-          <div class="comp-icon-wrap">🖥️</div>
-          <div class="comp-texts">
-            <div class="comp-label">Application Server</div>
-            <div class="comp-name">CygnetCI Agent</div>
-            <div class="comp-desc">Standalone · ServerUrl → Cygnet API (HTTPS) · No proxy needed</div>
-          </div>
-          <div class="comp-arrow">›</div>
+        <div class="step-card" style="border-color:#a5f3fc;background:linear-gradient(135deg,#ecfeff,#fff)">
+          <div class="step-num-badge" style="background:#0891b2">1</div>
+          <div class="step-icon-wrap" style="background:linear-gradient(135deg,#cffafe,#a5f3fc)">🎯</div>
+          <div class="step-card-title">Trigger Release</div>
+          <div class="step-card-desc">Developer triggers K8s release from CygnetCI UI.</div>
         </div>
+
+        <div class="step-card" style="border-color:#a5f3fc;background:linear-gradient(135deg,#ecfeff,#fff)">
+          <div class="step-num-badge" style="background:#0891b2">2</div>
+          <div class="step-icon-wrap" style="background:linear-gradient(135deg,#cffafe,#a5f3fc)">📦</div>
+          <div class="step-card-title">Package Artifacts</div>
+          <div class="step-card-desc">FastAPI sends DLLs + Dockerfile to agent via file transfer.</div>
+        </div>
+
+        <div class="step-card" style="border-color:#a5f3fc;background:linear-gradient(135deg,#ecfeff,#fff)">
+          <div class="step-num-badge" style="background:#0891b2">3</div>
+          <div class="step-icon-wrap" style="background:linear-gradient(135deg,#cffafe,#a5f3fc)">🐳</div>
+          <div class="step-card-title">Docker Build</div>
+          <div class="step-card-desc">Agent builds image locally: <em>nexus:8082/app:1.0.5</em></div>
+        </div>
+
+        <div class="step-card" style="border-color:#a5f3fc;background:linear-gradient(135deg,#ecfeff,#fff)">
+          <div class="step-num-badge" style="background:#0891b2">4</div>
+          <div class="step-icon-wrap" style="background:linear-gradient(135deg,#cffafe,#a5f3fc)">📤</div>
+          <div class="step-card-title">Push to Nexus</div>
+          <div class="step-card-desc">Image pushed to Nexus Docker hosted registry on the Linux VM.</div>
+        </div>
+
+        <div class="step-card" style="border-color:#a5f3fc;background:linear-gradient(135deg,#ecfeff,#fff)">
+          <div class="step-num-badge" style="background:#0e7490">5</div>
+          <div class="step-icon-wrap" style="background:linear-gradient(135deg,#cffafe,#a5f3fc)">🔀</div>
+          <div class="step-card-title">ArgoCD: Set Tag</div>
+          <div class="step-card-desc">Agent patches image.tag parameter on ArgoCD app via REST API.</div>
+        </div>
+
+        <div class="step-card" style="border-color:#a5f3fc;background:linear-gradient(135deg,#ecfeff,#fff)">
+          <div class="step-num-badge" style="background:#0e7490">6</div>
+          <div class="step-icon-wrap" style="background:linear-gradient(135deg,#cffafe,#a5f3fc)">🔄</div>
+          <div class="step-card-title">ArgoCD Sync</div>
+          <div class="step-card-desc">Agent triggers POST /sync — ArgoCD starts deployment rollout.</div>
+        </div>
+
+        <div class="step-card" style="border-color:#a5f3fc;background:linear-gradient(135deg,#ecfeff,#fff)">
+          <div class="step-num-badge" style="background:#0e7490">7</div>
+          <div class="step-icon-wrap" style="background:linear-gradient(135deg,#cffafe,#a5f3fc)">☸️</div>
+          <div class="step-card-title">Pods Running</div>
+          <div class="step-card-desc">K8s pulls new image from Nexus, old pods terminate, new pods start.</div>
+        </div>
+
+        <div class="step-card" style="border-color:#a7f3d0;background:linear-gradient(135deg,#f0fdf9,#fff)">
+          <div class="step-num-badge" style="background:#059669">8</div>
+          <div class="step-icon-wrap" style="background:linear-gradient(135deg,#d1fae5,#a7f3d0)">✅</div>
+          <div class="step-card-title">Deployed &amp; Healthy</div>
+          <div class="step-card-desc">Prometheus scrapes pods · Agent reports metrics · UI shows Synced + Healthy.</div>
+        </div>
+
       </div>
+    </div>
+  </div>
 
-      <!-- OR divider -->
-      <div class="or-divider">
-        <div class="or-line"></div>
-        <div class="or-text">OR</div>
-        <div class="or-line or-line-r"></div>
-      </div>
+  <!-- ── SLIDE 4: ARCHITECTURE ── -->
+  <div class="slide" id="slide-3">
+    <div class="slide-badge" style="background:#ecfeff;color:#0891b2">
+      <span style="font-size:14px">04</span> Architecture
+    </div>
+    <div class="slide-title">System Architecture</div>
+    <div class="slide-subtitle">Click any component to explore full details</div>
 
-      <!-- Scenario B -->
-      <div class="scenario-title">Scenario B — Jump Server + Sub-Agents</div>
+    <div class="arch-canvas">
+    <div class="dc-row">
 
-      <!-- Jump server / Parent Agent -->
-      <div class="agent-wrap">
-        <div class="agent-wrap-stripe"></div>
-        <div class="agent-wrap-head">
-          <div class="agent-wrap-icon">🖥️</div>
+      <!-- ── LEFT: CYGNET DATA CENTER ── -->
+      <div class="dc dc-cygnet">
+        <div class="dc-header">
+          <div class="dc-header-icon">🏢</div>
           <div>
-            <div class="agent-wrap-label">Jump Server · Client Data Center</div>
-            <div class="agent-wrap-name">Parent Agent</div>
-            <div class="agent-wrap-desc">.NET 9 · C# · Direct HTTPS access to Cygnet API</div>
+            <div class="dc-header-label">Cygnet's Data Center</div>
+            <div class="dc-header-name">Cygnet Infrastructure</div>
+            <div class="dc-header-desc">Platform hosted &amp; managed by Cygnet</div>
           </div>
         </div>
-        <div style="cursor:pointer" onclick="show('parent')">
-          <div class="proxy-pill">🔀 SubAgentProxyService — HttpListener :5001 (configurable)</div>
-        </div>
+        <div class="dc-body">
 
-        <!-- Internal arrow down to sub-agents -->
-        <div class="internal-conn">
-          <div class="internal-conn-inner">
-            <div class="ic-label">Internal network (no internet needed)</div>
-            <div class="ic-line"></div>
-            <div class="ic-arr"></div>
+          <div class="comp comp-ui" onclick="show('ui')">
+            <div class="comp-stripe"></div>
+            <div class="comp-inner">
+              <div class="comp-icon-wrap">⚛️</div>
+              <div class="comp-texts">
+                <div class="comp-label">Presentation Layer</div>
+                <div class="comp-name">Next.js 15 UI</div>
+                <div class="comp-desc">React 19 · TypeScript · Tailwind CSS</div>
+              </div>
+              <div class="comp-arrow">›</div>
+            </div>
           </div>
-        </div>
 
-        <!-- Sub-agents -->
-        <div class="sub-row">
-          <div class="sub-box" onclick="show('sub')">
-            <div class="sub-box-stripe"></div>
-            <div class="sub-box-inner">
-              <span class="sub-box-icon">🖧</span>
-              <div class="sub-box-label">App Server</div>
-              <div class="sub-box-name">Sub-Agent A</div>
-              <div class="sub-box-desc">ApiUrl → :5001</div>
+          <div class="int-arrow"><span class="int-label">HTTP REST — fetch()</span></div>
+
+          <div class="comp comp-api" onclick="show('api')">
+            <div class="comp-stripe"></div>
+            <div class="comp-inner">
+              <div class="comp-icon-wrap">🐍</div>
+              <div class="comp-texts">
+                <div class="comp-label">API Layer</div>
+                <div class="comp-name">FastAPI + Uvicorn</div>
+                <div class="comp-desc">Python 3.11 · SQLAlchemy · Port 8000 · HTTPS</div>
+              </div>
+              <div class="comp-arrow">›</div>
             </div>
           </div>
-          <div class="sub-box" onclick="show('sub')">
-            <div class="sub-box-stripe"></div>
-            <div class="sub-box-inner">
-              <span class="sub-box-icon">🖧</span>
-              <div class="sub-box-label">DB Server</div>
-              <div class="sub-box-name">Sub-Agent B</div>
-              <div class="sub-box-desc">ApiUrl → :5001</div>
+
+          <div class="int-arrow"><span class="int-label">SQLAlchemy ORM · psycopg2</span></div>
+
+          <div class="comp comp-db" onclick="show('db')">
+            <div class="comp-stripe"></div>
+            <div class="comp-inner">
+              <div class="comp-icon-wrap">🐘</div>
+              <div class="comp-texts">
+                <div class="comp-label">Data Layer</div>
+                <div class="comp-name">PostgreSQL 15</div>
+                <div class="comp-desc">Primary data store · 15+ tables</div>
+              </div>
+              <div class="comp-arrow">›</div>
             </div>
           </div>
-          <div class="sub-box" onclick="show('sub')" style="border-style:dashed;opacity:.7">
-            <div class="sub-box-stripe" style="background:linear-gradient(to right,#f43f5e,#e11d48);opacity:.5"></div>
-            <div class="sub-box-inner" style="background:#fafafa">
-              <span class="sub-box-icon">🖧</span>
-              <div class="sub-box-label">Any Server</div>
-              <div class="sub-box-name" style="-webkit-text-fill-color:#9ca3af;color:#9ca3af">Sub-Agent N</div>
-              <div class="sub-box-desc">unlimited</div>
-            </div>
+
+        </div>
+      </div>
+
+      <!-- ── MIDDLE: INTERNET CHANNEL ── -->
+      <div class="internet-col">
+        <div class="internet-badge">
+          <div class="inet-icon">🌐</div>
+          <div class="inet-label">Internet / HTTPS</div>
+          <div class="inet-sub">TLS encrypted<br/>outbound polling</div>
+        </div>
+        <div class="dbl-arrow">
+          <div class="arr-up"></div>
+          <div class="arr-line"></div>
+          <div class="arr-label-box">Agent → API<br/>HTTPS polling</div>
+          <div class="arr-line2"></div>
+          <div class="arr-dn"></div>
+        </div>
+        <div class="ip-badge">
+          <div class="ip-icon">🔒</div>
+          <div class="ip-label">IP Restriction<br/>Allowlist per client</div>
+        </div>
+      </div>
+
+      <!-- ── RIGHT: CLIENT DATA CENTER ── -->
+      <div class="dc dc-client">
+        <div class="dc-header">
+          <div class="dc-header-icon">🏭</div>
+          <div>
+            <div class="dc-header-label">Client's Data Center</div>
+            <div class="dc-header-name">Client Infrastructure</div>
+            <div class="dc-header-desc">Agents deployed &amp; managed on client's own servers</div>
           </div>
         </div>
+        <div class="dc-body">
+
+          <!-- Scenario A -->
+          <div class="scenario-title">Scenario A — Direct Agent on Application Server</div>
+          <div class="comp comp-agent" onclick="show('standalone')">
+            <div class="comp-stripe"></div>
+            <div class="comp-inner">
+              <div class="comp-icon-wrap">🖥️</div>
+              <div class="comp-texts">
+                <div class="comp-label">Application Server</div>
+                <div class="comp-name">CygnetCI Agent</div>
+                <div class="comp-desc">Standalone · Direct HTTPS to Cygnet API · No proxy needed</div>
+              </div>
+              <div class="comp-arrow">›</div>
+            </div>
+          </div>
+
+          <div class="or-divider">
+            <div class="or-line"></div>
+            <div class="or-text">OR</div>
+            <div class="or-line or-line-r"></div>
+          </div>
+
+          <!-- Scenario B -->
+          <div class="scenario-title">Scenario B — Jump Server + Sub-Agents</div>
+          <div class="agent-wrap">
+            <div class="agent-wrap-stripe"></div>
+            <div class="agent-wrap-head">
+              <div class="agent-wrap-icon">🖥️</div>
+              <div>
+                <div class="agent-wrap-label">Jump Server · Client Data Center</div>
+                <div class="agent-wrap-name">Parent Agent</div>
+                <div class="agent-wrap-desc">.NET 9 · C# · Direct HTTPS access to Cygnet API</div>
+              </div>
+            </div>
+            <div style="cursor:pointer" onclick="show('parent')">
+              <div class="proxy-pill">🔀 SubAgentProxyService — HttpListener :5001</div>
+            </div>
+            <div class="internal-conn">
+              <div class="internal-conn-inner">
+                <div class="ic-label">Internal network (no internet needed)</div>
+                <div class="ic-line"></div>
+                <div class="ic-arr"></div>
+              </div>
+            </div>
+            <div class="sub-row">
+              <div class="sub-box" onclick="show('sub')">
+                <div class="sub-box-stripe"></div>
+                <div class="sub-box-inner">
+                  <span class="sub-box-icon">🖧</span>
+                  <div class="sub-box-label">App Server</div>
+                  <div class="sub-box-name">Sub-Agent A</div>
+                  <div class="sub-box-desc">ApiUrl → :5001</div>
+                </div>
+              </div>
+              <div class="sub-box" onclick="show('sub')">
+                <div class="sub-box-stripe"></div>
+                <div class="sub-box-inner">
+                  <span class="sub-box-icon">🖧</span>
+                  <div class="sub-box-label">DB Server</div>
+                  <div class="sub-box-name">Sub-Agent B</div>
+                  <div class="sub-box-desc">ApiUrl → :5001</div>
+                </div>
+              </div>
+              <div class="sub-box" onclick="show('sub')" style="border-style:dashed;opacity:.7">
+                <div class="sub-box-stripe" style="opacity:.5"></div>
+                <div class="sub-box-inner" style="background:#fafafa">
+                  <span class="sub-box-icon">🖧</span>
+                  <div class="sub-box-label">Any Server</div>
+                  <div class="sub-box-name" style="-webkit-text-fill-color:#9ca3af;color:#9ca3af">Sub-Agent N</div>
+                  <div class="sub-box-desc">unlimited</div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="or-divider">
+            <div class="or-line"></div>
+            <div class="or-text">OR</div>
+            <div class="or-line or-line-r"></div>
+          </div>
+
+          <!-- Scenario C: Kubernetes -->
+          <div class="k8s-wrap">
+            <div class="k8s-wrap-stripe"></div>
+            <div class="k8s-scenario-label">
+              Scenario C — Kubernetes Deployment
+              <span class="k8s-new-badge">NEW</span>
+            </div>
+
+            <!-- Linux VM card -->
+            <div class="vm-card" style="cursor:pointer" onclick="show('k8s_vm')">
+              <div class="vm-card-stripe"></div>
+              <div class="vm-card-inner">
+                <div class="vm-card-header">
+                  <div class="vm-icon">🖥️</div>
+                  <div>
+                    <div class="vm-label">Linux VM · Client Data Center</div>
+                    <div class="vm-name">CygnetCI Agent + Nexus Registry</div>
+                    <div class="vm-desc">.NET 9 Agent · Docker · Nexus Docker Registry on localhost:8082</div>
+                  </div>
+                </div>
+                <div class="vm-badges">
+                  <span class="vm-badge" style="background:#fef3c7;border-color:#fde68a;color:#92400e">🤖 CygnetCI Agent (.NET 9)</span>
+                  <span class="vm-badge" style="background:#ecfdf5;border-color:#a7f3d0;color:#065f46">📦 Nexus Registry (:8082)</span>
+                </div>
+              </div>
+            </div>
+
+            <!-- Connector -->
+            <div class="k8s-conn">
+              <div class="k8s-conn-inner">
+                <div class="k8s-conn-label">kubeconfig · ArgoCD API · Prometheus API (NodePort)</div>
+                <div class="k8s-conn-line"></div>
+                <div class="k8s-conn-arr"></div>
+              </div>
+            </div>
+
+            <!-- K8s Cluster box -->
+            <div class="k8s-cluster-box">
+              <div class="k8s-cluster-stripe"></div>
+              <div class="k8s-cluster-head" onclick="show('k8s_cluster')">
+                <div class="k8s-cluster-icon">☸️</div>
+                <div>
+                  <div class="k8s-cluster-label">Kubernetes Cluster</div>
+                  <div class="k8s-cluster-name">EKS · AKS · OpenShift · Rancher · k3s</div>
+                  <div class="k8s-cluster-desc">Managed remotely from Linux VM via kubeconfig</div>
+                </div>
+                <div class="comp-arrow" style="margin-left:auto">›</div>
+              </div>
+              <div class="k8s-components">
+                <div class="k8s-comp" onclick="show('k8s_argocd')">
+                  <div class="k8s-comp-icon">🔀</div>
+                  <div class="k8s-comp-name">ArgoCD</div>
+                  <div class="k8s-comp-desc">Pulls images from Nexus · GitOps sync engine · Rollback support</div>
+                </div>
+                <div class="k8s-comp" onclick="show('k8s_cluster')">
+                  <div class="k8s-comp-icon">📊</div>
+                  <div class="k8s-comp-name">Prometheus</div>
+                  <div class="k8s-comp-desc">kube-state-metrics · node-exporter · PromQL queries from agent</div>
+                </div>
+                <div class="k8s-comp" onclick="show('k8s_cluster')">
+                  <div class="k8s-comp-icon">🚀</div>
+                  <div class="k8s-comp-name">App Pods</div>
+                  <div class="k8s-comp-desc">Namespaces: production · staging · etc. · Auto-scaled by K8s</div>
+                </div>
+              </div>
+            </div>
+
+          </div><!-- /k8s-wrap -->
+
+        </div>
+      </div>
+
+    </div><!-- /dc-row -->
+    </div><!-- /arch-canvas -->
+  </div>
+
+  <!-- ── SLIDE 5: BENEFITS ── -->
+  <div class="slide" id="slide-4">
+    <div class="slide-badge" style="background:#ecfdf5;color:#059669">
+      <span style="font-size:14px">05</span> Benefits
+    </div>
+    <div class="slide-title">Why CygnetCI</div>
+    <div class="slide-subtitle">Built for the realities of enterprise deployment at scale</div>
+
+    <div class="stat-row">
+      <div class="stat-card">
+        <div class="stat-main">Any Network</div>
+        <div class="stat-desc">Works behind firewalls, air-gapped networks, and NAT — no inbound rules ever</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-main">Any Platform</div>
+        <div class="stat-desc">Windows Server · Linux · EKS · AKS · OpenShift · Rancher · k3s</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-main">One Dashboard</div>
+        <div class="stat-desc">All clients, all servers, all K8s clusters monitored from a single UI</div>
+      </div>
+    </div>
+
+    <div class="benefit-grid">
+
+      <div class="benefit-card">
+        <div class="benefit-icon">🔒</div>
+        <div class="benefit-title">Zero Inbound Firewall Rules</div>
+        <div class="benefit-desc">Agents only make outbound HTTPS calls to Cygnet API. No VPN tunnels, no port forwarding, no firewall exceptions on the client side.</div>
+      </div>
+
+      <div class="benefit-card">
+        <div class="benefit-icon">🌐</div>
+        <div class="benefit-title">Air-Gap Friendly</div>
+        <div class="benefit-desc">The jump server + sub-agent model supports fully isolated client networks. Sub-agents on internal servers never need internet access.</div>
+      </div>
+
+      <div class="benefit-card">
+        <div class="benefit-icon">☸️</div>
+        <div class="benefit-title">Any K8s Distribution</div>
+        <div class="benefit-desc">The same agent binary and ArgoCD integration works identically on EKS, AKS, GKE, OpenShift, Rancher, and k3s clusters.</div>
+      </div>
+
+      <div class="benefit-card">
+        <div class="benefit-icon">🐳</div>
+        <div class="benefit-title">GitOps Without Git</div>
+        <div class="benefit-desc">Full Kubernetes deployments via ArgoCD without requiring Git repositories on client networks. Nexus serves as the artifact and image registry.</div>
+      </div>
+
+      <div class="benefit-card">
+        <div class="benefit-icon">📊</div>
+        <div class="benefit-title">Unified Observability</div>
+        <div class="benefit-desc">Server metrics (CPU/RAM/disk), service health, K8s pod status, and Prometheus metrics all visible in one dashboard per client.</div>
+      </div>
+
+      <div class="benefit-card">
+        <div class="benefit-icon">🔁</div>
+        <div class="benefit-title">Self-Service Releases</div>
+        <div class="benefit-desc">Development teams trigger releases from the CygnetCI UI. No SSH access, no kubectl, no RDP sessions needed on release day.</div>
+      </div>
+
+      <div class="benefit-card">
+        <div class="benefit-icon">📋</div>
+        <div class="benefit-title">Complete Audit Trail</div>
+        <div class="benefit-desc">Every deployment is logged: who triggered it, when, what ran, what output was produced, success or failure. Full history per agent.</div>
+      </div>
+
+      <div class="benefit-card">
+        <div class="benefit-icon">📈</div>
+        <div class="benefit-title">Incremental Adoption</div>
+        <div class="benefit-desc">Start with script-based deployments on existing servers. Migrate to K8s later without replacing the agent or retraining the team.</div>
       </div>
 
     </div>
   </div>
 
-</div><!-- /dc-row -->
-</div><!-- /canvas -->
+</div><!-- /slides-wrap -->
 
-<!-- Modal -->
+<!-- ═══════════════════════════════════════
+     BOTTOM NAV
+═══════════════════════════════════════ -->
+<div class="bottom-nav">
+  <span class="slide-label" id="slideLabel">Pain Points</span>
+  <div class="dots">
+    <button class="dot active" onclick="go(0)" title="Pain Points"></button>
+    <button class="dot" onclick="go(1)" title="Solution"></button>
+    <button class="dot" onclick="go(2)" title="How It Works"></button>
+    <button class="dot" onclick="go(3)" title="Architecture"></button>
+    <button class="dot" onclick="go(4)" title="Benefits"></button>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════
+     MODAL
+═══════════════════════════════════════ -->
 <div class="overlay" id="overlay" onclick="closeM(event)">
   <div class="modal">
     <div class="m-stripe" id="m-stripe"></div>
     <div class="m-hdr">
       <div class="m-icon" id="m-icon"></div>
       <div><div class="m-title" id="m-title"></div><div class="m-sub" id="m-sub"></div></div>
-      <button class="m-close" onclick="closeM()">✕</button>
+      <button class="m-close" onclick="closeM()">&#x2715;</button>
     </div>
     <div class="m-body" id="m-body"></div>
   </div>
 </div>
 
 <script>
-const D={
-  ui:{
-    icon:'⚛️',title:'Next.js 15 UI — Presentation Layer',sub:'Hosted at Cygnet Data Center · Served via Nginx / CDN',
-    stripe:'linear-gradient(to right,#3b82f6,#6366f1,#8b5cf6)',
-    iconBg:'linear-gradient(135deg,#dbeafe,#e0e7ff)',chipBg:'#eef2ff',chipBorder:'#c7d2fe',chipColor:'#3730a3',noteBorder:'#c7d2fe',
-    s:[
-      {h:'Hosting',note:'Deployed at Cygnet\'s data center. Accessible by client teams via browser over the internet (standard HTTPS). Served via Nginx as a static export, no SSR server needed.'},
-      {h:'Tech Stack',chips:['Next.js 15','React 19','TypeScript','Tailwind CSS','App Router','Static Export','lucide-react icons']},
-      {h:'Pages',chips:['🏠 Overview / Dashboard','⚙️ Pipelines','🚀 Releases','📋 Tasks','📡 Agents','📊 Monitoring','📁 File Transfer','↩️ Rollback','📧 Email Alerts','🏢 Customers','👥 Users']},
-      {h:'Key Components',chips:['AuthWrapper — route guard (localStorage token check)','Header — reads logged-in user from localStorage','Navigation — collapsible sidebar with active gradient','CustomerSelector — multi-tenant filter','AgentCard — parent/sub-agent badge & indigo border','PipelineTable — execution history & real-time status','ExecutionViewModal — live log streaming','ReleaseStageLogsModal — per-stage logs']},
-      {h:'Auth Flow',flow:['User opens browser','POST /auth/login to Cygnet API','Receive access_token + user object','localStorage: auth_token + user','Redirect to dashboard']}
+/* ══════════════════════════════════════
+   SLIDE NAVIGATION
+══════════════════════════════════════ */
+let current = 0;
+const total = 5;
+const labels = ['Pain Points','Solution','How It Works','Architecture','Benefits'];
+
+function go(n, dir) {
+  if (n < 0 || n >= total || n === current) return;
+  const slides = document.querySelectorAll('.slide');
+  const dots = document.querySelectorAll('.dot');
+  const fromRight = (dir !== undefined) ? dir : (n > current);
+
+  // Exit current
+  slides[current].classList.remove('active');
+  slides[current].classList.add(fromRight ? 'exit-left' : 'exit-right');
+
+  // Prepare incoming (off-screen)
+  slides[n].style.transition = 'none';
+  slides[n].style.opacity = '0';
+  slides[n].style.transform = fromRight ? 'translateX(40px)' : 'translateX(-40px)';
+  slides[n].style.pointerEvents = 'none';
+
+  requestAnimationFrame(() => {
+    requestAnimationFrame(() => {
+      slides[n].style.transition = 'opacity .35s ease, transform .35s ease';
+      slides[n].style.opacity = '1';
+      slides[n].style.transform = 'translateX(0)';
+      slides[n].style.pointerEvents = 'auto';
+      slides[n].classList.add('active');
+
+      // Clean up exit after transition
+      setTimeout(() => {
+        slides[current].classList.remove('exit-left', 'exit-right');
+        slides[current].style.opacity = '';
+        slides[current].style.transform = '';
+        slides[current].style.transition = '';
+        slides[current].style.pointerEvents = '';
+        slides[n].style.transition = '';
+        slides[n].style.opacity = '';
+        slides[n].style.transform = '';
+        slides[n].style.pointerEvents = '';
+        current = n;
+        updateUI();
+      }, 360);
+    });
+  });
+
+  // Update UI immediately for responsiveness
+  dots.forEach((d, i) => d.classList.toggle('active', i === n));
+  document.getElementById('slideCounter').textContent = String(n + 1).padStart(2, '0') + ' / 0' + total;
+  document.getElementById('progressBar').style.width = ((n + 1) / total * 100) + '%';
+  document.getElementById('slideLabel').textContent = labels[n];
+  document.getElementById('btnPrev').disabled = n === 0;
+  document.getElementById('btnNext').disabled = n === total - 1;
+}
+
+function updateUI() {
+  const dots = document.querySelectorAll('.dot');
+  dots.forEach((d, i) => d.classList.toggle('active', i === current));
+  document.getElementById('slideCounter').textContent = String(current + 1).padStart(2, '0') + ' / 0' + total;
+  document.getElementById('progressBar').style.width = ((current + 1) / total * 100) + '%';
+  document.getElementById('slideLabel').textContent = labels[current];
+  document.getElementById('btnPrev').disabled = current === 0;
+  document.getElementById('btnNext').disabled = current === total - 1;
+}
+
+document.addEventListener('keydown', e => {
+  if (document.getElementById('overlay').classList.contains('open')) {
+    if (e.key === 'Escape') closeM();
+    return;
+  }
+  if (e.key === 'ArrowRight') go(current + 1, true);
+  if (e.key === 'ArrowLeft') go(current - 1, false);
+});
+
+/* ══════════════════════════════════════
+   MODAL DATA
+══════════════════════════════════════ */
+const D = {
+  ui: {
+    icon: '⚛️', title: 'Next.js 15 UI — Presentation Layer', sub: 'Hosted at Cygnet Data Center · Served via Nginx / CDN',
+    stripe: 'linear-gradient(to right,#3b82f6,#6366f1,#8b5cf6)',
+    iconBg: 'linear-gradient(135deg,#dbeafe,#e0e7ff)', chipBg: '#eef2ff', chipBorder: '#c7d2fe', chipColor: '#3730a3', noteBorder: '#c7d2fe',
+    s: [
+      { h: 'Hosting', note: 'Deployed at Cygnet\'s data center. Accessible by client teams via browser over the internet (standard HTTPS). Served via Nginx as a static export, no SSR server needed.' },
+      { h: 'Tech Stack', chips: ['Next.js 15', 'React 19', 'TypeScript', 'Tailwind CSS', 'App Router', 'Static Export', 'lucide-react icons'] },
+      { h: 'Pages', chips: ['🏠 Overview / Dashboard', '⚙️ Pipelines', '🚀 Releases', '📋 Tasks', '📡 Agents', '📊 Monitoring', '📁 File Transfer', '↩️ Rollback', '📧 Email Alerts', '🏢 Customers', '👥 Users'] },
+      { h: 'Key Components', chips: ['AuthWrapper — route guard (localStorage token check)', 'Header — reads logged-in user from localStorage', 'Navigation — collapsible sidebar with active gradient', 'CustomerSelector — multi-tenant filter', 'AgentCard — parent/sub-agent badge & indigo border', 'PipelineTable — execution history & real-time status', 'ExecutionViewModal — live log streaming', 'ReleaseStageLogsModal — per-stage logs'] },
+      { h: 'Auth Flow', flow: ['User opens browser', 'POST /auth/login to Cygnet API', 'Receive access_token + user object', 'localStorage: auth_token + user', 'Redirect to dashboard'] }
     ]
   },
-  api:{
-    icon:'🐍',title:'FastAPI + Uvicorn — API Layer',sub:'Hosted at Cygnet Data Center · HTTPS · Port 8000',
-    stripe:'linear-gradient(to right,#7c3aed,#a855f7,#c026d3)',
-    iconBg:'linear-gradient(135deg,#ede9fe,#fae8ff)',chipBg:'#f5f3ff',chipBorder:'#d8b4fe',chipColor:'#6b21a8',noteBorder:'#d8b4fe',
-    s:[
-      {h:'Hosting & Network',note:'Hosted at Cygnet\'s data center behind a reverse proxy (Nginx). Accessible over HTTPS from:\n  • Next.js UI (same data center — fast LAN calls)\n  • Client agents over the internet via HTTPS (IP-restricted per client)'},
-      {h:'Tech Stack',chips:['FastAPI','Uvicorn (ASGI)','SQLAlchemy ORM','Psycopg2','Pydantic v2','Python 3.11+']},
-      {h:'IP Restriction',note:'Each client\'s outbound IP (or their jump server IP) is allowlisted on Cygnet\'s firewall / API gateway. Only registered client IPs can reach the agent polling endpoints. The UI endpoints are publicly accessible (with auth token).'},
-      {h:'Agent Endpoints',endpoints:[{m:'post',p:'/agents  (upsert by UUID)'},{m:'post',p:'/agents/heartbeat'},{m:'get',p:'/agents/{id}/pending-pipelines'},{m:'get',p:'/agents/{id}/pending-releases'},{m:'get',p:'/agents/{id}/pending-tasks'},{m:'get',p:'/agents/{id}/pending-downloads'},{m:'get',p:'/agents/{id}/pending-commands'},{m:'post',p:'/pipeline-pickups/{id}/log'},{m:'post',p:'/pipeline-pickups/{id}/complete'},{m:'post',p:'/release-pickups/{id}/log'},{m:'post',p:'/release-pickups/{id}/complete'}]},
-      {h:'UI / Auth Endpoints',endpoints:[{m:'post',p:'/auth/login'},{m:'get',p:'/pipelines'},{m:'post',p:'/pipelines/{id}/trigger'},{m:'get',p:'/releases'},{m:'post',p:'/releases/{id}/deploy'},{m:'get',p:'/agents'},{m:'get',p:'/monitoring/{agentId}/latest'},{m:'get',p:'/customers'},{m:'get',p:'/data  (health check)'}]}
+  api: {
+    icon: '🐍', title: 'FastAPI + Uvicorn — API Layer', sub: 'Hosted at Cygnet Data Center · HTTPS · Port 8000',
+    stripe: 'linear-gradient(to right,#7c3aed,#a855f7,#c026d3)',
+    iconBg: 'linear-gradient(135deg,#ede9fe,#fae8ff)', chipBg: '#f5f3ff', chipBorder: '#d8b4fe', chipColor: '#6b21a8', noteBorder: '#d8b4fe',
+    s: [
+      { h: 'Hosting & Network', note: 'Hosted at Cygnet\'s data center behind a reverse proxy (Nginx). Accessible over HTTPS from:\n  • Next.js UI (same data center — fast LAN calls)\n  • Client agents over the internet via HTTPS (IP-restricted per client)' },
+      { h: 'Tech Stack', chips: ['FastAPI', 'Uvicorn (ASGI)', 'SQLAlchemy ORM', 'Psycopg2', 'Pydantic v2', 'Python 3.11+'] },
+      { h: 'IP Restriction', note: 'Each client\'s outbound IP (or their jump server IP) is allowlisted on Cygnet\'s firewall / API gateway. Only registered client IPs can reach the agent polling endpoints. The UI endpoints are publicly accessible (with auth token).' },
+      { h: 'Agent Endpoints', endpoints: [{ m: 'post', p: '/agents  (upsert by UUID)' }, { m: 'post', p: '/agents/heartbeat' }, { m: 'get', p: '/agents/{id}/pending-pipelines' }, { m: 'get', p: '/agents/{id}/pending-releases' }, { m: 'get', p: '/agents/{id}/pending-tasks' }, { m: 'get', p: '/agents/{id}/pending-downloads' }, { m: 'get', p: '/agents/{id}/pending-commands' }, { m: 'post', p: '/pipeline-pickups/{id}/log' }, { m: 'post', p: '/pipeline-pickups/{id}/complete' }, { m: 'post', p: '/release-pickups/{id}/log' }, { m: 'post', p: '/release-pickups/{id}/complete' }] },
+      { h: 'UI / Auth Endpoints', endpoints: [{ m: 'post', p: '/auth/login' }, { m: 'get', p: '/pipelines' }, { m: 'post', p: '/pipelines/{id}/trigger' }, { m: 'get', p: '/releases' }, { m: 'post', p: '/releases/{id}/deploy' }, { m: 'get', p: '/agents' }, { m: 'get', p: '/monitoring/{agentId}/latest' }, { m: 'get', p: '/customers' }, { m: 'get', p: '/data  (health check)' }] }
     ]
   },
-  db:{
-    icon:'🐘',title:'PostgreSQL 15 — Data Layer',sub:'Hosted at Cygnet Data Center · LAN access from API only',
-    stripe:'linear-gradient(to right,#059669,#10b981,#34d399)',
-    iconBg:'linear-gradient(135deg,#d1fae5,#a7f3d0)',chipBg:'#ecfdf5',chipBorder:'#a7f3d0',chipColor:'#065f46',noteBorder:'#6ee7b7',
-    s:[
-      {h:'Hosting & Security',note:'Hosted at Cygnet\'s data center. NOT exposed to the internet — accessible only from the FastAPI server on the same LAN. Client agents never connect directly to the database.'},
-      {h:'Core Tables',chips:['users','agents (+ parent_agent_id FK)','customers']},
-      {h:'Pipeline Tables',chips:['pipelines','pipeline_pickups','pipeline_pickup_logs']},
-      {h:'Release Tables',chips:['releases','release_stages','release_stage_pickups','release_stage_pickup_logs']},
-      {h:'Other Tables',chips:['tasks','task_pickups','file_transfer_pickups','monitoring_reports','agent_commands','email_alert_configs']},
-      {h:'Agent Self-Referential FK',note:'agents.parent_agent_id → agents.id  (ON DELETE SET NULL)\nAllows sub-agents (on client app/DB servers) to be linked to their parent (on client jump server). Visualised in the UI as "Sub-agent via <ParentName>" badge.'}
+  db: {
+    icon: '🐘', title: 'PostgreSQL 15 — Data Layer', sub: 'Hosted at Cygnet Data Center · LAN access from API only',
+    stripe: 'linear-gradient(to right,#059669,#10b981,#34d399)',
+    iconBg: 'linear-gradient(135deg,#d1fae5,#a7f3d0)', chipBg: '#ecfdf5', chipBorder: '#a7f3d0', chipColor: '#065f46', noteBorder: '#6ee7b7',
+    s: [
+      { h: 'Hosting & Security', note: 'Hosted at Cygnet\'s data center. NOT exposed to the internet — accessible only from the FastAPI server on the same LAN. Client agents never connect directly to the database.' },
+      { h: 'Core Tables', chips: ['users', 'agents (+ parent_agent_id FK)', 'customers'] },
+      { h: 'Pipeline Tables', chips: ['pipelines', 'pipeline_pickups', 'pipeline_pickup_logs'] },
+      { h: 'Release Tables', chips: ['releases', 'release_stages', 'release_stage_pickups', 'release_stage_pickup_logs'] },
+      { h: 'Other Tables', chips: ['tasks', 'task_pickups', 'file_transfer_pickups', 'monitoring_reports', 'agent_commands', 'email_alert_configs'] },
+      { h: 'Agent Self-Referential FK', note: 'agents.parent_agent_id → agents.id  (ON DELETE SET NULL)\nAllows sub-agents (on client app/DB servers) to be linked to their parent (on client jump server). Visualised in the UI as "Sub-agent via <ParentName>" badge.' }
     ]
   },
-  standalone:{
-    icon:'🖥️',title:'Standalone Agent — Client Application Server',sub:'Scenario A · Client Data Center · Direct HTTPS to Cygnet API',
-    stripe:'linear-gradient(to right,#f97316,#ea580c)',
-    iconBg:'linear-gradient(135deg,#ffedd5,#fed7aa)',chipBg:'#fff7ed',chipBorder:'#fed7aa',chipColor:'#c2410c',noteBorder:'#fdba74',
-    s:[
-      {h:'When to use',note:'Client has a single application server (or all apps/services on one server). No need for a jump server. The agent is deployed directly on that server and talks to Cygnet\'s API over the internet via HTTPS.'},
-      {h:'Configuration (appsettings.json)',chips:['ServerUrl = https://cygnetci-api.cygnet.one','AgentName = client-app-server','SubAgentProxy.Enabled = false','SubAgentProxy.Port = 5001 (unused)']},
-      {h:'Network Flow',flow:['Agent starts on app server','POST /agents → Cygnet API (HTTPS)','Polls for pipeline/release/task work','Executes scripts on local server','Streams logs back to Cygnet API (HTTPS)']},
-      {h:'Services Running',chips:['AgentWorker','CygnetApiClient → Cygnet API','HeartbeatService (CPU/RAM/Disk)','PipelineExecutionService','ReleaseExecutionService','TaskExecutionService','FileTransferService','CommandExecutionService','MonitoringReportService']},
-      {h:'Firewall',note:'Client must allow outbound HTTPS (port 443) from the app server to Cygnet API\'s IP. Cygnet allowlists the client\'s outbound IP on their firewall.'}
+  standalone: {
+    icon: '🖥️', title: 'Standalone Agent — Client Application Server', sub: 'Scenario A · Client Data Center · Direct HTTPS to Cygnet API',
+    stripe: 'linear-gradient(to right,#f97316,#ea580c)',
+    iconBg: 'linear-gradient(135deg,#ffedd5,#fed7aa)', chipBg: '#fff7ed', chipBorder: '#fed7aa', chipColor: '#c2410c', noteBorder: '#fdba74',
+    s: [
+      { h: 'When to use', note: 'Client has a single application server (or all apps/services on one server). No need for a jump server. The agent is deployed directly on that server and talks to Cygnet\'s API over the internet via HTTPS.' },
+      { h: 'Configuration (appsettings.json)', chips: ['ServerUrl = https://cygnetci-api.cygnet.one', 'AgentName = client-app-server', 'SubAgentProxy.Enabled = false', 'SubAgentProxy.Port = 5001 (unused)'] },
+      { h: 'Network Flow', flow: ['Agent starts on app server', 'POST /agents → Cygnet API (HTTPS)', 'Polls for pipeline/release/task work', 'Executes scripts on local server', 'Streams logs back to Cygnet API (HTTPS)'] },
+      { h: 'Services Running', chips: ['AgentWorker', 'CygnetApiClient → Cygnet API', 'HeartbeatService (CPU/RAM/Disk)', 'PipelineExecutionService', 'ReleaseExecutionService', 'TaskExecutionService', 'FileTransferService', 'CommandExecutionService', 'MonitoringReportService'] },
+      { h: 'Firewall', note: 'Client must allow outbound HTTPS (port 443) from the app server to Cygnet API\'s IP. Cygnet allowlists the client\'s outbound IP on their firewall.' }
     ]
   },
-  parent:{
-    icon:'🖥️',title:'Parent Agent — Jump Server (Client Data Center)',sub:'Scenario B · Gateway between sub-agents and Cygnet API',
-    stripe:'linear-gradient(to right,#f97316,#ea580c,#dc2626)',
-    iconBg:'linear-gradient(135deg,#ffedd5,#fed7aa)',chipBg:'#fff7ed',chipBorder:'#fed7aa',chipColor:'#c2410c',noteBorder:'#fdba74',
-    s:[
-      {h:'Role',note:'The jump server is the ONLY machine in the client data center that needs outbound HTTPS access to Cygnet\'s API. It acts as a gateway for all sub-agents on internal servers (app server, DB server) that have no internet access.'},
-      {h:'Configuration (appsettings.json)',chips:['ServerUrl = https://cygnetci-api.cygnet.one','AgentName = client-jump-server','SubAgentProxy.Enabled = true','SubAgentProxy.Port = 5001']},
-      {h:'Network Access',note:'Jump server → Cygnet API: outbound HTTPS (internet, IP-restricted)\nSub-agents → Jump server :5001: internal network only (no internet needed from sub-agents)'},
-      {h:'SubAgentProxyService',note:'Embedded HttpListener on http://*:5001/. Sub-agents point their ApiUrl to http://jump-server:5001.\n\n• POST /agents: injects parent_agent_id automatically\n• All other requests: forwarded transparently to Cygnet API\n\nWindows one-time setup:\n  netsh http add urlacl url=http://*:5001/ user=Everyone'},
-      {h:'AgentIdentityService',note:'After the jump server registers with POST /agents and receives its DB ID, AgentIdentityService holds that ID in memory. The proxy reads it to inject parent_agent_id into every sub-agent registration.'},
-      {h:'All Running Services',chips:['AgentWorker — orchestrator','AgentIdentityService — stores own DB ID','CygnetApiClient → Cygnet API (HTTPS)','HeartbeatService','PipelineExecutionService','ReleaseExecutionService','TaskExecutionService','FileTransferService','CommandExecutionService','MonitoringReportService','SubAgentProxyService — HTTP proxy :5001']}
+  parent: {
+    icon: '🖥️', title: 'Parent Agent — Jump Server (Client Data Center)', sub: 'Scenario B · Gateway between sub-agents and Cygnet API',
+    stripe: 'linear-gradient(to right,#f97316,#ea580c,#dc2626)',
+    iconBg: 'linear-gradient(135deg,#ffedd5,#fed7aa)', chipBg: '#fff7ed', chipBorder: '#fed7aa', chipColor: '#c2410c', noteBorder: '#fdba74',
+    s: [
+      { h: 'Role', note: 'The jump server is the ONLY machine in the client data center that needs outbound HTTPS access to Cygnet\'s API. It acts as a gateway for all sub-agents on internal servers (app server, DB server) that have no internet access.' },
+      { h: 'Configuration (appsettings.json)', chips: ['ServerUrl = https://cygnetci-api.cygnet.one', 'AgentName = client-jump-server', 'SubAgentProxy.Enabled = true', 'SubAgentProxy.Port = 5001'] },
+      { h: 'Network Access', note: 'Jump server → Cygnet API: outbound HTTPS (internet, IP-restricted)\nSub-agents → Jump server :5001: internal network only (no internet needed from sub-agents)' },
+      { h: 'SubAgentProxyService', note: 'Embedded HttpListener on http://*:5001/. Sub-agents point their ApiUrl to http://jump-server:5001.\n\n• POST /agents: injects parent_agent_id automatically\n• All other requests: forwarded transparently to Cygnet API\n\nWindows one-time setup:\n  netsh http add urlacl url=http://*:5001/ user=Everyone' },
+      { h: 'AgentIdentityService', note: 'After the jump server registers with POST /agents and receives its DB ID, AgentIdentityService holds that ID in memory. The proxy reads it to inject parent_agent_id into every sub-agent registration.' },
+      { h: 'All Running Services', chips: ['AgentWorker — orchestrator', 'AgentIdentityService — stores own DB ID', 'CygnetApiClient → Cygnet API (HTTPS)', 'HeartbeatService', 'PipelineExecutionService', 'ReleaseExecutionService', 'TaskExecutionService', 'FileTransferService', 'CommandExecutionService', 'MonitoringReportService', 'SubAgentProxyService — HTTP proxy :5001'] }
     ]
   },
-  sub:{
-    icon:'🖧',title:'Sub-Agent — Client App / DB Server',sub:'Scenario B · Internal network only · No internet access required',
-    stripe:'linear-gradient(to right,#f43f5e,#e11d48,#be123c)',
-    iconBg:'linear-gradient(135deg,#ffe4e6,#fecdd3)',chipBg:'#fff1f2',chipBorder:'#fecdd3',chipColor:'#9f1239',noteBorder:'#fda4af',
-    s:[
-      {h:'Key Design Point',note:'Sub-agents have NO direct internet access to Cygnet\'s API. They communicate only with the jump server\'s proxy on the internal network (port 5001). The jump server then forwards everything to Cygnet over HTTPS.\n\nThis is ideal for DB servers or app servers locked down to internal networks only.'},
-      {h:'Configuration (appsettings.json)',chips:['ServerUrl = http://jump-server-ip:5001  ← proxy, NOT Cygnet API','AgentName = client-app-server  (or db-server)','SubAgentProxy.Enabled = false']},
-      {h:'Registration Flow',flow:['Sub-agent starts','POST /agents → :5001 (jump server proxy)','Proxy injects parent_agent_id','Proxy forwards to Cygnet API (HTTPS)','Stored in DB with parent link','Sub-agent receives its own DB ID']},
-      {h:'Firewall Rules needed',note:'Sub-agent server → Jump server :5001: internal network port only\nNo outbound internet access required from sub-agent servers.'},
-      {h:'UI Visibility',note:'Sub-agents appear as separate agent cards on the Agents page at Cygnet\'s UI. Each card shows an indigo left border and "Sub-agent via <JumpServerName>" badge. Pipelines/releases can be targeted to specific agents (parent or sub).'},
-      {h:'Services Running',chips:['AgentWorker','CygnetApiClient (→ jump server :5001)','HeartbeatService','PipelineExecutionService','ReleaseExecutionService','TaskExecutionService','FileTransferService','CommandExecutionService','MonitoringReportService']},
-      {h:'NOT Running',chips:['SubAgentProxyService  (Enabled = false)']}
+  sub: {
+    icon: '🖧', title: 'Sub-Agent — Client App / DB Server', sub: 'Scenario B · Internal network only · No internet access required',
+    stripe: 'linear-gradient(to right,#f43f5e,#e11d48,#be123c)',
+    iconBg: 'linear-gradient(135deg,#ffe4e6,#fecdd3)', chipBg: '#fff1f2', chipBorder: '#fecdd3', chipColor: '#9f1239', noteBorder: '#fda4af',
+    s: [
+      { h: 'Key Design Point', note: 'Sub-agents have NO direct internet access to Cygnet\'s API. They communicate only with the jump server\'s proxy on the internal network (port 5001). The jump server then forwards everything to Cygnet over HTTPS.\n\nThis is ideal for DB servers or app servers locked down to internal networks only.' },
+      { h: 'Configuration (appsettings.json)', chips: ['ServerUrl = http://jump-server-ip:5001  ← proxy, NOT Cygnet API', 'AgentName = client-app-server  (or db-server)', 'SubAgentProxy.Enabled = false'] },
+      { h: 'Registration Flow', flow: ['Sub-agent starts', 'POST /agents → :5001 (jump server proxy)', 'Proxy injects parent_agent_id', 'Proxy forwards to Cygnet API (HTTPS)', 'Stored in DB with parent link', 'Sub-agent receives its own DB ID'] },
+      { h: 'Firewall Rules needed', note: 'Sub-agent server → Jump server :5001: internal network port only\nNo outbound internet access required from sub-agent servers.' },
+      { h: 'UI Visibility', note: 'Sub-agents appear as separate agent cards on the Agents page at Cygnet\'s UI. Each card shows an indigo left border and "Sub-agent via <JumpServerName>" badge. Pipelines/releases can be targeted to specific agents (parent or sub).' },
+      { h: 'Services Running', chips: ['AgentWorker', 'CygnetApiClient (→ jump server :5001)', 'HeartbeatService', 'PipelineExecutionService', 'ReleaseExecutionService', 'TaskExecutionService', 'FileTransferService', 'CommandExecutionService', 'MonitoringReportService'] },
+      { h: 'NOT Running', chips: ['SubAgentProxyService  (Enabled = false)'] }
+    ]
+  },
+  k8s_vm: {
+    icon: '🖥️', title: 'Linux VM — K8s Deployment Hub', sub: 'Scenario C · Client Data Center · CygnetCI Agent + Docker + Nexus',
+    stripe: 'linear-gradient(to right,#f59e0b,#d97706,#b45309)',
+    iconBg: 'linear-gradient(135deg,#fef3c7,#fde68a)', chipBg: '#fffbeb', chipBorder: '#fde68a', chipColor: '#92400e', noteBorder: '#fde68a',
+    s: [
+      { h: 'Role', note: 'The Linux VM is the deployment hub for K8s environments. It receives build artifacts from Cygnet FastAPI, builds Docker images locally, pushes to Nexus, and orchestrates ArgoCD deployments via REST API. It has kubeconfig access to the K8s cluster.' },
+      { h: 'Components Running', chips: ['CygnetCI Agent (.NET 9)', 'Docker Engine', 'Nexus Repository Manager (localhost:8082)', 'kubectl configured with cluster admin rights'] },
+      { h: 'Config (appsettings.json)', chips: ['ServerUrl = https://cygnetci-api.cygnet.one', 'ArgoCD.ServerUrl = https://argocd.k8s.client.local', 'ArgoCD.Token = [secret]', 'Prometheus.Url = http://node-ip:32090', 'Nexus.RegistryUrl = localhost:8082'] },
+      { h: 'Network Access', note: 'Outbound HTTPS to Cygnet API (internet)\nkubeconfig → K8s API server (internal)\nArgoCD REST API (internal)\nPrometheus NodePort (internal)' },
+      { h: 'Deployment Flow', flow: ['FastAPI → sends DLLs + Dockerfile', 'Agent writes build context', 'docker build -t nexus:8082/app:1.0.5 .', 'docker push', 'ArgocdService sets image.tag', 'ArgocdService triggers sync', 'polls until Synced + Healthy', 'reports result to FastAPI'] }
+    ]
+  },
+  k8s_cluster: {
+    icon: '☸️', title: 'Kubernetes Cluster', sub: 'Scenario C · Managed remotely from Linux VM via kubeconfig',
+    stripe: 'linear-gradient(to right,#0891b2,#06b6d4,#0e7490)',
+    iconBg: 'linear-gradient(135deg,#cffafe,#a5f3fc)', chipBg: '#ecfeff', chipBorder: '#a5f3fc', chipColor: '#0e7490', noteBorder: '#67e8f9',
+    s: [
+      { h: 'Overview', note: 'Standard Kubernetes cluster. Works with any distribution — EKS, AKS, GKE, OpenShift, Rancher, k3s. CygnetCI does not run inside the cluster. The agent manages it remotely via kubeconfig from the Linux VM.' },
+      { h: 'ArgoCD', note: 'Installed in argocd namespace. Manages application deployments via Helm charts stored in Nexus Helm repository. When agent calls POST /api/v1/applications/{name}/sync, ArgoCD pulls the new image from Nexus and recreates pods. No Git required.' },
+      { h: 'Prometheus Stack', note: 'kube-prometheus-stack Helm chart. Includes Prometheus, Alertmanager, kube-state-metrics, node-exporter. Exposed via NodePort so the agent can query PromQL from the Linux VM. Agent runs scheduled queries every 60s and sends results to Cygnet FastAPI.' },
+      { h: 'Nexus as Image Registry', note: 'Nexus Docker hosted repository at localhost:8082 (or cluster-accessible IP). ArgoCD pulls images from this registry. K8s nodes must have imagePullSecret configured for Nexus credentials.' },
+      { h: 'Supported Distributions', chips: ['EKS (AWS)', 'AKS (Azure)', 'GKE (Google)', 'OpenShift 4.x', 'Rancher', 'k3s', 'kubeadm vanilla'] }
+    ]
+  },
+  k8s_argocd: {
+    icon: '🔀', title: 'ArgoCD — GitOps Deployment Engine', sub: 'Scenario C · K8s deployments without Git · Triggered via REST API',
+    stripe: 'linear-gradient(to right,#0891b2,#06b6d4)',
+    iconBg: 'linear-gradient(135deg,#cffafe,#a5f3fc)', chipBg: '#ecfeff', chipBorder: '#a5f3fc', chipColor: '#0e7490', noteBorder: '#67e8f9',
+    s: [
+      { h: 'Role in CygnetCI', note: 'ArgoCD acts as the deployment engine for K8s workloads. CygnetCI agent triggers ArgoCD via REST API — no Git pushes required. The source of truth is the Helm chart in Nexus plus image parameters set via API.' },
+      { h: 'How CygnetCI uses ArgoCD API', chips: ['PATCH /api/v1/applications/{name} — set image.tag parameter', 'POST /api/v1/applications/{name}/sync — trigger deployment', 'GET /api/v1/applications/{name} — poll sync + health status (Synced + Healthy = success)'] },
+      { h: 'No Git Required', note: 'Standard ArgoCD uses Git as source of truth. CygnetCI replaces Git with: Helm chart in Nexus (static manifests) + image tag override via API. The agent updates only the image.tag per release — all other config stays unchanged.' },
+      { h: 'Onboarding', note: 'First-time setup per application: CygnetCI sends k8s_onboard command to agent. Agent calls POST /api/v1/applications to create the ArgoCD Application CR pointing to the Nexus Helm chart. All future releases just update the image tag.' }
     ]
   }
 };
 
-function show(key){
-  const d=D[key];if(!d)return;
-  document.getElementById('m-stripe').style.background=d.stripe;
-  const icon=document.getElementById('m-icon');icon.textContent=d.icon;icon.style.background=d.iconBg;
-  document.getElementById('m-title').textContent=d.title;
-  document.getElementById('m-sub').textContent=d.sub;
-  let html='';
-  for(const s of d.s){
-    html+=`<div class="ds"><h3>${s.h}</h3>`;
-    if(s.chips)html+='<div class="chips">'+s.chips.map(c=>`<span class="chip" style="background:${d.chipBg};border-color:${d.chipBorder};color:${d.chipColor}">${c}</span>`).join('')+'</div>';
-    if(s.flow)html+='<div class="flow">'+s.flow.map((f,i)=>`<span class="step">${f}</span>${i<s.flow.length-1?'<span class="arr-s">›</span>':''}`).join('')+'</div>';
-    if(s.endpoints)html+='<div class="egrid">'+s.endpoints.map(e=>`<div class="ep"><span class="mbadge bg-${e.m}">${e.m.toUpperCase()}</span>${e.p}</div>`).join('')+'</div>';
-    if(s.note)html+=`<div class="note" style="border-left-color:${d.noteBorder}">${s.note.replace(/\n/g,'<br/>')}</div>`;
-    html+='</div>';
+function show(key) {
+  const d = D[key]; if (!d) return;
+  document.getElementById('m-stripe').style.background = d.stripe;
+  const icon = document.getElementById('m-icon');
+  icon.textContent = d.icon; icon.style.background = d.iconBg;
+  document.getElementById('m-title').textContent = d.title;
+  document.getElementById('m-sub').textContent = d.sub;
+  let html = '';
+  for (const s of d.s) {
+    html += `<div class="ds"><h3>${s.h}</h3>`;
+    if (s.chips) html += '<div class="chips">' + s.chips.map(c => `<span class="chip" style="background:${d.chipBg};border-color:${d.chipBorder};color:${d.chipColor}">${c}</span>`).join('') + '</div>';
+    if (s.flow) html += '<div class="flow">' + s.flow.map((f, i) => `<span class="step">${f}</span>${i < s.flow.length - 1 ? '<span class="arr-s">›</span>' : ''}`).join('') + '</div>';
+    if (s.endpoints) html += '<div class="egrid">' + s.endpoints.map(e => `<div class="ep"><span class="mbadge bg-${e.m}">${e.m.toUpperCase()}</span>${e.p}</div>`).join('') + '</div>';
+    if (s.note) html += `<div class="note" style="border-left-color:${d.noteBorder}">${s.note.replace(/\n/g, '<br/>')}</div>`;
+    html += '</div>';
   }
-  document.getElementById('m-body').innerHTML=html;
+  document.getElementById('m-body').innerHTML = html;
   document.getElementById('overlay').classList.add('open');
 }
-function closeM(e){if(!e||e.target===document.getElementById('overlay'))document.getElementById('overlay').classList.remove('open')}
-document.addEventListener('keydown',e=>{if(e.key==='Escape')document.getElementById('overlay').classList.remove('open')});
+
+function closeM(e) {
+  if (!e || e.target === document.getElementById('overlay'))
+    document.getElementById('overlay').classList.remove('open');
+}
 </script>
 </body>
 </html>

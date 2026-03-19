@@ -1971,38 +1971,47 @@ def deploy_release_pipelines(release_id: int, release, release_pipelines, reques
             )
             db.add(exec_param)
 
-    # Create pipeline executions and pickups for each pipeline in the release
-    for rp in release_pipelines:
+    # ── DAG execution: only root nodes (no depends_on) start immediately.
+    # Downstream nodes are created as 'pending' and get a pickup only when
+    # their dependency completes (handled in complete_pipeline_pickup).
+    root_rps = [rp for rp in release_pipelines if rp.depends_on is None]
+    downstream_rps = [rp for rp in release_pipelines if rp.depends_on is not None]
+
+    def _create_execution(rp, status: str):
         pipeline = db.query(models.Pipeline).filter(models.Pipeline.id == rp.pipeline_id).first()
         if not pipeline:
-            continue
-
-        # Create a pipeline execution for this pipeline
-        pipeline_execution = models.PipelineExecution(
+            return None
+        pe = models.PipelineExecution(
             pipeline_id=pipeline.id,
             agent_id=agent.id,
             agent_name=agent.name,
-            status="running",
+            status=status,
             commit=pipeline.branch or "main",
             triggered_by=request.triggered_by,
-            started_at=datetime.now()
+            started_at=datetime.now() if status == "running" else None,
+            release_execution_id=release_execution.id,
+            release_pipeline_id=rp.id,
         )
-        db.add(pipeline_execution)
+        db.add(pe)
         db.flush()
 
-        # Store pipeline parameters if any
         if request.parameters:
             for param_name, param_value in request.parameters.items():
-                param = models.PipelineExecutionParameter(
-                    pipeline_execution_id=pipeline_execution.id,
+                db.add(models.PipelineExecutionParameter(
+                    pipeline_execution_id=pe.id,
                     parameter_name=param_name,
                     parameter_value=str(param_value)
-                )
-                db.add(param)
+                ))
+        return pe, pipeline
 
-        # Create a pickup entry for this pipeline execution
-        pickup_entry = models.PipelinePickup(
-            pipeline_execution_id=pipeline_execution.id,
+    # Start root pipelines immediately
+    for rp in root_rps:
+        result = _create_execution(rp, "running")
+        if not result:
+            continue
+        pe, pipeline = result
+        db.add(models.PipelinePickup(
+            pipeline_execution_id=pe.id,
             pipeline_id=pipeline.id,
             pipeline_name=pipeline.name,
             agent_id=agent.id,
@@ -2010,8 +2019,11 @@ def deploy_release_pipelines(release_id: int, release, release_pipelines, reques
             agent_name=agent.name,
             status="pending",
             priority=rp.order_index
-        )
-        db.add(pickup_entry)
+        ))
+
+    # Register downstream nodes as pending — no pickup yet
+    for rp in downstream_rps:
+        _create_execution(rp, "pending")
 
     db.commit()
 
@@ -2019,7 +2031,7 @@ def deploy_release_pipelines(release_id: int, release, release_pipelines, reques
         "success": True,
         "release_execution_id": release_execution.id,
         "release_number": release_number,
-        "message": f"Release '{release.name}' deployment started with {len(release_pipelines)} pipeline(s)"
+        "message": f"Release '{release.name}' deployment started — {len(root_rps)} pipeline(s) running, {len(downstream_rps)} waiting on dependencies"
     }
 
 @app.post("/releases/{release_id}/deploy", tags=["🌐 UI - Release Execution"])
@@ -2397,6 +2409,61 @@ def update_release_execution_status(execution_id: int, db: Session = Depends(get
             "pipeline_count": len(pipeline_executions),
             "expected_count": len(release_pipelines)
         }
+
+@app.post("/release-executions/{execution_id}/abort", tags=["🌐 UI - Release Execution"])
+def abort_release_execution(execution_id: int, db: Session = Depends(get_db)):
+    """Abort an in-progress release execution.
+    - Cancels all running pipeline pickups (agent detects cancellation via pickup status poll)
+    - Cancels all pending pipeline executions so they never start
+    - Marks the release execution as cancelled
+    """
+    release_execution = db.query(models.ReleaseExecution)\
+        .filter(models.ReleaseExecution.id == execution_id).first()
+    if not release_execution:
+        raise HTTPException(status_code=404, detail="Release execution not found")
+    if release_execution.status != "in_progress":
+        raise HTTPException(status_code=400, detail=f"Release execution is already '{release_execution.status}', cannot abort")
+
+    # Get every pipeline execution that belongs to this release run
+    all_pe = db.query(models.PipelineExecution)\
+        .filter(models.PipelineExecution.release_execution_id == execution_id)\
+        .all()
+
+    now = datetime.now()
+    for pe in all_pe:
+        if pe.status in ("running", "pending"):
+            # Cancel the pickup so the agent stops picking it up
+            active_pickup = db.query(models.PipelinePickup)\
+                .filter(models.PipelinePickup.pipeline_execution_id == pe.id)\
+                .filter(models.PipelinePickup.status.in_(["pending", "picked_up", "in_progress"]))\
+                .first()
+            if active_pickup:
+                active_pickup.status = "cancelled"
+                active_pickup.completed_at = now
+                active_pickup.error_message = "Release aborted by user"
+
+            # Add a log entry for the pipeline execution
+            db.add(models.PipelineExecutionLog(
+                pipeline_execution_id=pe.id,
+                message="Pipeline execution aborted — release was cancelled by user",
+                log_level="warning",
+                source="system"
+            ))
+
+            pe.status = "cancelled"
+            pe.completed_at = now
+            if pe.started_at:
+                pe.duration = str(int((now - pe.started_at).total_seconds()))
+
+    # Mark the release execution itself as cancelled
+    release_execution.status = "cancelled"
+    release_execution.completed_at = now
+    if release_execution.started_at:
+        release_execution.duration_seconds = int((now - release_execution.started_at).total_seconds())
+
+    db.commit()
+    return {"success": True, "message": "Release execution aborted"}
+
 
 @app.post("/stage-executions/{stage_execution_id}/approve", tags=["🌐 UI - Release Execution"])
 def approve_stage(stage_execution_id: int, request: ApprovalRequest, db: Session = Depends(get_db)):
@@ -3604,51 +3671,72 @@ def complete_pipeline_pickup(pickup_id: int, completion_data: dict, db: Session 
     if pipeline:
         pipeline.status = "success" if success else "failed"
 
-    # Check if this pipeline execution is part of a release execution
-    # We need to find the release execution by matching triggered_by and timestamp
-    if pipeline_execution:
-        # Find release executions that match this pipeline execution's triggered_by
-        potential_releases = db.query(models.ReleaseExecution)\
-            .filter(models.ReleaseExecution.triggered_by == pipeline_execution.triggered_by)\
-            .filter(models.ReleaseExecution.started_at <= pipeline_execution.started_at)\
-            .all()
+    # ── DAG advancement: if this execution is part of a release workflow,
+    # unlock dependent pipelines and check for overall release completion.
+    if pipeline_execution and pipeline_execution.release_execution_id and pipeline_execution.release_pipeline_id:
+        rel_exec_id = pipeline_execution.release_execution_id
+        completed_rp_id = pipeline_execution.release_pipeline_id
 
-        for release_execution in potential_releases:
-            # Get all pipeline executions for this release (same triggered_by, within time window)
-            time_window_end = release_execution.completed_at if release_execution.completed_at else datetime.now() + timedelta(hours=1)
-
-            all_pipeline_executions = db.query(models.PipelineExecution)\
-                .filter(models.PipelineExecution.triggered_by == release_execution.triggered_by)\
-                .filter(models.PipelineExecution.started_at >= release_execution.started_at)\
-                .filter(models.PipelineExecution.started_at <= time_window_end)\
+        if success:
+            # Find all release_pipeline nodes that depend on the just-completed node
+            next_rps = db.query(models.ReleasePipeline)\
+                .filter(models.ReleasePipeline.depends_on == completed_rp_id)\
                 .all()
 
-            # Get the release to see how many pipelines it should have
-            release = db.query(models.Release).filter(models.Release.id == release_execution.release_id).first()
-            if release:
-                release_pipelines = db.query(models.ReleasePipeline)\
-                    .filter(models.ReleasePipeline.release_id == release.id)\
-                    .all()
+            for next_rp in next_rps:
+                # Find the pending execution we created for this node at deploy time
+                pending_exec = db.query(models.PipelineExecution)\
+                    .filter(
+                        models.PipelineExecution.release_execution_id == rel_exec_id,
+                        models.PipelineExecution.release_pipeline_id == next_rp.id,
+                        models.PipelineExecution.status == "pending"
+                    ).first()
 
-                # Check if we have the expected number of pipeline executions
-                if len(all_pipeline_executions) >= len(release_pipelines):
-                    # Check if all pipeline executions are complete
-                    all_complete = all(
-                        pe.status in ['success', 'failed', 'cancelled']
-                        for pe in all_pipeline_executions
-                    )
+                if not pending_exec:
+                    continue  # already started or missing — skip
 
-                    if all_complete:
-                        # Determine overall status
-                        any_failed = any(pe.status == 'failed' for pe in all_pipeline_executions)
+                # Transition to running and create the pickup so the agent picks it up
+                pending_exec.status = "running"
+                pending_exec.started_at = datetime.now()
+                db.flush()
 
-                        release_execution.status = "failed" if any_failed else "succeeded"
-                        release_execution.completed_at = datetime.now()
+                next_pipeline = db.query(models.Pipeline)\
+                    .filter(models.Pipeline.id == next_rp.pipeline_id).first()
+                next_agent = db.query(models.Agent)\
+                    .filter(models.Agent.id == pending_exec.agent_id).first()
 
-                        # Calculate duration
-                        if release_execution.started_at:
-                            duration = release_execution.completed_at - release_execution.started_at
-                            release_execution.duration_seconds = int(duration.total_seconds())
+                if next_pipeline and next_agent:
+                    db.add(models.PipelinePickup(
+                        pipeline_execution_id=pending_exec.id,
+                        pipeline_id=next_pipeline.id,
+                        pipeline_name=next_pipeline.name,
+                        agent_id=next_agent.id,
+                        agent_uuid=next_agent.uuid,
+                        agent_name=next_agent.name,
+                        status="pending",
+                        priority=next_rp.order_index
+                    ))
+
+        # Check if every node in this release execution is now terminal
+        all_executions = db.query(models.PipelineExecution)\
+            .filter(models.PipelineExecution.release_execution_id == rel_exec_id)\
+            .all()
+
+        all_terminal = all(
+            pe.status in ('success', 'failed', 'cancelled')
+            for pe in all_executions
+        )
+
+        if all_terminal:
+            release_execution = db.query(models.ReleaseExecution)\
+                .filter(models.ReleaseExecution.id == rel_exec_id).first()
+            if release_execution and release_execution.status == "in_progress":
+                any_failed = any(pe.status == 'failed' for pe in all_executions)
+                release_execution.status = "failed" if any_failed else "succeeded"
+                release_execution.completed_at = datetime.now()
+                if release_execution.started_at:
+                    d = release_execution.completed_at - release_execution.started_at
+                    release_execution.duration_seconds = int(d.total_seconds())
 
     db.commit()
 

@@ -381,6 +381,19 @@ class ApiService {
     return await response.json();
   }
 
+  async abortReleaseExecution(executionId: number): Promise<{ success: boolean; message: string }> {
+    const url = `${CONFIG.api.baseUrl}/release-executions/${executionId}/abort`;
+    const response = await fetch(url, {
+      method: 'POST',
+      headers: CONFIG.api.headers
+    });
+    if (!response.ok) {
+      const err = await response.json().catch(() => ({}));
+      throw new Error(err.detail || `HTTP error! status: ${response.status}`);
+    }
+    return await response.json();
+  }
+
   async approveStage(stageExecutionId: number, approvalData: { approved_by: string; comments?: string }) {
     const url = `${CONFIG.api.baseUrl}/stage-executions/${stageExecutionId}/approve`;
     const response = await fetch(url, {
