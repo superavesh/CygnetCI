@@ -29,4 +29,7 @@ public interface ICygnetApiClient
     Task<List<AgentCommandInfo>> GetPendingCommandsAsync(CancellationToken cancellationToken = default);
     Task StartCommandAsync(int commandId, CancellationToken cancellationToken = default);
     Task CompleteCommandAsync(int commandId, bool success, string? result = null, CancellationToken cancellationToken = default);
+
+    // K8s / Prometheus observability
+    Task PostK8sMetricsAsync(K8sMetricsSnapshot snapshot, CancellationToken cancellationToken = default);
 }

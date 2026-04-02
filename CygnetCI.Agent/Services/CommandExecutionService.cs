@@ -2,6 +2,7 @@ using System.ServiceProcess;
 using System.Text.Json;
 using CygnetCI.Agent.Http;
 using CygnetCI.Agent.Models;
+using CygnetCI.Agent.Services;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 
@@ -12,15 +13,18 @@ public class CommandExecutionService : ICommandExecutionService
     private readonly ILogger<CommandExecutionService> _logger;
     private readonly ICygnetApiClient _apiClient;
     private readonly AgentConfiguration _config;
+    private readonly IArgocdService? _argocd;
 
     public CommandExecutionService(
         ILogger<CommandExecutionService> logger,
         ICygnetApiClient apiClient,
-        IOptions<AgentConfiguration> config)
+        IOptions<AgentConfiguration> config,
+        IArgocdService? argocd = null)
     {
         _logger = logger;
         _apiClient = apiClient;
         _config = config.Value;
+        _argocd = argocd;
     }
 
     public async Task StartAsync(CancellationToken cancellationToken)
@@ -72,6 +76,12 @@ public class CommandExecutionService : ICommandExecutionService
             {
                 case "service_control":
                     (success, result) = await ExecuteServiceControlAsync(command.CommandData, cancellationToken);
+                    break;
+                case "k8s_onboard":
+                    (success, result) = await ExecuteK8sOnboardAsync(command.CommandData, cancellationToken);
+                    break;
+                case "k8s_argocd_sync":
+                    (success, result) = await ExecuteArgoCdSyncAsync(command.CommandData, cancellationToken);
                     break;
                 default:
                     success = false;
@@ -174,6 +184,57 @@ public class CommandExecutionService : ICommandExecutionService
         {
             _logger.LogError(ex, "Failed to parse service control command data");
             return (false, $"Failed to parse command data: {ex.Message}");
+        }
+    }
+
+    // ─── K8s / ArgoCD Handlers ────────────────────────────────────────────────
+
+    private async Task<(bool success, string result)> ExecuteK8sOnboardAsync(
+        string commandData, CancellationToken cancellationToken)
+    {
+        if (_argocd == null)
+            return (false, "ArgoCD is not enabled on this agent. Set ArgoCD.Enabled=true in config.");
+
+        try
+        {
+            var options = new JsonSerializerOptions { PropertyNamingPolicy = JsonNamingPolicy.SnakeCaseLower };
+            var definition = JsonSerializer.Deserialize<ArgocdAppDefinition>(commandData, options);
+            if (definition == null || string.IsNullOrEmpty(definition.AppName))
+                return (false, "Invalid command data: AppName is required");
+
+            return await _argocd.CreateApplicationAsync(definition, cancellationToken);
+        }
+        catch (JsonException ex)
+        {
+            return (false, $"Failed to parse k8s_onboard command data: {ex.Message}");
+        }
+    }
+
+    private async Task<(bool success, string result)> ExecuteArgoCdSyncAsync(
+        string commandData, CancellationToken cancellationToken)
+    {
+        if (_argocd == null)
+            return (false, "ArgoCD is not enabled on this agent. Set ArgoCD.Enabled=true in config.");
+
+        try
+        {
+            var options = new JsonSerializerOptions { PropertyNamingPolicy = JsonNamingPolicy.SnakeCaseLower };
+            var syncCmd = JsonSerializer.Deserialize<ArgocdSyncCommand>(commandData, options);
+            if (syncCmd == null || string.IsNullOrEmpty(syncCmd.AppName))
+                return (false, "Invalid command data: AppName is required");
+
+            // Trigger sync
+            var (triggerOk, triggerMsg) = await _argocd.SyncApplicationAsync(
+                syncCmd.AppName, syncCmd.ImageRepository, syncCmd.ImageTag, cancellationToken);
+
+            if (!triggerOk) return (false, triggerMsg);
+
+            // Wait for completion
+            return await _argocd.WaitForSyncAsync(syncCmd.AppName, cancellationToken);
+        }
+        catch (JsonException ex)
+        {
+            return (false, $"Failed to parse k8s_argocd_sync command data: {ex.Message}");
         }
     }
 

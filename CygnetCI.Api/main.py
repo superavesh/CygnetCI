@@ -4855,6 +4855,84 @@ def get_common_email_presets():
 
 
 # ==============================================
+# K8S / ARGOCD / PROMETHEUS
+# ==============================================
+
+# In-memory store for K8s metrics per agent (keyed by agent_uuid).
+# A simple dict is fine — metrics are replaced each polling cycle.
+# For persistence across restarts, these could be stored in the DB later.
+_k8s_metrics_store: dict = {}
+
+@app.post("/agents/{agent_uuid}/k8s-metrics", tags=["🤖 Agent - K8s"])
+def receive_k8s_metrics(agent_uuid: str, payload: dict, db: Session = Depends(get_db)):
+    """Receive K8s observability snapshot from a Prometheus-enabled agent"""
+    agent = db.query(models.Agent).filter(models.Agent.uuid == agent_uuid).first()
+    if not agent:
+        raise HTTPException(status_code=404, detail="Agent not found")
+    _k8s_metrics_store[agent_uuid] = payload
+    return {"success": True}
+
+@app.get("/agents/{agent_uuid}/k8s-metrics", tags=["🌐 UI - K8s"])
+def get_k8s_metrics(agent_uuid: str, db: Session = Depends(get_db)):
+    """Get latest K8s observability snapshot for an agent"""
+    agent = db.query(models.Agent).filter(models.Agent.uuid == agent_uuid).first()
+    if not agent:
+        raise HTTPException(status_code=404, detail="Agent not found")
+    return _k8s_metrics_store.get(agent_uuid, {
+        "collected_at": None,
+        "nodes": [],
+        "pods": [],
+        "deployments": [],
+        "firing_alerts": []
+    })
+
+@app.post("/agents/{agent_uuid}/k8s-onboard", tags=["🌐 UI - K8s"])
+def k8s_onboard_application(agent_uuid: str, payload: dict, db: Session = Depends(get_db)):
+    """
+    Send a k8s_onboard command to an agent — creates an ArgoCD Application for a new workload.
+    payload: { app_name, namespace, helm_repo_url, helm_chart_name, helm_chart_version,
+               image_repository, image_tag, replicas, helm_values }
+    """
+    agent = db.query(models.Agent).filter(models.Agent.uuid == agent_uuid).first()
+    if not agent:
+        raise HTTPException(status_code=404, detail="Agent not found")
+
+    import json as _json
+    command = models.AgentCommand(
+        agent_id=agent.id,
+        command_type="k8s_onboard",
+        command_data=_json.dumps(payload),
+        status="pending"
+    )
+    db.add(command)
+    db.commit()
+    db.refresh(command)
+    return {"success": True, "command_id": command.id}
+
+@app.post("/agents/{agent_uuid}/k8s-sync", tags=["🌐 UI - K8s"])
+def k8s_sync_application(agent_uuid: str, payload: dict, db: Session = Depends(get_db)):
+    """
+    Send a k8s_argocd_sync command to an agent — updates image tag and triggers ArgoCD sync.
+    payload: { app_name, image_repository, image_tag }
+    """
+    agent = db.query(models.Agent).filter(models.Agent.uuid == agent_uuid).first()
+    if not agent:
+        raise HTTPException(status_code=404, detail="Agent not found")
+
+    import json as _json
+    command = models.AgentCommand(
+        agent_id=agent.id,
+        command_type="k8s_argocd_sync",
+        command_data=_json.dumps(payload),
+        status="pending"
+    )
+    db.add(command)
+    db.commit()
+    db.refresh(command)
+    return {"success": True, "command_id": command.id}
+
+
+# ==============================================
 # RUN SERVER
 # ==============================================
 

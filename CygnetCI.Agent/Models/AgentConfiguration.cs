@@ -27,6 +27,10 @@ public class AgentConfiguration
 
     // Website/API Health Check Configuration
     public List<WebsitePingConfig> WebsitePings { get; set; } = new List<WebsitePingConfig>();
+
+    // Kubernetes / ArgoCD / Prometheus (all disabled by default — only active when configured)
+    public ArgocdSettings ArgoCD { get; set; } = new ArgocdSettings();
+    public PrometheusSettings Prometheus { get; set; } = new PrometheusSettings();
 }
 
 public class ProxySettings
@@ -53,4 +57,24 @@ public class WebsitePingConfig
     public string Url { get; set; } = string.Empty;
     public int TimeoutSeconds { get; set; } = 5;
     public bool Enabled { get; set; } = true;
+}
+
+public class ArgocdSettings
+{
+    public bool Enabled { get; set; } = false;
+    public string ServerUrl { get; set; } = string.Empty;
+    public string Token { get; set; } = string.Empty;
+    public bool InsecureSkipTlsVerify { get; set; } = false;
+    public int SyncTimeoutSeconds { get; set; } = 300;
+    public int SyncPollIntervalSeconds { get; set; } = 5;
+}
+
+public class PrometheusSettings
+{
+    public bool Enabled { get; set; } = false;
+    public string Url { get; set; } = string.Empty;
+    public string Username { get; set; } = string.Empty;    // optional basic auth
+    public string Password { get; set; } = string.Empty;
+    public int QueryIntervalSeconds { get; set; } = 60;
+    public List<string> Namespaces { get; set; } = new List<string>();  // empty = all namespaces
 }

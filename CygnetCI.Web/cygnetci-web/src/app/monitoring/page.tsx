@@ -5,7 +5,7 @@
 import React, { useState, useEffect } from 'react';
 import {
   Monitor, Activity, Cpu, HardDrive, Server, Settings,
-  RefreshCw, Globe, ChevronRight
+  RefreshCw, Globe, ChevronRight, Container
 } from 'lucide-react';
 import { useCustomer } from '@/lib/contexts/CustomerContext';
 import { CONFIG } from '@/lib/config';
@@ -13,6 +13,7 @@ import { MetricDetailModal } from '@/components/monitoring/MetricDetailModal';
 import { WindowsServicesModal } from '@/components/monitoring/WindowsServicesModal';
 import { DriveInfoModal } from '@/components/monitoring/DriveInfoModal';
 import { WebsitePingModal } from '@/components/monitoring/WebsitePingModal';
+import { K8sMetricsModal } from '@/components/monitoring/K8sMetricsModal';
 
 interface AgentMetrics {
   id: number;
@@ -27,7 +28,7 @@ interface AgentMetrics {
   last_seen: string | null;
 }
 
-type ModalType = 'cpu' | 'memory' | 'disk' | 'services' | 'drives' | 'ping' | null;
+type ModalType = 'cpu' | 'memory' | 'disk' | 'services' | 'drives' | 'ping' | 'k8s' | null;
 
 export default function MonitoringPage() {
   const { selectedCustomer } = useCustomer();
@@ -325,6 +326,20 @@ export default function MonitoringPage() {
                   <p className="text-xl font-bold text-gray-900">Health</p>
                   <p className="text-xs text-gray-500 mt-1">Check Status</p>
                 </button>
+
+                {/* K8s Observability Box */}
+                <button
+                  onClick={() => handleBoxClick(agent, 'k8s')}
+                  className="bg-gradient-to-br from-indigo-50 to-indigo-100 border-2 border-indigo-200 rounded-lg p-4 hover:border-indigo-400 hover:shadow-md transition-all group cursor-pointer"
+                >
+                  <div className="flex items-center justify-between mb-2">
+                    <Container className="h-5 w-5 text-indigo-600" />
+                    <ChevronRight className="h-4 w-4 text-gray-400 group-hover:text-indigo-600 transition-colors" />
+                  </div>
+                  <p className="text-xs text-gray-600 mb-1">Kubernetes</p>
+                  <p className="text-xl font-bold text-gray-900">K8s</p>
+                  <p className="text-xs text-gray-500 mt-1">Pods · Nodes · Alerts</p>
+                </button>
               </div>
             </div>
           );
@@ -394,6 +409,15 @@ export default function MonitoringPage() {
 
       {selectedAgent && activeModal === 'ping' && (
         <WebsitePingModal
+          isOpen={true}
+          onClose={closeModal}
+          agentUuid={selectedAgent.uuid}
+          agentName={selectedAgent.name}
+        />
+      )}
+
+      {selectedAgent && activeModal === 'k8s' && (
+        <K8sMetricsModal
           isOpen={true}
           onClose={closeModal}
           agentUuid={selectedAgent.uuid}

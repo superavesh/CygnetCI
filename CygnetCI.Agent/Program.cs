@@ -105,6 +105,18 @@ var builder = Host.CreateDefaultBuilder(args)
             services.AddHostedService<SubAgentProxyService>();
         }
 
+        // ArgoCD service (only when enabled in config)
+        if (config.ArgoCD.Enabled)
+        {
+            services.AddSingleton<IArgocdService, ArgocdService>();
+        }
+
+        // Prometheus K8s metrics polling (only when enabled in config)
+        if (config.Prometheus.Enabled)
+        {
+            services.AddHostedService<PrometheusService>();
+        }
+
         // Main worker
         services.AddHostedService<AgentWorker>();
     })

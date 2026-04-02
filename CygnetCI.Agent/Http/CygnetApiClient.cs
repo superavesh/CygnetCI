@@ -518,6 +518,28 @@ public class CygnetApiClient : ICygnetApiClient
         }
     }
 
+    public async Task PostK8sMetricsAsync(K8sMetricsSnapshot snapshot, CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            var content = new StringContent(
+                JsonSerializer.Serialize(snapshot, _jsonOptions),
+                Encoding.UTF8,
+                "application/json");
+
+            var response = await _httpClient.PostAsync(
+                $"/agents/{_config.AgentUuid}/k8s-metrics",
+                content,
+                cancellationToken);
+
+            response.EnsureSuccessStatusCode();
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Failed to post K8s metrics");
+        }
+    }
+
     public async Task<string> CheckPipelinePickupStatusAsync(int pickupId, CancellationToken cancellationToken = default)
     {
         try
