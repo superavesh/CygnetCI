@@ -441,14 +441,6 @@ Input	D:\Avesh\CygnetCI\SourceCode\CygnetCI\CygnetCI.Agent\bin\Release\net9.0\wi
 Input	D:\Avesh\CygnetCI\SourceCode\CygnetCI\CygnetCI.Agent\bin\Release\net9.0\win-x64\de\Microsoft.CodeAnalysis.resources.dll
 Input	D:\Avesh\CygnetCI\SourceCode\CygnetCI\CygnetCI.Agent\bin\Release\net9.0\win-x64\de\System.Private.ServiceModel.resources.dll
 Input	D:\Avesh\CygnetCI\SourceCode\CygnetCI\CygnetCI.Agent\bin\Release\net9.0\win-x64\de\System.Web.Services.Description.resources.dll
-Input	D:\Avesh\CygnetCI\SourceCode\CygnetCI\CygnetCI.Agent\bin\Release\net9.0\win-x64\dist\installer\appsettings.Development.json
-Input	D:\Avesh\CygnetCI\SourceCode\CygnetCI\CygnetCI.Agent\bin\Release\net9.0\win-x64\dist\installer\appsettings.json
-Input	D:\Avesh\CygnetCI\SourceCode\CygnetCI\CygnetCI.Agent\bin\Release\net9.0\win-x64\dist\installer\CygnetCI.Agent.deps.json
-Input	D:\Avesh\CygnetCI\SourceCode\CygnetCI\CygnetCI.Agent\bin\Release\net9.0\win-x64\dist\installer\CygnetCI.Agent.runtimeconfig.json
-Input	D:\Avesh\CygnetCI\SourceCode\CygnetCI\CygnetCI.Agent\bin\Release\net9.0\win-x64\dist\publish\appsettings.Development.json
-Input	D:\Avesh\CygnetCI\SourceCode\CygnetCI\CygnetCI.Agent\bin\Release\net9.0\win-x64\dist\publish\appsettings.json
-Input	D:\Avesh\CygnetCI\SourceCode\CygnetCI\CygnetCI.Agent\bin\Release\net9.0\win-x64\dist\publish\CygnetCI.Agent.deps.json
-Input	D:\Avesh\CygnetCI\SourceCode\CygnetCI\CygnetCI.Agent\bin\Release\net9.0\win-x64\dist\publish\CygnetCI.Agent.runtimeconfig.json
 Input	D:\Avesh\CygnetCI\SourceCode\CygnetCI\CygnetCI.Agent\bin\Release\net9.0\win-x64\es\Microsoft.CodeAnalysis.CSharp.resources.dll
 Input	D:\Avesh\CygnetCI\SourceCode\CygnetCI\CygnetCI.Agent\bin\Release\net9.0\win-x64\es\Microsoft.CodeAnalysis.resources.dll
 Input	D:\Avesh\CygnetCI\SourceCode\CygnetCI\CygnetCI.Agent\bin\Release\net9.0\win-x64\es\System.Private.ServiceModel.resources.dll

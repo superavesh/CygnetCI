@@ -5,13 +5,14 @@
 import React, { useState, useEffect } from 'react';
 import { X, Plus, Trash2, ChevronUp, ChevronDown } from 'lucide-react';
 import { apiService } from '@/lib/api/apiService';
-import type { Environment, Pipeline } from '@/types';
+import type { Environment, Pipeline, Release } from '@/types';
 import { useCustomer } from '@/lib/contexts/CustomerContext';
-import { WorkflowDesigner, WorkflowGraph, workflowToReleasePipelines } from './WorkflowDesigner';
+import { WorkflowDesigner, WorkflowGraph, workflowToReleasePipelines, WFNode, WFEdge } from './WorkflowDesigner';
 
 interface CreateReleaseModalProps {
   onClose: () => void;
   onSuccess: () => void;
+  release?: Release; // if provided → edit mode
 }
 
 interface ReleaseStageForm {
@@ -24,15 +25,61 @@ interface ReleaseStageForm {
 }
 
 
-export const CreateReleaseModal: React.FC<CreateReleaseModalProps> = ({ onClose, onSuccess }) => {
+export const CreateReleaseModal: React.FC<CreateReleaseModalProps> = ({ onClose, onSuccess, release }) => {
+  const isEdit = !!release;
   const { selectedCustomer } = useCustomer();
-  const [name, setName] = useState('');
-  const [description, setDescription] = useState('');
-  const [version, setVersion] = useState('');
-  const [pipelineId, setPipelineId] = useState<number | undefined>(undefined);
-  const [releaseType, setReleaseType] = useState<'pipeline' | 'stage'>('pipeline');
-  const [stages, setStages] = useState<ReleaseStageForm[]>([]);
-  const [workflow, setWorkflow] = useState<WorkflowGraph>({ nodes: [], edges: [] });
+  const [name, setName] = useState(release?.name || '');
+  const [description, setDescription] = useState(release?.description || '');
+  const [version, setVersion] = useState(release?.version || '');
+  const [pipelineId, setPipelineId] = useState<number | undefined>(release?.pipeline_id);
+  const [releaseType, setReleaseType] = useState<'pipeline' | 'stage'>(
+    release?.pipelines && release.pipelines.length > 0 ? 'pipeline' :
+    release?.stages && release.stages.length > 0 ? 'stage' : 'pipeline'
+  );
+  const [stages, setStages] = useState<ReleaseStageForm[]>(
+    release?.stages?.map(s => ({
+      environment_id: s.environment_id,
+      order_index: s.order_index,
+      pipeline_id: s.pipeline_id,
+      pre_deployment_approval: s.pre_deployment_approval,
+      post_deployment_approval: s.post_deployment_approval,
+      auto_deploy: s.auto_deploy,
+    })) || []
+  );
+  const [workflow, setWorkflow] = useState<WorkflowGraph>(() => {
+    if (!release?.pipelines || release.pipelines.length === 0) return { nodes: [], edges: [] };
+    const nodes: WFNode[] = release.pipelines.map(rp => ({
+      id: `n-${rp.id}`,
+      pipeline_id: rp.pipeline_id,
+      pipeline_name: rp.pipeline?.name || `Pipeline ${rp.pipeline_id}`,
+      x: rp.position_x || 0,
+      y: rp.position_y || 0,
+    }));
+    const rpIdToNodeId = new Map(release.pipelines.map(rp => [rp.id, `n-${rp.id}`]));
+    const edges: WFEdge[] = [];
+    // Sequential edges from depends_on
+    release.pipelines.forEach(rp => {
+      if (rp.depends_on) {
+        const fromNodeId = rpIdToNodeId.get(rp.depends_on);
+        if (fromNodeId) edges.push({ id: `e-seq-${rp.id}`, from: fromNodeId, to: `n-${rp.id}`, type: 'sequential' });
+      }
+    });
+    // Parallel edges: group nodes with same parent and execution_mode=parallel
+    const parallelByParent = new Map<string, string[]>();
+    release.pipelines.forEach(rp => {
+      if (rp.execution_mode === 'parallel') {
+        const key = String(rp.depends_on ?? 'root');
+        if (!parallelByParent.has(key)) parallelByParent.set(key, []);
+        parallelByParent.get(key)!.push(`n-${rp.id}`);
+      }
+    });
+    parallelByParent.forEach(nodeIds => {
+      for (let i = 0; i < nodeIds.length - 1; i++) {
+        edges.push({ id: `e-par-${nodeIds[i]}-${nodeIds[i + 1]}`, from: nodeIds[i], to: nodeIds[i + 1], type: 'parallel' });
+      }
+    });
+    return { nodes, edges };
+  });
   const [environments, setEnvironments] = useState<Environment[]>([]);
   const [pipelines, setPipelines] = useState<Pipeline[]>([]);
   const [loading, setLoading] = useState(false);
@@ -120,19 +167,29 @@ export const CreateReleaseModal: React.FC<CreateReleaseModalProps> = ({ onClose,
       setLoading(true);
       setError(null);
 
-      await apiService.createRelease({
-        name: name.trim(),
-        description: description.trim() || undefined,
-        version: version.trim() || undefined,
-        pipeline_id: pipelineId,
-        customer_id: selectedCustomer?.id,
-        stages: releaseType === 'stage' ? stages : [],
-        pipelines: releaseType === 'pipeline' ? workflowToReleasePipelines(workflow) : []
-      });
+      if (isEdit && release) {
+        await apiService.updateRelease(release.id, {
+          name: name.trim(),
+          description: description.trim() || undefined,
+          version: version.trim() || undefined,
+          pipelines: releaseType === 'pipeline' ? workflowToReleasePipelines(workflow) : [],
+          stages: releaseType === 'stage' ? stages : [],
+        });
+      } else {
+        await apiService.createRelease({
+          name: name.trim(),
+          description: description.trim() || undefined,
+          version: version.trim() || undefined,
+          pipeline_id: pipelineId,
+          customer_id: selectedCustomer?.id,
+          stages: releaseType === 'stage' ? stages : [],
+          pipelines: releaseType === 'pipeline' ? workflowToReleasePipelines(workflow) : []
+        });
+      }
 
       onSuccess();
     } catch (err) {
-      setError('Failed to create release');
+      setError(isEdit ? 'Failed to update release' : 'Failed to create release');
       console.error(err);
     } finally {
       setLoading(false);
@@ -144,7 +201,7 @@ export const CreateReleaseModal: React.FC<CreateReleaseModalProps> = ({ onClose,
       <div className="bg-white rounded-lg shadow-xl max-w-5xl w-full max-h-[90vh] overflow-hidden flex flex-col">
         {/* Header */}
         <div className="flex justify-between items-center p-6 border-b">
-          <h2 className="text-2xl font-bold text-gray-900">Create Release</h2>
+          <h2 className="text-2xl font-bold text-gray-900">{isEdit ? 'Edit Release' : 'Create Release'}</h2>
           <button
             onClick={onClose}
             className="p-2 hover:bg-gray-100 rounded-lg transition-colors text-gray-500 hover:text-gray-700"
@@ -428,7 +485,7 @@ export const CreateReleaseModal: React.FC<CreateReleaseModalProps> = ({ onClose,
             disabled={loading}
             className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            {loading ? 'Creating...' : 'Create Release'}
+            {loading ? (loading ? (isEdit ? 'Saving...' : 'Creating...') : (isEdit ? 'Save Changes' : 'Create Release'))}
           </button>
         </div>
       </div>

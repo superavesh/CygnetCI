@@ -303,7 +303,7 @@ class ApiService {
     return await response.json();
   }
 
-  async updateRelease(releaseId: number, releaseData: { name?: string; description?: string; status?: string; version?: string }) {
+  async updateRelease(releaseId: number, releaseData: { name?: string; description?: string; status?: string; version?: string; pipelines?: any[]; stages?: any[] }) {
     const url = `${CONFIG.api.baseUrl}/releases/${releaseId}`;
     const response = await fetch(url, {
       method: 'PUT',

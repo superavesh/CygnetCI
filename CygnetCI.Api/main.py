@@ -1633,6 +1633,8 @@ class ReleaseUpdate(BaseModel):
     description: Optional[str] = None
     status: Optional[str] = None
     version: Optional[str] = None
+    pipelines: Optional[List[ReleasePipelineData]] = None
+    stages: Optional[List[ReleaseStageData]] = None
 
 class DeployReleaseRequest(BaseModel):
     triggered_by: str
@@ -1836,17 +1838,31 @@ def create_release(release: ReleaseCreate, db: Session = Depends(get_db)):
         db.add(db_stage)
 
     # Create release pipelines (new pipeline-based approach)
+    # Step 1: insert all rows without depends_on to get real IDs first
+    rp_objects = []
     for pipeline_data in release.pipelines:
         db_release_pipeline = models.ReleasePipeline(
             release_id=db_release.id,
             pipeline_id=pipeline_data.pipeline_id,
             order_index=pipeline_data.order_index,
             execution_mode=pipeline_data.execution_mode,
-            depends_on=pipeline_data.depends_on,
+            depends_on=None,  # set after flush
             position_x=pipeline_data.position_x,
             position_y=pipeline_data.position_y
         )
         db.add(db_release_pipeline)
+        rp_objects.append((db_release_pipeline, pipeline_data.depends_on))
+
+    # Step 2: flush so every row gets its auto-generated release_pipeline.id
+    db.flush()
+
+    # Step 3: build pipeline_id → release_pipeline.id map for this release
+    pid_to_rpid = {rp_obj.pipeline_id: rp_obj.id for rp_obj, _ in rp_objects}
+
+    # Step 4: wire up depends_on using the real release_pipeline.id
+    for rp_obj, dep_pipeline_id in rp_objects:
+        if dep_pipeline_id is not None:
+            rp_obj.depends_on = pid_to_rpid.get(dep_pipeline_id)
 
     db.commit()
     db.refresh(db_release)
@@ -1917,6 +1933,44 @@ def update_release(release_id: int, release: ReleaseUpdate, db: Session = Depend
         db_release.status = release.status
     if release.version is not None:
         db_release.version = release.version
+
+    # Replace pipelines if provided
+    if release.pipelines is not None:
+        db.query(models.ReleasePipeline).filter(models.ReleasePipeline.release_id == release_id).delete()
+        db.flush()
+        rp_objects = []
+        for pipeline_data in release.pipelines:
+            db_rp = models.ReleasePipeline(
+                release_id=release_id,
+                pipeline_id=pipeline_data.pipeline_id,
+                order_index=pipeline_data.order_index,
+                execution_mode=pipeline_data.execution_mode,
+                depends_on=None,
+                position_x=pipeline_data.position_x,
+                position_y=pipeline_data.position_y
+            )
+            db.add(db_rp)
+            rp_objects.append((db_rp, pipeline_data.depends_on))
+        db.flush()
+        pid_to_rpid = {rp_obj.pipeline_id: rp_obj.id for rp_obj, _ in rp_objects}
+        for rp_obj, dep_pipeline_id in rp_objects:
+            if dep_pipeline_id is not None:
+                rp_obj.depends_on = pid_to_rpid.get(dep_pipeline_id)
+
+    # Replace stages if provided
+    if release.stages is not None:
+        db.query(models.ReleaseStage).filter(models.ReleaseStage.release_id == release_id).delete()
+        db.flush()
+        for stage_data in release.stages:
+            db.add(models.ReleaseStage(
+                release_id=release_id,
+                environment_id=stage_data.environment_id,
+                order_index=stage_data.order_index,
+                pipeline_id=stage_data.pipeline_id,
+                pre_deployment_approval=stage_data.pre_deployment_approval,
+                post_deployment_approval=stage_data.post_deployment_approval,
+                auto_deploy=stage_data.auto_deploy
+            ))
 
     db.commit()
 

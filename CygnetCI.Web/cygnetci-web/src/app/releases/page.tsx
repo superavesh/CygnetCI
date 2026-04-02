@@ -3,7 +3,7 @@
 'use client';
 
 import React, { useState, useEffect, useCallback } from 'react';
-import { Rocket, Plus, Play, Trash2, Settings, RefreshCw, History, ArrowRight } from 'lucide-react';
+import { Rocket, Plus, Play, Trash2, Pencil, RefreshCw, History, ArrowRight } from 'lucide-react';
 import { apiService } from '@/lib/api/apiService';
 import type { Release, Environment, ReleaseExecution } from '@/types';
 import { CreateReleaseModal } from '@/components/releases/CreateReleaseModal';
@@ -20,6 +20,7 @@ export default function ReleasesPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [showCreateModal, setShowCreateModal] = useState(false);
+  const [showEditModal, setShowEditModal] = useState(false);
   const [showDeployModal, setShowDeployModal] = useState(false);
   const [showHistoryModal, setShowHistoryModal] = useState(false);
   const [showExecutionModal, setShowExecutionModal] = useState(false);
@@ -55,6 +56,11 @@ export default function ReleasesPage() {
   useEffect(() => {
     fetchData();
   }, [fetchData]);
+
+  const handleEdit = (release: Release) => {
+    setSelectedRelease(release);
+    setShowEditModal(true);
+  };
 
   const handleDeploy = (release: Release) => {
     setSelectedRelease(release);
@@ -260,6 +266,13 @@ export default function ReleasesPage() {
                               <Play className="h-4 w-4" />
                             </button>
                             <button
+                              onClick={() => handleEdit(release)}
+                              className="text-indigo-600 hover:text-indigo-700 transition-colors"
+                              title="Edit Release"
+                            >
+                              <Pencil className="h-4 w-4" />
+                            </button>
+                            <button
                               onClick={() => handleViewHistory(release)}
                               className="text-blue-600 hover:text-blue-700 transition-colors"
                               title="Execution History"
@@ -312,6 +325,14 @@ export default function ReleasesPage() {
             setShowCreateModal(false);
             fetchData();
           }}
+        />
+      )}
+
+      {showEditModal && selectedRelease && (
+        <CreateReleaseModal
+          release={selectedRelease}
+          onClose={() => { setShowEditModal(false); setSelectedRelease(null); }}
+          onSuccess={() => { setShowEditModal(false); setSelectedRelease(null); fetchData(); }}
         />
       )}
 
