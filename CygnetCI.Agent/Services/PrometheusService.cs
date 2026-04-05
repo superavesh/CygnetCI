@@ -104,20 +104,32 @@ public class PrometheusService : IHostedService
         var snapshot = new K8sMetricsSnapshot { CollectedAt = DateTime.UtcNow };
 
         // Run all queries in parallel
-        var (nodeCpu, nodeMem, nodeReady, podPhase, podRestarts, podCpu, podMem, deployDesired, deployReady, deployAvail, alerts) =
-        await (
-            QueryAsync("1 - avg by (node) (rate(node_cpu_seconds_total{mode=\"idle\"}[5m]))", ct),
-            QueryAsync("1 - (node_memory_MemAvailable_bytes / node_memory_MemTotal_bytes)", ct),
-            QueryAsync("kube_node_status_condition{condition=\"Ready\",status=\"true\"}", ct),
-            QueryAsync($"kube_pod_status_phase{{{(nsFilter.TrimStart(','))}}}", ct),
-            QueryAsync($"kube_pod_container_status_restarts_total{{{(nsFilter.TrimStart(','))}}}", ct),
-            QueryAsync($"rate(container_cpu_usage_seconds_total{{container!=\"\"{nsFilter}}}[5m])", ct),
-            QueryAsync($"container_memory_working_set_bytes{{container!=\"\"{nsFilter}}}", ct),
-            QueryAsync($"kube_deployment_spec_replicas{{{(nsFilter.TrimStart(','))}}}", ct),
-            QueryAsync($"kube_deployment_status_replicas_ready{{{(nsFilter.TrimStart(','))}}}", ct),
-            QueryAsync($"kube_deployment_status_replicas_available{{{(nsFilter.TrimStart(','))}}}", ct),
-            QueryAsync("ALERTS{alertstate=\"firing\"}", ct)
-        );
+        var tNodeCpu      = QueryAsync("1 - avg by (node) (rate(node_cpu_seconds_total{mode=\"idle\"}[5m]))", ct);
+        var tNodeMem      = QueryAsync("1 - (node_memory_MemAvailable_bytes / node_memory_MemTotal_bytes)", ct);
+        var tNodeReady    = QueryAsync("kube_node_status_condition{condition=\"Ready\",status=\"true\"}", ct);
+        var tPodPhase     = QueryAsync($"kube_pod_status_phase{{{nsFilter.TrimStart(',')}}}", ct);
+        var tPodRestarts  = QueryAsync($"kube_pod_container_status_restarts_total{{{nsFilter.TrimStart(',')}}}", ct);
+        var tPodCpu       = QueryAsync($"rate(container_cpu_usage_seconds_total{{container!=\"\"{nsFilter}}}[5m])", ct);
+        var tPodMem       = QueryAsync($"container_memory_working_set_bytes{{container!=\"\"{nsFilter}}}", ct);
+        var tDepDesired   = QueryAsync($"kube_deployment_spec_replicas{{{nsFilter.TrimStart(',')}}}", ct);
+        var tDepReady     = QueryAsync($"kube_deployment_status_replicas_ready{{{nsFilter.TrimStart(',')}}}", ct);
+        var tDepAvail     = QueryAsync($"kube_deployment_status_replicas_available{{{nsFilter.TrimStart(',')}}}", ct);
+        var tAlerts       = QueryAsync("ALERTS{alertstate=\"firing\"}", ct);
+
+        await Task.WhenAll(tNodeCpu, tNodeMem, tNodeReady, tPodPhase, tPodRestarts,
+                           tPodCpu, tPodMem, tDepDesired, tDepReady, tDepAvail, tAlerts);
+
+        var nodeCpu     = tNodeCpu.Result;
+        var nodeMem     = tNodeMem.Result;
+        var nodeReady   = tNodeReady.Result;
+        var podPhase    = tPodPhase.Result;
+        var podRestarts = tPodRestarts.Result;
+        var podCpu      = tPodCpu.Result;
+        var podMem      = tPodMem.Result;
+        var deployDesired = tDepDesired.Result;
+        var deployReady   = tDepReady.Result;
+        var deployAvail   = tDepAvail.Result;
+        var alerts        = tAlerts.Result;
 
         snapshot.Nodes = BuildNodeMetrics(nodeCpu, nodeMem, nodeReady);
         snapshot.Pods = BuildPodMetrics(podPhase, podRestarts, podCpu, podMem);
