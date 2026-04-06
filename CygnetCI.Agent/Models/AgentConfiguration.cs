@@ -28,6 +28,9 @@ public class AgentConfiguration
     // Website/API Health Check Configuration
     public List<WebsitePingConfig> WebsitePings { get; set; } = new List<WebsitePingConfig>();
 
+    // Services to monitor — works on both Windows and Linux
+    public MonitoredServicesConfig MonitoredServices { get; set; } = new MonitoredServicesConfig();
+
     // Kubernetes / ArgoCD / Prometheus (all disabled by default — only active when configured)
     public ArgocdSettings ArgoCD { get; set; } = new ArgocdSettings();
     public PrometheusSettings Prometheus { get; set; } = new PrometheusSettings();
@@ -57,6 +60,28 @@ public class WebsitePingConfig
     public string Url { get; set; } = string.Empty;
     public int TimeoutSeconds { get; set; } = 5;
     public bool Enabled { get; set; } = true;
+}
+
+public class MonitoredServicesConfig
+{
+    /// <summary>
+    /// If true, only services listed in <see cref="Names"/> and matching <see cref="Prefixes"/> are shown.
+    /// If false, ALL services on the machine are returned (same as the old Linux behaviour).
+    /// </summary>
+    public bool FilterEnabled { get; set; } = false;
+
+    /// <summary>
+    /// Exact service names to include.
+    /// Windows example: "W3SVC", "MSSQLSERVER"
+    /// Linux example:   "nginx.service", "cygnetci-agent.service"
+    /// </summary>
+    public List<string> Names { get; set; } = new List<string>();
+
+    /// <summary>
+    /// Name prefixes — any service whose name starts with one of these strings is included.
+    /// Windows default was "CI". Leave empty to skip prefix matching.
+    /// </summary>
+    public List<string> Prefixes { get; set; } = new List<string>();
 }
 
 public class ArgocdSettings

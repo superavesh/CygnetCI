@@ -60,22 +60,21 @@ public class MonitoringDataCollector : IMonitoringDataCollector
         var services = new List<WindowsServiceInfo>();
         try
         {
-            // Get all services starting with "CI"
             var allServices = ServiceController.GetServices();
             foreach (var service in allServices)
             {
                 try
                 {
-                    if (service.ServiceName.StartsWith("CI", StringComparison.OrdinalIgnoreCase))
+                    if (!IsServiceIncluded(service.ServiceName))
+                        continue;
+
+                    services.Add(new WindowsServiceInfo
                     {
-                        services.Add(new WindowsServiceInfo
-                        {
-                            Name = service.ServiceName,
-                            DisplayName = service.DisplayName,
-                            Status = service.Status.ToString(),
-                            Description = service.DisplayName
-                        });
-                    }
+                        Name        = service.ServiceName,
+                        DisplayName = service.DisplayName,
+                        Status      = service.Status.ToString(),
+                        Description = service.DisplayName
+                    });
                 }
                 catch (Exception ex)
                 {
@@ -88,6 +87,29 @@ public class MonitoringDataCollector : IMonitoringDataCollector
             _logger.LogError(ex, "Failed to get Windows services");
         }
         return services;
+    }
+
+    /// <summary>
+    /// Returns true if the service name should be included in the monitoring report,
+    /// based on the MonitoredServices config. When FilterEnabled=false every service passes.
+    /// </summary>
+    private bool IsServiceIncluded(string serviceName)
+    {
+        var cfg = _config.MonitoredServices;
+
+        // Filter disabled → include everything
+        if (!cfg.FilterEnabled)
+            return true;
+
+        // Exact name match (case-insensitive)
+        if (cfg.Names.Any(n => string.Equals(n, serviceName, StringComparison.OrdinalIgnoreCase)))
+            return true;
+
+        // Prefix match (case-insensitive)
+        if (cfg.Prefixes.Any(p => serviceName.StartsWith(p, StringComparison.OrdinalIgnoreCase)))
+            return true;
+
+        return false;
     }
 
     /// <summary>
@@ -148,6 +170,10 @@ public class MonitoringDataCollector : IMonitoringDataCollector
                     ? unitName[..^8]
                     : unitName;
 
+                // Apply the same name/prefix filter as Windows
+                if (!IsServiceIncluded(unitName) && !IsServiceIncluded(displayName))
+                    continue;
+
                 services.Add(new WindowsServiceInfo
                 {
                     Name        = unitName,
@@ -177,15 +203,33 @@ public class MonitoringDataCollector : IMonitoringDataCollector
                     if (!drive.IsReady)
                         continue;
 
+                    // On Linux, GetDrives() returns many virtual filesystems (tmpfs, devtmpfs,
+                    // cgroup, proc, sysfs, etc.) which have DriveType.Ram or DriveType.Unknown
+                    // and TotalSize = 0. Only Fixed drives are real disk partitions on both
+                    // Windows (C:\, D:\) and Linux (/, /home, /data, /boot).
+                    if (drive.DriveType != DriveType.Fixed)
+                        continue;
+
                     var totalGB = drive.TotalSize / (1024 * 1024 * 1024);
+                    if (totalGB == 0)
+                        continue;
+
                     var freeGB = drive.AvailableFreeSpace / (1024 * 1024 * 1024);
                     var usedGB = totalGB - freeGB;
-                    var percentUsed = totalGB > 0 ? (int)((usedGB * 100) / totalGB) : 0;
+                    var percentUsed = (int)((usedGB * 100) / totalGB);
+
+                    // On Linux, VolumeLabel is often empty — fall back to the mount path
+                    var label = string.IsNullOrEmpty(drive.VolumeLabel)
+                        ? drive.Name.TrimEnd('/')  // "/" → "", "/home" → "/home"
+                        : drive.VolumeLabel;
+
+                    if (string.IsNullOrEmpty(label))
+                        label = drive.Name; // root partition → "/"
 
                     drives.Add(new Models.DriveInfo
                     {
                         Letter = drive.Name,
-                        Label = string.IsNullOrEmpty(drive.VolumeLabel) ? drive.Name : drive.VolumeLabel,
+                        Label = label,
                         TotalGB = totalGB,
                         UsedGB = usedGB,
                         FreeGB = freeGB,
