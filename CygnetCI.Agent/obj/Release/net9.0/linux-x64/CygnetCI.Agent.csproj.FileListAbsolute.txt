@@ -533,3 +533,15 @@ D:\Avesh\CygnetCI\SourceCode\CygnetCI\CygnetCI.Agent\obj\Release\net9.0\linux-x6
 D:\Avesh\CygnetCI\SourceCode\CygnetCI\CygnetCI.Agent\obj\Release\net9.0\linux-x64\CygnetCI.Agent.pdb
 D:\Avesh\CygnetCI\SourceCode\CygnetCI\CygnetCI.Agent\obj\Release\net9.0\linux-x64\CygnetCI.Agent.genruntimeconfig.cache
 D:\Avesh\CygnetCI\SourceCode\CygnetCI\CygnetCI.Agent\obj\Release\net9.0\linux-x64\ref\CygnetCI.Agent.dll
+D:\Avesh\CygnetCI\SourceCode\CygnetCI\CygnetCI.Agent\bin\Release\net9.0\linux-x64\publish\linux\appsettings.Development.json
+D:\Avesh\CygnetCI\SourceCode\CygnetCI\CygnetCI.Agent\bin\Release\net9.0\linux-x64\publish\linux\appsettings.json
+D:\Avesh\CygnetCI\SourceCode\CygnetCI\CygnetCI.Agent\bin\Release\net9.0\linux-x64\publish\linux\CygnetCI.Agent.deps.json
+D:\Avesh\CygnetCI\SourceCode\CygnetCI\CygnetCI.Agent\bin\Release\net9.0\linux-x64\publish\linux\CygnetCI.Agent.runtimeconfig.json
+D:\Avesh\CygnetCI\SourceCode\CygnetCI\CygnetCI.Agent\bin\Release\net9.0\linux-x64\publish\linux\dist\installer\appsettings.Development.json
+D:\Avesh\CygnetCI\SourceCode\CygnetCI\CygnetCI.Agent\bin\Release\net9.0\linux-x64\publish\linux\dist\installer\appsettings.json
+D:\Avesh\CygnetCI\SourceCode\CygnetCI\CygnetCI.Agent\bin\Release\net9.0\linux-x64\publish\linux\dist\installer\CygnetCI.Agent.deps.json
+D:\Avesh\CygnetCI\SourceCode\CygnetCI\CygnetCI.Agent\bin\Release\net9.0\linux-x64\publish\linux\dist\installer\CygnetCI.Agent.runtimeconfig.json
+D:\Avesh\CygnetCI\SourceCode\CygnetCI\CygnetCI.Agent\bin\Release\net9.0\linux-x64\publish\linux\dist\publish\appsettings.Development.json
+D:\Avesh\CygnetCI\SourceCode\CygnetCI\CygnetCI.Agent\bin\Release\net9.0\linux-x64\publish\linux\dist\publish\appsettings.json
+D:\Avesh\CygnetCI\SourceCode\CygnetCI\CygnetCI.Agent\bin\Release\net9.0\linux-x64\publish\linux\dist\publish\CygnetCI.Agent.deps.json
+D:\Avesh\CygnetCI\SourceCode\CygnetCI\CygnetCI.Agent\bin\Release\net9.0\linux-x64\publish\linux\dist\publish\CygnetCI.Agent.runtimeconfig.json
