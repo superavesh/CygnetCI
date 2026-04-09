@@ -1084,8 +1084,6 @@ def get_service_logs(
     if not agent:
         raise HTTPException(status_code=404, detail="Agent not found")
 
-    # For now, return agent logs filtered by service name in the message
-    # In a real implementation, you would read from actual log files
     query = db.query(models.AgentLog)\
         .filter(models.AgentLog.agent_id == agent.id)
 
@@ -1117,6 +1115,73 @@ def get_service_logs(
             for log in logs
         ]
     }
+
+# ── Service Log File Browser ─────────────────────────────────────────────────
+
+@app.get("/commands/{command_id}", tags=["🌐 UI - Monitoring"])
+def get_command_result(command_id: int, db: Session = Depends(get_db)):
+    """Poll the status and result of an agent command"""
+    command = db.query(models.AgentCommand).filter(models.AgentCommand.id == command_id).first()
+    if not command:
+        raise HTTPException(status_code=404, detail="Command not found")
+
+    result_data = None
+    if command.result:
+        try:
+            result_data = json.loads(command.result)
+        except Exception:
+            result_data = {"message": command.result}
+
+    return {
+        "id": command.id,
+        "status": command.status,
+        "command_type": command.command_type,
+        "result": result_data,
+        "created_at": command.created_at.isoformat() if command.created_at else None,
+        "completed_at": command.completed_at.isoformat() if command.completed_at else None,
+    }
+
+@app.post("/monitoring/agents/{agent_uuid}/service-log-files/{service_name}", tags=["🌐 UI - Monitoring"])
+def request_service_log_list(agent_uuid: str, service_name: str, db: Session = Depends(get_db)):
+    """Ask the agent to list log files for a service. Returns command_id to poll."""
+    agent = db.query(models.Agent).filter(models.Agent.uuid == agent_uuid).first()
+    if not agent:
+        raise HTTPException(status_code=404, detail="Agent not found")
+
+    cmd = models.AgentCommand(
+        agent_id=agent.id,
+        command_type="service_log_list",
+        command_data=json.dumps({"service_name": service_name}),
+        status="pending"
+    )
+    db.add(cmd)
+    db.commit()
+    db.refresh(cmd)
+    return {"command_id": cmd.id}
+
+@app.post("/monitoring/agents/{agent_uuid}/service-log-read/{service_name}", tags=["🌐 UI - Monitoring"])
+def request_service_log_read(
+    agent_uuid: str,
+    service_name: str,
+    file_name: str = Query(...),
+    max_kb: int = Query(512, ge=1, le=4096),
+    db: Session = Depends(get_db)
+):
+    """Ask the agent to read a specific log file. Returns command_id to poll."""
+    agent = db.query(models.Agent).filter(models.Agent.uuid == agent_uuid).first()
+    if not agent:
+        raise HTTPException(status_code=404, detail="Agent not found")
+
+    cmd = models.AgentCommand(
+        agent_id=agent.id,
+        command_type="service_log_read",
+        command_data=json.dumps({"service_name": service_name, "file_name": file_name, "max_kb": max_kb}),
+        status="pending"
+    )
+    db.add(cmd)
+    db.commit()
+    db.refresh(cmd)
+    return {"command_id": cmd.id}
 
 # ==================== PIPELINES ====================
 
@@ -4862,6 +4927,42 @@ def get_common_email_presets():
 # A simple dict is fine — metrics are replaced each polling cycle.
 # For persistence across restarts, these could be stored in the DB later.
 _k8s_metrics_store: dict = {}
+
+# In-memory store for service log file content (keyed by "{agent_uuid}:{service_name}:{file_name}").
+# Content is pushed by the agent via a dedicated endpoint to avoid routing large
+# payloads through the generic command-result mechanism (which can hit IIS body limits).
+_service_log_content_store: dict = {}
+
+@app.post("/agents/{agent_uuid}/service-log-content", tags=["🤖 Agent - File Logs"])
+def receive_service_log_content(agent_uuid: str, payload: dict, db: Session = Depends(get_db)):
+    """Agent pushes log file content here. Stored in memory so the UI can retrieve it."""
+    agent = db.query(models.Agent).filter(models.Agent.uuid == agent_uuid).first()
+    if not agent:
+        raise HTTPException(status_code=404, detail="Agent not found")
+    service_name = payload.get("service_name", "")
+    file_name = payload.get("file_name", "")
+    if not service_name or not file_name:
+        raise HTTPException(status_code=400, detail="service_name and file_name are required")
+    key = f"{agent_uuid}:{service_name}:{file_name}"
+    _service_log_content_store[key] = payload
+    return {"success": True}
+
+@app.get("/agents/{agent_uuid}/service-log-content", tags=["🌐 UI - File Logs"])
+def get_service_log_content(
+    agent_uuid: str,
+    service_name: str = Query(...),
+    file_name: str = Query(...),
+    db: Session = Depends(get_db)
+):
+    """UI retrieves log file content that the agent previously pushed."""
+    agent = db.query(models.Agent).filter(models.Agent.uuid == agent_uuid).first()
+    if not agent:
+        raise HTTPException(status_code=404, detail="Agent not found")
+    key = f"{agent_uuid}:{service_name}:{file_name}"
+    data = _service_log_content_store.pop(key, None)  # consume once — free memory
+    if data is None:
+        raise HTTPException(status_code=404, detail="Content not available yet")
+    return data
 
 @app.post("/agents/{agent_uuid}/k8s-metrics", tags=["🤖 Agent - K8s"])
 def receive_k8s_metrics(agent_uuid: str, payload: dict, db: Session = Depends(get_db)):

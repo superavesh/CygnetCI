@@ -621,9 +621,18 @@ export default function TransferPage() {
                     <td className="px-4 py-3 text-sm text-gray-700">{pickup.version}</td>
                     <td className="px-4 py-3 text-sm text-gray-700">{pickup.agent_name || pickup.agent_uuid}</td>
                     <td className="px-4 py-3 text-sm">
-                      <span className={`px-2 py-1 rounded text-xs font-medium ${getStatusColor(pickup.status)}`}>
-                        {pickup.status}
-                      </span>
+                      <div className="flex flex-col gap-1">
+                        <span className={`px-2 py-1 rounded text-xs font-medium w-fit ${getStatusColor(pickup.status)}`}>
+                          {pickup.status}
+                        </span>
+                        {pickup.status === 'failed' && pickup.error_message && (
+                          <span className="text-xs text-red-600 max-w-xs break-words" title={pickup.error_message}>
+                            {pickup.error_message.length > 80
+                              ? pickup.error_message.slice(0, 80) + '…'
+                              : pickup.error_message}
+                          </span>
+                        )}
+                      </div>
                     </td>
                     <td className="px-4 py-3 text-sm text-gray-600">
                       {new Date(pickup.requested_at).toLocaleString()}

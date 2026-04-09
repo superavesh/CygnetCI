@@ -12,7 +12,7 @@ public interface ICygnetApiClient
     Task CompleteTaskAsync(int taskId, bool success, int exitCode, CancellationToken cancellationToken = default);
     Task<List<TransferFilePickup>> GetPendingDownloadsAsync(CancellationToken cancellationToken = default);
     Task<byte[]> DownloadFileAsync(int pickupId, CancellationToken cancellationToken = default);
-    Task AcknowledgeDownloadAsync(int pickupId, bool success, CancellationToken cancellationToken = default);
+    Task AcknowledgeDownloadAsync(int pickupId, bool success, string? errorMessage = null, CancellationToken cancellationToken = default);
     Task<List<ReleasePickupInfo>> GetPendingReleasePickupsAsync(CancellationToken cancellationToken = default);
     Task AcknowledgeReleasePickupAsync(int pickupId, CancellationToken cancellationToken = default);
     Task StartReleasePickupAsync(int pickupId, CancellationToken cancellationToken = default);
@@ -32,4 +32,8 @@ public interface ICygnetApiClient
 
     // K8s / Prometheus observability
     Task PostK8sMetricsAsync(K8sMetricsSnapshot snapshot, CancellationToken cancellationToken = default);
+
+    // Service log file content (pushed separately to avoid large payloads in command results)
+    Task PostServiceLogContentAsync(string serviceName, string fileName, string logsDir,
+        string content, bool truncated, long totalBytes, CancellationToken cancellationToken = default);
 }

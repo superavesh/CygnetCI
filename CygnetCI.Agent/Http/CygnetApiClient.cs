@@ -272,11 +272,11 @@ public class CygnetApiClient : ICygnetApiClient
         }
     }
 
-    public async Task AcknowledgeDownloadAsync(int pickupId, bool success, CancellationToken cancellationToken = default)
+    public async Task AcknowledgeDownloadAsync(int pickupId, bool success, string? errorMessage = null, CancellationToken cancellationToken = default)
     {
         try
         {
-            var payload = new { success = success };
+            var payload = new { success, error_message = errorMessage };
 
             var content = new StringContent(
                 JsonSerializer.Serialize(payload, _jsonOptions),
@@ -627,6 +627,41 @@ public class CygnetApiClient : ICygnetApiClient
         catch (Exception ex)
         {
             _logger.LogError(ex, "Failed to complete command {CommandId}", commandId);
+        }
+    }
+
+    public async Task PostServiceLogContentAsync(
+        string serviceName, string fileName, string logsDir,
+        string content, bool truncated, long totalBytes,
+        CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            var payload = new
+            {
+                service_name = serviceName,
+                file_name    = fileName,
+                logs_dir     = logsDir,
+                content,
+                truncated,
+                total_bytes  = totalBytes
+            };
+
+            var body = new StringContent(
+                JsonSerializer.Serialize(payload, _jsonOptions),
+                Encoding.UTF8,
+                "application/json");
+
+            var response = await _httpClient.PostAsync(
+                $"/agents/{_config.AgentUuid}/service-log-content",
+                body,
+                cancellationToken);
+
+            response.EnsureSuccessStatusCode();
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Failed to push service log content for {ServiceName}/{FileName}", serviceName, fileName);
         }
     }
 }

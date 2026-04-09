@@ -92,7 +92,7 @@ public class FileTransferService : IFileTransferService
                 {
                     _logger.LogError("Checksum verification failed for file: {FileName}", pickup.FileName);
                     File.Delete(filePath);
-                    await _apiClient.AcknowledgeDownloadAsync(pickup.Id, false, cancellationToken);
+                    await _apiClient.AcknowledgeDownloadAsync(pickup.Id, false, "Checksum verification failed", cancellationToken);
                     return;
                 }
 
@@ -110,7 +110,7 @@ public class FileTransferService : IFileTransferService
 
             try
             {
-                await _apiClient.AcknowledgeDownloadAsync(pickup.Id, false, cancellationToken);
+                await _apiClient.AcknowledgeDownloadAsync(pickup.Id, false, ex.Message, cancellationToken);
             }
             catch (Exception ackEx)
             {

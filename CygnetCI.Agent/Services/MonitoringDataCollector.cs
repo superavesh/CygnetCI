@@ -266,13 +266,12 @@ public class MonitoringDataCollector : IMonitoringDataCollector
                 return pings;
             }
 
-            using var httpClient = new HttpClient();
-
             foreach (var pingConfig in configuredPings)
             {
                 try
                 {
-                    // Set timeout from configuration
+                    // Create a new client per ping so each can have its own timeout
+                    using var httpClient = new HttpClient();
                     httpClient.Timeout = TimeSpan.FromSeconds(pingConfig.TimeoutSeconds);
 
                     var stopwatch = Stopwatch.StartNew();
