@@ -135,8 +135,9 @@ public class SubAgentProxyService : BackgroundService
 
             if (!string.IsNullOrEmpty(body))
             {
-                forwardReq.Content = new StringContent(body, Encoding.UTF8,
-                    req.ContentType ?? "application/json");
+                // Strip charset/parameters from Content-Type — StringContent only accepts the media type part
+                var mediaType = (req.ContentType ?? "application/json").Split(';')[0].Trim();
+                forwardReq.Content = new StringContent(body, Encoding.UTF8, mediaType);
             }
 
             // Copy request headers (skip hop-by-hop and content headers already set)
