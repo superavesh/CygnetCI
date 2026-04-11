@@ -345,6 +345,116 @@ Configure websites to monitor:
 
 ---
 
+## Option C: Linux Build (Ubuntu / systemd)
+
+### Step C.1: Build on Development Machine (Windows)
+
+Run from the agent project directory:
+
+```powershell
+cd "D:\Avesh\CygnetCI\SourceCode\CygnetCI\CygnetCI.Agent"
+
+dotnet publish -c Release -r linux-x64 --self-contained true -o "publish/linux"
+```
+
+This produces a folder at `publish/linux/` containing `CygnetCI.Agent` (the executable) and its supporting DLLs (~90 MB total).  
+No .NET runtime is required on the Linux server.
+
+> **Note:** `--self-contained true` bundles the .NET 9 runtime so the Linux server needs no dotnet installation.  
+> Avoid adding `-p:PublishSingleFile=true` — it causes MSB3030 errors when the output folder already exists from a previous build.
+
+### Step C.2: Copy to Linux Server
+
+```bash
+# From Windows (PowerShell) — copy via SCP
+scp -r "publish\linux\*" user@linux-server:/opt/cygnetci-agent/
+
+# Or via WinSCP / FileZilla to /opt/cygnetci-agent/
+```
+
+### Step C.3: Set Permissions on Linux Server
+
+```bash
+chmod +x /opt/cygnetci-agent/CygnetCI.Agent
+```
+
+### Step C.4: Configure Agent
+
+```bash
+nano /opt/cygnetci-agent/appsettings.json
+```
+
+Update:
+```json
+{
+  "Agent": {
+    "ServerUrl": "http://YOUR_API_SERVER:8000",
+    "AgentName": "linux-server-01",
+    "Location": "Data Center - Linux Node"
+  }
+}
+```
+
+### Step C.5: Install as systemd Service
+
+```bash
+sudo nano /etc/systemd/system/cygnetci-agent.service
+```
+
+Paste:
+```ini
+[Unit]
+Description=CygnetCI Agent
+After=network.target
+
+[Service]
+Type=notify
+WorkingDirectory=/opt/cygnetci-agent
+ExecStart=/opt/cygnetci-agent/CygnetCI.Agent
+Restart=always
+RestartSec=10
+KillSignal=SIGINT
+SyslogIdentifier=cygnetci-agent
+User=root
+
+[Install]
+WantedBy=multi-user.target
+```
+
+```bash
+sudo systemctl daemon-reload
+sudo systemctl enable cygnetci-agent
+sudo systemctl start cygnetci-agent
+
+# Verify
+sudo systemctl status cygnetci-agent
+```
+
+### Step C.6: View Logs on Linux
+
+```bash
+# Live log stream
+sudo journalctl -u cygnetci-agent -f
+
+# Last 100 lines
+sudo journalctl -u cygnetci-agent -n 100
+
+# Logs since boot
+sudo journalctl -u cygnetci-agent -b
+```
+
+### Step C.7: Update Agent on Linux
+
+```bash
+# Stop, replace binary, restart
+sudo systemctl stop cygnetci-agent
+sudo cp /tmp/CygnetCI.Agent /opt/cygnetci-agent/CygnetCI.Agent
+sudo chmod +x /opt/cygnetci-agent/CygnetCI.Agent
+sudo systemctl start cygnetci-agent
+```
+
+---
+
 ## Quick Reference
 
 ### Build Commands
@@ -354,6 +464,7 @@ Configure websites to monitor:
 | MSI | `.\build_msi.ps1` | `bin\Release\CygnetCI.Agent.Setup.msi` |
 | Scripts | `.\build_installer.ps1` | `dist\installer\` folder |
 | Scripts + ZIP | `.\build_installer.ps1 -CreateZip` | `CygnetCI-Agent-Installer.zip` |
+| **Linux** | `dotnet publish -c Release -r linux-x64 --self-contained true -o publish/linux` | `publish/linux/` folder |
 
 ### Installation Commands
 

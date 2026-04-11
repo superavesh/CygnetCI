@@ -100,7 +100,7 @@ public class FileTransferService : IFileTransferService
             }
 
             // Acknowledge successful download
-            await _apiClient.AcknowledgeDownloadAsync(pickup.Id, true, cancellationToken);
+            await _apiClient.AcknowledgeDownloadAsync(pickup.Id, true, null, cancellationToken);
 
             _logger.LogInformation("File downloaded and acknowledged: {FileName}", pickup.FileName);
         }
