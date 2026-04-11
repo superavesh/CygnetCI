@@ -354,6 +354,8 @@ Run from the agent project directory:
 ```powershell
 cd "D:\Avesh\CygnetCI\SourceCode\CygnetCI\CygnetCI.Agent"
 
+Remove-Item -Recurse -Force "publish\linux" -ErrorAction SilentlyContinue
+
 dotnet publish -c Release -r linux-x64 --self-contained true -o "publish/linux"
 ```
 
@@ -408,7 +410,7 @@ Description=CygnetCI Agent
 After=network.target
 
 [Service]
-Type=notify
+Type=simple
 WorkingDirectory=/opt/cygnetci-agent
 ExecStart=/opt/cygnetci-agent/CygnetCI.Agent
 Restart=always
@@ -420,6 +422,8 @@ User=root
 [Install]
 WantedBy=multi-user.target
 ```
+
+> **Note:** Use `Type=simple` — not `Type=notify`. .NET Worker Services with `UseSystemd()` handle graceful shutdown but do not send the `READY=1` sd_notify signal that `Type=notify` requires. Using `Type=notify` causes the service to exit immediately with `status=0/SUCCESS`.
 
 ```bash
 sudo systemctl daemon-reload

@@ -176,14 +176,17 @@ public class SubAgentProxyService : BackgroundService
     }
 
     /// <summary>
-    /// Injects the parent agent's own DB ID into the sub-agent registration body.
+    /// Injects parent_agent_id and customer_id into the sub-agent registration body.
+    /// customer_id is required by the FastAPI /agents endpoint for new agent creation.
     /// </summary>
     private string InjectParentAgentId(string body)
     {
-        var parentId = _agentIdentity.AgentId;
+        var parentId   = _agentIdentity.AgentId;
+        var customerId = _agentIdentity.CustomerId;
+
         if (parentId <= 0)
         {
-            _logger.LogWarning("Parent agent ID not yet available — sub-agent registration forwarded without parent_agent_id");
+            _logger.LogWarning("Parent agent ID not yet available — sub-agent registration forwarded without parent_agent_id/customer_id");
             return body;
         }
 
@@ -195,12 +198,16 @@ public class SubAgentProxyService : BackgroundService
 
             jsonObj["parent_agent_id"] = parentId;
 
-            _logger.LogDebug("Injected parent_agent_id={ParentId} into sub-agent registration", parentId);
+            if (customerId > 0)
+                jsonObj["customer_id"] = customerId;
+
+            _logger.LogDebug("Injected parent_agent_id={ParentId}, customer_id={CustomerId} into sub-agent registration",
+                parentId, customerId);
             return jsonObj.ToJsonString();
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Failed to inject parent_agent_id into registration body");
+            _logger.LogError(ex, "Failed to inject parent_agent_id/customer_id into registration body");
             return body;
         }
     }

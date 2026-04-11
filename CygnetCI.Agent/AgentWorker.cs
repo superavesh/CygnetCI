@@ -49,10 +49,11 @@ public class AgentWorker : BackgroundService
 
         try
         {
-            // Register agent with server and store our own DB ID (used by SubAgentProxyService)
-            var agentId = await _apiClient.RegisterAgentAsync(stoppingToken);
+            // Register with retry — transient errors (502, network) must not crash the host
+            var (agentId, customerId) = await RegisterWithRetryAsync(stoppingToken);
             _agentIdentity.SetAgentId(agentId);
-            _logger.LogInformation("Agent registered successfully with ID {AgentId}", agentId);
+            _agentIdentity.SetCustomerId(customerId);
+            _logger.LogInformation("Agent registered successfully with ID {AgentId}, CustomerId {CustomerId}", agentId, customerId);
 
             // Start all background services
             var tasks = new[]
@@ -79,6 +80,45 @@ public class AgentWorker : BackgroundService
             _logger.LogCritical(ex, "Fatal error in agent execution");
             throw;
         }
+    }
+
+    /// <summary>
+    /// Retries registration indefinitely with capped exponential backoff.
+    /// The agent should never crash just because the API or parent proxy is temporarily unavailable.
+    /// </summary>
+    private async Task<(int agentId, int customerId)> RegisterWithRetryAsync(CancellationToken stoppingToken)
+    {
+        var delay = TimeSpan.FromSeconds(5);
+        var attempt = 0;
+
+        while (!stoppingToken.IsCancellationRequested)
+        {
+            attempt++;
+            try
+            {
+                var result = await _apiClient.RegisterAgentAsync(stoppingToken);
+                if (attempt > 1)
+                    _logger.LogInformation("Registration succeeded on attempt {Attempt}", attempt);
+                return result;
+            }
+            catch (OperationCanceledException)
+            {
+                throw;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(
+                    "Registration attempt {Attempt} failed: {Message}. Retrying in {Delay}s...",
+                    attempt, ex.Message, (int)delay.TotalSeconds);
+
+                await Task.Delay(delay, stoppingToken);
+
+                // Exponential backoff capped at 60 seconds
+                delay = TimeSpan.FromSeconds(Math.Min(delay.TotalSeconds * 2, 60));
+            }
+        }
+
+        throw new OperationCanceledException(stoppingToken);
     }
 
     public override async Task StopAsync(CancellationToken cancellationToken)

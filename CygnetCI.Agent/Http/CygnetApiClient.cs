@@ -27,7 +27,7 @@ public class CygnetApiClient : ICygnetApiClient
         };
     }
 
-    public async Task<int> RegisterAgentAsync(CancellationToken cancellationToken = default)
+    public async Task<(int agentId, int customerId)> RegisterAgentAsync(CancellationToken cancellationToken = default)
     {
         try
         {
@@ -57,19 +57,17 @@ public class CygnetApiClient : ICygnetApiClient
             {
                 var json = await response.Content.ReadAsStringAsync(cancellationToken);
                 using var doc = JsonDocument.Parse(json);
-                if (doc.RootElement.TryGetProperty("id", out var idElement))
-                {
-                    var agentId = idElement.GetInt32();
-                    _logger.LogInformation("Agent registered successfully with ID {AgentId}", agentId);
-                    return agentId;
-                }
+                var agentId     = doc.RootElement.TryGetProperty("id",         out var idEl)  ? idEl.GetInt32()  : 0;
+                var customerId  = doc.RootElement.TryGetProperty("customerId",  out var cIdEl) ? cIdEl.GetInt32() : 0;
+                _logger.LogInformation("Agent registered successfully with ID {AgentId}, CustomerId {CustomerId}", agentId, customerId);
+                return (agentId, customerId);
             }
             else
             {
                 response.EnsureSuccessStatusCode();
             }
 
-            return 0;
+            return (0, 0);
         }
         catch (Exception ex)
         {
