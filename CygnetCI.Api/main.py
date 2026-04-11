@@ -657,20 +657,23 @@ def create_agent(agent: AgentCreate, response: Response, db: Session = Depends(g
             db.refresh(existing)
         return format_agent(existing)
 
-    # Validate customer_id is provided (required due to database constraint)
-    if agent.customer_id is None:
-        raise HTTPException(status_code=400, detail="Customer ID is required. Please select a customer before adding an agent.")
-
-    # Validate customer exists
-    customer = db.query(models.Customer).filter(models.Customer.id == agent.customer_id).first()
-    if not customer:
-        raise HTTPException(status_code=400, detail="Customer not found")
-
-    # Validate parent agent exists if provided
+    # Resolve customer_id: if a parent agent is provided, inherit its customer_id automatically
+    resolved_customer_id = agent.customer_id
     if agent.parent_agent_id is not None:
         parent = db.query(models.Agent).filter(models.Agent.id == agent.parent_agent_id).first()
         if not parent:
             raise HTTPException(status_code=400, detail="Parent agent not found")
+        if resolved_customer_id is None:
+            resolved_customer_id = parent.customer_id
+
+    # Validate customer_id is available (required for standalone agents without a parent)
+    if resolved_customer_id is None:
+        raise HTTPException(status_code=400, detail="Customer ID is required. Please select a customer before adding an agent.")
+
+    # Validate customer exists
+    customer = db.query(models.Customer).filter(models.Customer.id == resolved_customer_id).first()
+    if not customer:
+        raise HTTPException(status_code=400, detail="Customer not found")
 
     # Create new agent
     db_agent = models.Agent(
@@ -678,7 +681,7 @@ def create_agent(agent: AgentCreate, response: Response, db: Session = Depends(g
         uuid=agent.uuid,
         description=agent.description,
         location=agent.location,
-        customer_id=agent.customer_id,
+        customer_id=resolved_customer_id,
         parent_agent_id=agent.parent_agent_id,
         status="online",
         last_seen=datetime.now(),

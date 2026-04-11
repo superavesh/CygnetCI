@@ -38,7 +38,12 @@ public class SubAgentProxyService : BackgroundService
         _agentIdentity = agentIdentity;
 
         // Separate HttpClient that talks directly to the real API (no proxy loop)
-        _forwardClient = new HttpClient
+        // ServerHandler: disable SSL cert validation to support self-signed certs on internal servers
+        var handler = new HttpClientHandler
+        {
+            ServerCertificateCustomValidationCallback = HttpClientHandler.DangerousAcceptAnyServerCertificateValidator
+        };
+        _forwardClient = new HttpClient(handler)
         {
             BaseAddress = new Uri(_config.ServerUrl),
             Timeout = TimeSpan.FromSeconds(120)
@@ -218,4 +223,6 @@ public class SubAgentProxyService : BackgroundService
         _listener?.Close();
         base.Dispose();
     }
+
+    // Handler is disposed by HttpClient
 }
