@@ -26,6 +26,7 @@ interface AgentMetrics {
   disk: number;
   jobs: number;
   last_seen: string | null;
+  has_k8s_data: boolean;
 }
 
 type ModalType = 'cpu' | 'memory' | 'disk' | 'services' | 'drives' | 'ping' | 'k8s' | null;
@@ -227,7 +228,8 @@ export default function MonitoringPage() {
               </div>
 
               {/* Metric Boxes Grid */}
-              <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
+              <div className="overflow-x-auto">
+              <div className={`grid gap-4 ${agent.has_k8s_data ? 'grid-cols-7 min-w-[700px]' : 'grid-cols-2 md:grid-cols-3 lg:grid-cols-6'}`}>
                 {/* CPU Box */}
                 <button
                   onClick={() => handleBoxClick(agent, 'cpu', 'cpu')}
@@ -327,19 +329,22 @@ export default function MonitoringPage() {
                   <p className="text-xs text-gray-500 mt-1">Check Status</p>
                 </button>
 
-                {/* K8s Observability Box */}
-                <button
-                  onClick={() => handleBoxClick(agent, 'k8s')}
-                  className="bg-gradient-to-br from-indigo-50 to-indigo-100 border-2 border-indigo-200 rounded-lg p-4 hover:border-indigo-400 hover:shadow-md transition-all group cursor-pointer"
-                >
-                  <div className="flex items-center justify-between mb-2">
-                    <Container className="h-5 w-5 text-indigo-600" />
-                    <ChevronRight className="h-4 w-4 text-gray-400 group-hover:text-indigo-600 transition-colors" />
-                  </div>
-                  <p className="text-xs text-gray-600 mb-1">Kubernetes</p>
-                  <p className="text-xl font-bold text-gray-900">K8s</p>
-                  <p className="text-xs text-gray-500 mt-1">Pods · Nodes · Alerts</p>
-                </button>
+                {/* K8s Observability Box — only shown for agents with Prometheus enabled */}
+                {agent.has_k8s_data && (
+                  <button
+                    onClick={() => handleBoxClick(agent, 'k8s')}
+                    className="bg-gradient-to-br from-indigo-50 to-indigo-100 border-2 border-indigo-200 rounded-lg p-4 hover:border-indigo-400 hover:shadow-md transition-all group cursor-pointer"
+                  >
+                    <div className="flex items-center justify-between mb-2">
+                      <Container className="h-5 w-5 text-indigo-600" />
+                      <ChevronRight className="h-4 w-4 text-gray-400 group-hover:text-indigo-600 transition-colors" />
+                    </div>
+                    <p className="text-xs text-gray-600 mb-1">Kubernetes</p>
+                    <p className="text-xl font-bold text-gray-900">K8s</p>
+                    <p className="text-xs text-gray-500 mt-1">Pods · Nodes · Alerts</p>
+                  </button>
+                )}
+              </div>
               </div>
             </div>
           );
