@@ -526,11 +526,11 @@ def login(credentials: LoginRequest, db: Session = Depends(get_db)):
 def get_dashboard_data(customer_id: int = None, db: Session = Depends(get_db)):
     """Get all dashboard data with optional customer filtering"""
 
-    # Get agents
+    # Get agents — ordered by creation (id) so order is stable across refreshes
     agents_query = db.query(models.Agent)
     if customer_id is not None:
         agents_query = agents_query.filter(models.Agent.customer_id == customer_id)
-    agents = agents_query.all()
+    agents = agents_query.order_by(models.Agent.id.asc()).all()
     agents_data = [format_agent(agent) for agent in agents]
 
     # Get pipelines
@@ -770,7 +770,7 @@ def get_agents_metrics(customer_id: int = None, db: Session = Depends(get_db)):
     query = db.query(models.Agent)
     if customer_id is not None:
         query = query.filter(models.Agent.customer_id == customer_id)
-    agents = query.all()
+    agents = query.order_by(models.Agent.id.asc()).all()
 
     result = []
     for agent in agents:
