@@ -47,7 +47,7 @@ var builder = Host.CreateDefaultBuilder(args)
         services.AddHttpClient<ICygnetApiClient, CygnetApiClient>(client =>
         {
             client.BaseAddress = new Uri(config.ServerUrl);
-            client.Timeout = TimeSpan.FromSeconds(30);
+            client.Timeout = TimeSpan.FromSeconds(config.HttpTimeoutSeconds);
         })
         .ConfigurePrimaryHttpMessageHandler(() =>
         {

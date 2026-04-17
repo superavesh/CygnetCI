@@ -2,8 +2,9 @@
 
 'use client';
 
-import React, { useState } from 'react';
-import { X, Plus, Trash2 } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { X, Plus, Trash2, Copy } from 'lucide-react';
+import { apiService } from '@/lib/api/apiService';
 
 interface CreatePipelineModalProps {
   isOpen: boolean;
@@ -50,6 +51,55 @@ export const CreatePipelineModal: React.FC<CreatePipelineModalProps> = ({
   ]);
   const [parameters, setParameters] = useState<PipelineParameter[]>([]);
   const [errors, setErrors] = useState<{ [key: string]: string }>({});
+
+  // Template copy state
+  const [templates, setTemplates] = useState<any[]>([]);
+  const [templatesLoading, setTemplatesLoading] = useState(false);
+  const [selectedTemplateId, setSelectedTemplateId] = useState<string>('');
+  const [templateCopied, setTemplateCopied] = useState(false);
+
+  useEffect(() => {
+    if (isOpen) {
+      setTemplatesLoading(true);
+      apiService.getPipelineTemplates()
+        .then(data => setTemplates(data))
+        .catch(() => setTemplates([]))
+        .finally(() => setTemplatesLoading(false));
+    }
+  }, [isOpen]);
+
+  const handleApplyTemplate = (templateId: string) => {
+    const template = templates.find(t => String(t.id) === templateId);
+    if (!template) return;
+    setSteps(template.steps.map((s: any, i: number) => ({
+      name: s.name,
+      command: s.command,
+      order: i + 1,
+      shellType: s.shellType || 'cmd'
+    })));
+    setParameters(template.parameters.map((p: any) => ({
+      name: p.name,
+      type: p.type,
+      defaultValue: p.defaultValue || '',
+      required: p.required || false,
+      description: p.description || '',
+      choices: p.choices || []
+    })));
+    if (!name) setName(template.name);
+    if (branch === 'main' && template.branch) setBranch(template.branch);
+    if (!description && template.description) setDescription(template.description);
+    setSelectedTemplateId(templateId);
+    setTemplateCopied(true);
+    setTimeout(() => setTemplateCopied(false), 2000);
+  };
+
+  // Group templates by customer
+  const templatesByCustomer = templates.reduce((acc: Record<string, any[]>, t) => {
+    const key = t.customer_name || 'Unknown';
+    if (!acc[key]) acc[key] = [];
+    acc[key].push(t);
+    return acc;
+  }, {});
 
   if (!isOpen) return null;
 
@@ -185,6 +235,8 @@ export const CreatePipelineModal: React.FC<CreatePipelineModalProps> = ({
       setSteps([{ name: 'Build', command: 'npm run build', order: 1, shellType: 'cmd' }]);
       setParameters([]);
       setErrors({});
+      setSelectedTemplateId('');
+      setTemplateCopied(false);
       onClose();
     }
   };
@@ -197,6 +249,8 @@ export const CreatePipelineModal: React.FC<CreatePipelineModalProps> = ({
     setSteps([{ name: 'Build', command: 'npm run build', order: 1, shellType: 'cmd' }]);
     setParameters([]);
     setErrors({});
+    setSelectedTemplateId('');
+    setTemplateCopied(false);
     onClose();
   };
 
@@ -218,6 +272,40 @@ export const CreatePipelineModal: React.FC<CreatePipelineModalProps> = ({
 
         {/* Form */}
         <form onSubmit={handleSubmit} className="p-6 space-y-6">
+          {/* Copy from existing pipeline */}
+          <div className="bg-amber-50 border border-amber-200 rounded-lg p-4">
+            <div className="flex items-center space-x-2 mb-3">
+              <Copy className="h-4 w-4 text-amber-600" />
+              <span className="text-sm font-medium text-amber-800">Copy from existing pipeline</span>
+              {templatesLoading && (
+                <span className="text-xs text-amber-600 ml-1">Loading...</span>
+              )}
+              {templateCopied && (
+                <span className="text-xs text-green-600 font-medium ml-1">Template applied!</span>
+              )}
+            </div>
+            <select
+              value={selectedTemplateId}
+              onChange={(e) => handleApplyTemplate(e.target.value)}
+              disabled={templatesLoading}
+              className="w-full px-3 py-2 border border-amber-300 rounded-lg text-sm text-gray-900 bg-white focus:ring-2 focus:ring-amber-400 focus:border-transparent outline-none"
+            >
+              <option value="">— Start from scratch —</option>
+              {Object.entries(templatesByCustomer).map(([customerName, pipes]) => (
+                <optgroup key={customerName} label={customerName}>
+                  {(pipes as any[]).map(t => (
+                    <option key={t.id} value={String(t.id)}>
+                      {t.name} ({t.steps.length} steps)
+                    </option>
+                  ))}
+                </optgroup>
+              ))}
+            </select>
+            <p className="text-xs text-amber-700 mt-2">
+              Select a pipeline from any customer to pre-fill steps and parameters. You can still modify everything after.
+            </p>
+          </div>
+
           {/* Basic Info */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             {/* Pipeline Name */}

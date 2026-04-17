@@ -4732,7 +4732,7 @@
         }
       }
     },
-    "net9.0/linux-x64": {
+    "net9.0/win-x64": {
       "Humanizer.Core/2.14.1": {
         "type": "package",
         "compile": {
@@ -5639,16 +5639,23 @@
           "ref/net9.0/Microsoft.Management.Infrastructure.CimCmdlets.dll": {
             "related": ".xml"
           }
+        },
+        "runtime": {
+          "runtimes/win/lib/net9.0/Microsoft.Management.Infrastructure.CimCmdlets.dll": {}
         }
       },
       "Microsoft.Management.Infrastructure.Runtime.Unix/3.0.0": {
-        "type": "package",
-        "runtime": {
-          "runtimes/unix/lib/netstandard1.6/Microsoft.Management.Infrastructure.dll": {}
-        }
+        "type": "package"
       },
       "Microsoft.Management.Infrastructure.Runtime.Win/3.0.0": {
-        "type": "package"
+        "type": "package",
+        "runtime": {
+          "runtimes/win-x64/lib/netstandard1.6/microsoft.management.infrastructure.dll": {},
+          "runtimes/win-x64/lib/netstandard1.6/microsoft.management.infrastructure.native.dll": {}
+        },
+        "native": {
+          "runtimes/win-x64/native/microsoft.management.infrastructure.native.unmanaged.dll": {}
+        }
       },
       "Microsoft.PowerShell.Commands.Diagnostics/7.5.4": {
         "type": "package",
@@ -5659,6 +5666,9 @@
           "ref/net9.0/Microsoft.PowerShell.Commands.Diagnostics.dll": {
             "related": ".xml"
           }
+        },
+        "runtime": {
+          "runtimes/win/lib/net9.0/Microsoft.PowerShell.Commands.Diagnostics.dll": {}
         }
       },
       "Microsoft.PowerShell.Commands.Management/7.5.4": {
@@ -5674,7 +5684,7 @@
           }
         },
         "runtime": {
-          "runtimes/unix/lib/net9.0/Microsoft.PowerShell.Commands.Management.dll": {}
+          "runtimes/win/lib/net9.0/Microsoft.PowerShell.Commands.Management.dll": {}
         }
       },
       "Microsoft.PowerShell.Commands.Utility/7.5.4": {
@@ -5699,7 +5709,7 @@
           }
         },
         "runtime": {
-          "runtimes/unix/lib/net9.0/Microsoft.PowerShell.Commands.Utility.dll": {}
+          "runtimes/win/lib/net9.0/Microsoft.PowerShell.Commands.Utility.dll": {}
         }
       },
       "Microsoft.PowerShell.ConsoleHost/7.5.4": {
@@ -5713,7 +5723,7 @@
           }
         },
         "runtime": {
-          "runtimes/unix/lib/net9.0/Microsoft.PowerShell.ConsoleHost.dll": {}
+          "runtimes/win/lib/net9.0/Microsoft.PowerShell.ConsoleHost.dll": {}
         }
       },
       "Microsoft.PowerShell.CoreCLR.Eventing/7.5.4": {
@@ -5725,6 +5735,9 @@
           "ref/net9.0/Microsoft.PowerShell.CoreCLR.Eventing.dll": {
             "related": ".xml"
           }
+        },
+        "runtime": {
+          "runtimes/win/lib/net9.0/Microsoft.PowerShell.CoreCLR.Eventing.dll": {}
         }
       },
       "Microsoft.PowerShell.MarkdownRender/7.2.1": {
@@ -5742,7 +5755,8 @@
       "Microsoft.PowerShell.Native/7.4.0": {
         "type": "package",
         "native": {
-          "runtimes/linux-x64/native/libpsl-native.so": {}
+          "runtimes/win-x64/native/PowerShell.Core.Instrumentation.dll": {},
+          "runtimes/win-x64/native/pwrshplugin.dll": {}
         }
       },
       "Microsoft.PowerShell.SDK/7.5.4": {
@@ -5830,7 +5844,7 @@
           }
         },
         "runtime": {
-          "runtimes/unix/lib/net9.0/Microsoft.PowerShell.SDK.dll": {}
+          "runtimes/win/lib/net9.0/Microsoft.PowerShell.SDK.dll": {}
         },
         "contentFiles": {
           "contentFiles/any/any/ref/Microsoft.CSharp.dll": {
@@ -6938,13 +6952,19 @@
           }
         },
         "runtime": {
-          "runtimes/unix/lib/net9.0/Microsoft.PowerShell.Security.dll": {}
+          "runtimes/win/lib/net9.0/Microsoft.PowerShell.Security.dll": {}
         }
       },
       "Microsoft.Security.Extensions/1.4.0": {
         "type": "package",
         "compile": {
           "ref/netstandard2.0/getfilesiginforedistwrapper.dll": {}
+        },
+        "runtime": {
+          "runtimes/win-x64/lib/net5.0/getfilesiginforedistwrapper.dll": {}
+        },
+        "native": {
+          "runtimes/win-x64/native/getfilesiginforedist.dll": {}
         }
       },
       "Microsoft.Win32.Registry.AccessControl/9.0.10": {
@@ -6955,7 +6975,7 @@
           }
         },
         "runtime": {
-          "lib/net9.0/Microsoft.Win32.Registry.AccessControl.dll": {
+          "runtimes/win/lib/net9.0/Microsoft.Win32.Registry.AccessControl.dll": {
             "related": ".xml"
           }
         },
@@ -6971,7 +6991,7 @@
           }
         },
         "runtime": {
-          "lib/net9.0/Microsoft.Win32.SystemEvents.dll": {
+          "runtimes/win/lib/net9.0/Microsoft.Win32.SystemEvents.dll": {
             "related": ".xml"
           }
         },
@@ -7032,6 +7052,9 @@
           "ref/net9.0/Microsoft.WSMan.Management.dll": {
             "related": ".xml"
           }
+        },
+        "runtime": {
+          "runtimes/win/lib/net9.0/Microsoft.WSMan.Management.dll": {}
         }
       },
       "Microsoft.WSMan.Runtime/7.5.4": {
@@ -7040,6 +7063,9 @@
           "ref/net9.0/Microsoft.WSMan.Runtime.dll": {
             "related": ".xml"
           }
+        },
+        "runtime": {
+          "runtimes/win/lib/net9.0/Microsoft.WSMan.Runtime.dll": {}
         }
       },
       "Newtonsoft.Json/13.0.4": {
@@ -7056,88 +7082,46 @@
         }
       },
       "runtime.android-arm.runtime.native.System.IO.Ports/9.0.10": {
-        "type": "package",
-        "native": {
-          "runtimes/linux-x64/native/_._": {}
-        }
+        "type": "package"
       },
       "runtime.android-arm64.runtime.native.System.IO.Ports/9.0.10": {
-        "type": "package",
-        "native": {
-          "runtimes/linux-x64/native/_._": {}
-        }
+        "type": "package"
       },
       "runtime.android-x64.runtime.native.System.IO.Ports/9.0.10": {
-        "type": "package",
-        "native": {
-          "runtimes/linux-x64/native/_._": {}
-        }
+        "type": "package"
       },
       "runtime.android-x86.runtime.native.System.IO.Ports/9.0.10": {
-        "type": "package",
-        "native": {
-          "runtimes/linux-x64/native/_._": {}
-        }
+        "type": "package"
       },
       "runtime.linux-arm.runtime.native.System.IO.Ports/9.0.10": {
-        "type": "package",
-        "native": {
-          "runtimes/linux-x64/native/_._": {}
-        }
+        "type": "package"
       },
       "runtime.linux-arm64.runtime.native.System.IO.Ports/9.0.10": {
-        "type": "package",
-        "native": {
-          "runtimes/linux-x64/native/_._": {}
-        }
+        "type": "package"
       },
       "runtime.linux-bionic-arm64.runtime.native.System.IO.Ports/9.0.10": {
-        "type": "package",
-        "native": {
-          "runtimes/linux-x64/native/_._": {}
-        }
+        "type": "package"
       },
       "runtime.linux-bionic-x64.runtime.native.System.IO.Ports/9.0.10": {
-        "type": "package",
-        "native": {
-          "runtimes/linux-x64/native/_._": {}
-        }
+        "type": "package"
       },
       "runtime.linux-musl-arm.runtime.native.System.IO.Ports/9.0.10": {
-        "type": "package",
-        "native": {
-          "runtimes/linux-x64/native/_._": {}
-        }
+        "type": "package"
       },
       "runtime.linux-musl-arm64.runtime.native.System.IO.Ports/9.0.10": {
-        "type": "package",
-        "native": {
-          "runtimes/linux-x64/native/_._": {}
-        }
+        "type": "package"
       },
       "runtime.linux-musl-x64.runtime.native.System.IO.Ports/9.0.10": {
-        "type": "package",
-        "native": {
-          "runtimes/linux-x64/native/_._": {}
-        }
+        "type": "package"
       },
       "runtime.linux-x64.runtime.native.System.IO.Ports/9.0.10": {
-        "type": "package",
-        "native": {
-          "runtimes/linux-x64/native/libSystem.IO.Ports.Native.so": {}
-        }
+        "type": "package"
       },
       "runtime.maccatalyst-arm64.runtime.native.System.IO.Ports/9.0.10": {
-        "type": "package",
-        "native": {
-          "runtimes/linux-x64/native/_._": {}
-        }
+        "type": "package"
       },
       "runtime.maccatalyst-x64.runtime.native.System.IO.Ports/9.0.10": {
-        "type": "package",
-        "native": {
-          "runtimes/linux-x64/native/_._": {}
-        }
+        "type": "package"
       },
       "runtime.native.System.Data.SqlClient.sni/4.4.0": {
         "type": "package",
@@ -7169,22 +7153,19 @@
         }
       },
       "runtime.osx-arm64.runtime.native.System.IO.Ports/9.0.10": {
-        "type": "package",
-        "native": {
-          "runtimes/linux-x64/native/_._": {}
-        }
+        "type": "package"
       },
       "runtime.osx-x64.runtime.native.System.IO.Ports/9.0.10": {
-        "type": "package",
-        "native": {
-          "runtimes/linux-x64/native/_._": {}
-        }
+        "type": "package"
       },
       "runtime.win-arm64.runtime.native.System.Data.SqlClient.sni/4.4.0": {
         "type": "package"
       },
       "runtime.win-x64.runtime.native.System.Data.SqlClient.sni/4.4.0": {
-        "type": "package"
+        "type": "package",
+        "native": {
+          "runtimes/win-x64/native/sni.dll": {}
+        }
       },
       "runtime.win-x86.runtime.native.System.Data.SqlClient.sni/4.4.0": {
         "type": "package"
@@ -7285,7 +7266,7 @@
           }
         },
         "runtime": {
-          "runtimes/unix/lib/net9.0/System.Data.Odbc.dll": {
+          "runtimes/win/lib/net9.0/System.Data.Odbc.dll": {
             "related": ".xml"
           }
         },
@@ -7305,7 +7286,7 @@
           }
         },
         "runtime": {
-          "lib/net9.0/System.Data.OleDb.dll": {
+          "runtimes/win/lib/net9.0/System.Data.OleDb.dll": {
             "related": ".xml"
           }
         },
@@ -7324,7 +7305,7 @@
           }
         },
         "runtime": {
-          "runtimes/unix/lib/net8.0/System.Data.SqlClient.dll": {
+          "runtimes/win/lib/net8.0/System.Data.SqlClient.dll": {
             "related": ".xml"
           }
         },
@@ -7356,7 +7337,8 @@
           }
         },
         "runtime": {
-          "lib/net9.0/System.Diagnostics.EventLog.dll": {
+          "runtimes/win/lib/net9.0/System.Diagnostics.EventLog.Messages.dll": {},
+          "runtimes/win/lib/net9.0/System.Diagnostics.EventLog.dll": {
             "related": ".xml"
           }
         },
@@ -7376,7 +7358,7 @@
           }
         },
         "runtime": {
-          "lib/net9.0/System.Diagnostics.PerformanceCounter.dll": {
+          "runtimes/win/lib/net9.0/System.Diagnostics.PerformanceCounter.dll": {
             "related": ".xml"
           }
         },
@@ -7392,7 +7374,7 @@
           }
         },
         "runtime": {
-          "lib/net9.0/System.DirectoryServices.dll": {
+          "runtimes/win/lib/net9.0/System.DirectoryServices.dll": {
             "related": ".xml"
           }
         },
@@ -7413,7 +7395,7 @@
           }
         },
         "runtime": {
-          "lib/net9.0/System.DirectoryServices.AccountManagement.dll": {
+          "runtimes/win/lib/net9.0/System.DirectoryServices.AccountManagement.dll": {
             "related": ".xml"
           }
         },
@@ -7429,7 +7411,7 @@
           }
         },
         "runtime": {
-          "runtimes/linux/lib/net9.0/System.DirectoryServices.Protocols.dll": {
+          "runtimes/win/lib/net9.0/System.DirectoryServices.Protocols.dll": {
             "related": ".xml"
           }
         },
@@ -7505,7 +7487,7 @@
           }
         },
         "runtime": {
-          "runtimes/unix/lib/net9.0/System.IO.Ports.dll": {
+          "runtimes/win/lib/net9.0/System.IO.Ports.dll": {
             "related": ".xml"
           }
         },
@@ -7524,7 +7506,7 @@
           }
         },
         "runtime": {
-          "lib/net9.0/System.Management.dll": {
+          "runtimes/win/lib/net9.0/System.Management.dll": {
             "related": ".xml"
           }
         },
@@ -7561,7 +7543,7 @@
           }
         },
         "runtime": {
-          "runtimes/unix/lib/net9.0/System.Management.Automation.dll": {}
+          "runtimes/win/lib/net9.0/System.Management.Automation.dll": {}
         }
       },
       "System.Net.Http.WinHttpHandler/9.0.10": {
@@ -7572,7 +7554,7 @@
           }
         },
         "runtime": {
-          "lib/net9.0/System.Net.Http.WinHttpHandler.dll": {
+          "runtimes/win/lib/net9.0/System.Net.Http.WinHttpHandler.dll": {
             "related": ".xml"
           }
         },
@@ -7705,7 +7687,7 @@
           }
         },
         "runtime": {
-          "lib/net9.0/System.Runtime.Caching.dll": {
+          "runtimes/win/lib/net9.0/System.Runtime.Caching.dll": {
             "related": ".xml"
           }
         },
@@ -7721,7 +7703,7 @@
           }
         },
         "runtime": {
-          "lib/net6.0/System.Security.AccessControl.dll": {
+          "runtimes/win/lib/net6.0/System.Security.AccessControl.dll": {
             "related": ".xml"
           }
         },
@@ -7737,7 +7719,7 @@
           }
         },
         "runtime": {
-          "lib/net9.0/System.Security.Cryptography.Pkcs.dll": {
+          "runtimes/win/lib/net9.0/System.Security.Cryptography.Pkcs.dll": {
             "related": ".xml"
           }
         },
@@ -7807,7 +7789,7 @@
           }
         },
         "runtime": {
-          "runtimes/unix/lib/netcoreapp2.1/System.Security.Principal.Windows.dll": {
+          "runtimes/win/lib/netcoreapp2.1/System.Security.Principal.Windows.dll": {
             "related": ".xml"
           }
         }
@@ -7917,7 +7899,7 @@
           }
         },
         "runtime": {
-          "lib/net9.0/System.ServiceProcess.ServiceController.dll": {
+          "runtimes/win/lib/net9.0/System.ServiceProcess.ServiceController.dll": {
             "related": ".xml"
           }
         },
@@ -7933,7 +7915,7 @@
           }
         },
         "runtime": {
-          "lib/net9.0/System.Speech.dll": {
+          "runtimes/win/lib/net9.0/System.Speech.dll": {
             "related": ".xml"
           }
         },
@@ -7949,7 +7931,7 @@
           }
         },
         "runtime": {
-          "lib/net9.0/System.Text.Encoding.CodePages.dll": {
+          "runtimes/win/lib/net9.0/System.Text.Encoding.CodePages.dll": {
             "related": ".xml"
           }
         },
@@ -7965,7 +7947,7 @@
           }
         },
         "runtime": {
-          "lib/net9.0/System.Text.Encodings.Web.dll": {
+          "runtimes/win/lib/net9.0/System.Text.Encodings.Web.dll": {
             "related": ".xml"
           }
         },
@@ -8001,7 +7983,7 @@
           }
         },
         "runtime": {
-          "lib/net9.0/System.Threading.AccessControl.dll": {
+          "runtimes/win/lib/net9.0/System.Threading.AccessControl.dll": {
             "related": ".xml"
           }
         },
@@ -8071,7 +8053,7 @@
           }
         },
         "runtime": {
-          "lib/net9.0/System.Windows.Extensions.dll": {
+          "runtimes/win/lib/net9.0/System.Windows.Extensions.dll": {
             "related": ".xml"
           }
         }
@@ -12929,15 +12911,15 @@
         "warn": true,
         "downloadDependencies": [
           {
-            "name": "Microsoft.AspNetCore.App.Runtime.linux-x64",
+            "name": "Microsoft.AspNetCore.App.Runtime.win-x64",
             "version": "[9.0.11, 9.0.11]"
           },
           {
-            "name": "Microsoft.NETCore.App.Host.linux-x64",
+            "name": "Microsoft.NETCore.App.Runtime.win-x64",
             "version": "[9.0.11, 9.0.11]"
           },
           {
-            "name": "Microsoft.NETCore.App.Runtime.linux-x64",
+            "name": "Microsoft.WindowsDesktop.App.Runtime.win-x64",
             "version": "[9.0.11, 9.0.11]"
           }
         ],
@@ -12950,7 +12932,7 @@
       }
     },
     "runtimes": {
-      "linux-x64": {
+      "win-x64": {
         "#import": []
       }
     }

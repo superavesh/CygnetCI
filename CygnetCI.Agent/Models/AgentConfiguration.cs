@@ -18,6 +18,7 @@ public class AgentConfiguration
     public int MaxConcurrentReleases { get; set; } = 2;
     public int MaxConcurrentPipelines { get; set; } = 2;
     public int ScriptTimeoutSeconds { get; set; } = 3600;
+    public int HttpTimeoutSeconds { get; set; } = 300; // Default 5 minutes — covers large file downloads
 
     // Proxy Configuration
     public ProxySettings Proxy { get; set; } = new ProxySettings();

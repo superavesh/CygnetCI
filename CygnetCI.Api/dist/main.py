@@ -469,7 +469,7 @@ def login(credentials: LoginRequest, db: Session = Depends(get_db)):
     Returns access token and user information
     """
     # Find user by username
-    user = db.query(models.User).filter(models.User.username == credentials.username).first()
+    user = db.query(models.User).filter(models.User.username.ilike(credentials.username)).first()
 
     if not user:
         raise HTTPException(status_code=401, detail="Invalid username or password")
@@ -526,11 +526,11 @@ def login(credentials: LoginRequest, db: Session = Depends(get_db)):
 def get_dashboard_data(customer_id: int = None, db: Session = Depends(get_db)):
     """Get all dashboard data with optional customer filtering"""
 
-    # Get agents
+    # Get agents — ordered by creation (id) so order is stable across refreshes
     agents_query = db.query(models.Agent)
     if customer_id is not None:
         agents_query = agents_query.filter(models.Agent.customer_id == customer_id)
-    agents = agents_query.all()
+    agents = agents_query.order_by(models.Agent.id.asc()).all()
     agents_data = [format_agent(agent) for agent in agents]
 
     # Get pipelines
@@ -657,20 +657,23 @@ def create_agent(agent: AgentCreate, response: Response, db: Session = Depends(g
             db.refresh(existing)
         return format_agent(existing)
 
-    # Validate customer_id is provided (required due to database constraint)
-    if agent.customer_id is None:
-        raise HTTPException(status_code=400, detail="Customer ID is required. Please select a customer before adding an agent.")
-
-    # Validate customer exists
-    customer = db.query(models.Customer).filter(models.Customer.id == agent.customer_id).first()
-    if not customer:
-        raise HTTPException(status_code=400, detail="Customer not found")
-
-    # Validate parent agent exists if provided
+    # Resolve customer_id: if a parent agent is provided, inherit its customer_id automatically
+    resolved_customer_id = agent.customer_id
     if agent.parent_agent_id is not None:
         parent = db.query(models.Agent).filter(models.Agent.id == agent.parent_agent_id).first()
         if not parent:
             raise HTTPException(status_code=400, detail="Parent agent not found")
+        if resolved_customer_id is None:
+            resolved_customer_id = parent.customer_id
+
+    # Validate customer_id is available (required for standalone agents without a parent)
+    if resolved_customer_id is None:
+        raise HTTPException(status_code=400, detail="Customer ID is required. Please select a customer before adding an agent.")
+
+    # Validate customer exists
+    customer = db.query(models.Customer).filter(models.Customer.id == resolved_customer_id).first()
+    if not customer:
+        raise HTTPException(status_code=400, detail="Customer not found")
 
     # Create new agent
     db_agent = models.Agent(
@@ -678,7 +681,7 @@ def create_agent(agent: AgentCreate, response: Response, db: Session = Depends(g
         uuid=agent.uuid,
         description=agent.description,
         location=agent.location,
-        customer_id=agent.customer_id,
+        customer_id=resolved_customer_id,
         parent_agent_id=agent.parent_agent_id,
         status="online",
         last_seen=datetime.now(),
@@ -767,7 +770,7 @@ def get_agents_metrics(customer_id: int = None, db: Session = Depends(get_db)):
     query = db.query(models.Agent)
     if customer_id is not None:
         query = query.filter(models.Agent.customer_id == customer_id)
-    agents = query.all()
+    agents = query.order_by(models.Agent.id.asc()).all()
 
     result = []
     for agent in agents:
@@ -787,7 +790,8 @@ def get_agents_metrics(customer_id: int = None, db: Session = Depends(get_db)):
             "memory": latest_resource.memory if latest_resource else agent.memory,
             "disk": latest_resource.disk if latest_resource else 0,
             "jobs": agent.jobs,
-            "last_seen": agent.last_seen.isoformat() if agent.last_seen else None
+            "last_seen": agent.last_seen.isoformat() if agent.last_seen else None,
+            "has_k8s_data": agent.uuid in _k8s_metrics_store
         })
 
     return result
@@ -921,6 +925,11 @@ def report_monitoring_data(agent_uuid: str, data: dict, db: Session = Depends(ge
 
         # Store Website Pings
         if "website_pings" in data:
+            # Delete all existing pings for this agent so URL changes take effect immediately
+            db.query(models.AgentWebsitePing)\
+                .filter(models.AgentWebsitePing.agent_id == agent.id)\
+                .delete()
+
             for ping in data["website_pings"]:
                 db_ping = models.AgentWebsitePing(
                     agent_id=agent.id,
@@ -930,14 +939,6 @@ def report_monitoring_data(agent_uuid: str, data: dict, db: Session = Depends(ge
                     response_time_ms=ping["response_time_ms"]
                 )
                 db.add(db_ping)
-
-            # Clean up old ping data
-            db.query(models.AgentWebsitePing)\
-                .filter(
-                    models.AgentWebsitePing.agent_id == agent.id,
-                    models.AgentWebsitePing.checked_at < cutoff_time
-                )\
-                .delete()
 
         db.commit()
         return {"success": True, "message": "Monitoring data received"}
@@ -1184,6 +1185,86 @@ def request_service_log_read(
     return {"command_id": cmd.id}
 
 # ==================== PIPELINES ====================
+
+@app.get("/pipelines/templates", tags=["🌐 UI - Pipelines"])
+def get_pipeline_templates(db: Session = Depends(get_db)):
+    """Get all pipelines across all customers for use as copy templates"""
+    pipelines = db.query(models.Pipeline).order_by(models.Pipeline.customer_id, models.Pipeline.name).all()
+    result = []
+    for pipeline in pipelines:
+        customer = db.query(models.Customer).filter(models.Customer.id == pipeline.customer_id).first()
+        steps = db.query(models.PipelineStep)\
+            .filter(models.PipelineStep.pipeline_id == pipeline.id)\
+            .order_by(models.PipelineStep.step_order).all()
+        parameters = db.query(models.PipelineParameter)\
+            .filter(models.PipelineParameter.pipeline_id == pipeline.id).all()
+        result.append({
+            "id": pipeline.id,
+            "name": pipeline.name,
+            "description": pipeline.description,
+            "branch": pipeline.branch,
+            "customer_id": pipeline.customer_id,
+            "customer_name": customer.display_name if customer else "Unknown",
+            "steps": [{"name": s.name, "command": s.command, "order": s.step_order, "shellType": s.shell_type} for s in steps],
+            "parameters": [{"name": p.name, "type": p.type, "defaultValue": p.default_value or "", "required": p.required, "description": p.description or "", "choices": p.choices} for p in parameters]
+        })
+    return result
+
+@app.post("/pipelines/cleanup-stale", tags=["🌐 UI - Pipelines"])
+def cleanup_stale_pipeline_executions(stale_minutes: int = 30, db: Session = Depends(get_db)):
+    """Mark pipeline executions as failed if they have been 'running' with no new logs for stale_minutes.
+    Called by the UI periodically as a safety net for when the agent fails to report completion."""
+    cutoff = datetime.now() - timedelta(minutes=stale_minutes)
+
+    # Find all executions that are still marked 'running'
+    running_executions = db.query(models.PipelineExecution)\
+        .filter(models.PipelineExecution.status == "running")\
+        .all()
+
+    cleaned = 0
+    for execution in running_executions:
+        # Check when the last log was received
+        last_log = db.query(models.PipelineExecutionLog)\
+            .filter(models.PipelineExecutionLog.pipeline_execution_id == execution.id)\
+            .order_by(models.PipelineExecutionLog.created_at.desc())\
+            .first()
+
+        last_activity = last_log.created_at if last_log else execution.started_at
+        if last_activity and last_activity < cutoff:
+            # No activity for stale_minutes — mark as failed
+            execution.status = "failed"
+            execution.completed_at = datetime.now()
+            if execution.started_at:
+                d = execution.completed_at - execution.started_at
+                execution.duration_seconds = int(d.total_seconds())
+
+            # Also update the pipeline status
+            pipeline = db.query(models.Pipeline)\
+                .filter(models.Pipeline.id == execution.pipeline_id).first()
+            if pipeline and pipeline.status == "running":
+                pipeline.status = "failed"
+
+            # Mark the pickup as failed too
+            pickup = db.query(models.PipelinePickup)\
+                .filter(models.PipelinePickup.pipeline_execution_id == execution.id,
+                        models.PipelinePickup.status.in_(["pending", "running", "acknowledged"]))\
+                .first()
+            if pickup:
+                pickup.status = "failed"
+                pickup.completed_at = datetime.now()
+                pickup.error_message = f"Execution timed out — no activity for over {stale_minutes} minutes"
+
+            # Add a log entry explaining why it was marked failed
+            db.add(models.PipelineExecutionLog(
+                pipeline_execution_id=execution.id,
+                message=f"[System] Execution marked as failed — no activity for over {stale_minutes} minutes. Agent may have crashed or lost connectivity.",
+                log_level="error",
+                source="system"
+            ))
+            cleaned += 1
+
+    db.commit()
+    return {"cleaned": cleaned, "message": f"Marked {cleaned} stale execution(s) as failed"}
 
 @app.get("/pipelines", tags=["🌐 UI - Pipelines"])
 def get_pipelines(

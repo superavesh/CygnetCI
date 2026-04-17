@@ -490,29 +490,48 @@ public class CygnetApiClient : ICygnetApiClient
 
     public async Task CompletePipelinePickupAsync(int pickupId, bool success, string? errorMessage = null, CancellationToken cancellationToken = default)
     {
-        try
+        var delays = new[] { 5, 15, 30, 60 }; // retry delays in seconds
+        for (int attempt = 0; attempt <= delays.Length; attempt++)
         {
-            var payload = new
+            try
             {
-                success = success,
-                error_message = errorMessage
-            };
+                var payload = new
+                {
+                    success = success,
+                    error_message = errorMessage
+                };
 
-            var content = new StringContent(
-                JsonSerializer.Serialize(payload, _jsonOptions),
-                Encoding.UTF8,
-                "application/json");
+                var content = new StringContent(
+                    JsonSerializer.Serialize(payload, _jsonOptions),
+                    Encoding.UTF8,
+                    "application/json");
 
-            var response = await _httpClient.PostAsync(
-                $"/pipelines/pickup/{pickupId}/complete",
-                content,
-                cancellationToken);
+                var response = await _httpClient.PostAsync(
+                    $"/pipelines/pickup/{pickupId}/complete",
+                    content,
+                    cancellationToken);
 
-            response.EnsureSuccessStatusCode();
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Failed to complete pipeline pickup {PickupId}", pickupId);
+                response.EnsureSuccessStatusCode();
+                return; // success
+            }
+            catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+            {
+                throw; // service shutting down — don't retry
+            }
+            catch (Exception ex)
+            {
+                if (attempt < delays.Length)
+                {
+                    _logger.LogWarning(ex, "Failed to complete pipeline pickup {PickupId}, retrying in {Delay}s (attempt {Attempt}/{Total})",
+                        pickupId, delays[attempt], attempt + 1, delays.Length);
+                    await Task.Delay(TimeSpan.FromSeconds(delays[attempt]), cancellationToken);
+                }
+                else
+                {
+                    _logger.LogError(ex, "Failed to complete pipeline pickup {PickupId} after {Total} attempts — execution will remain stuck in running state",
+                        pickupId, delays.Length + 1);
+                }
+            }
         }
     }
 

@@ -143,7 +143,16 @@ export const ExecutionViewModal: React.FC<ExecutionViewModalProps> = ({
       fetchExecutionData();
     }, 2000);
 
-    return () => clearInterval(pollInterval);
+    // Every 2 minutes, trigger stale cleanup so stuck "running" executions get resolved
+    const cleanupInterval = setInterval(() => {
+      fetch(`${CONFIG.api.baseUrl}/pipelines/cleanup-stale`, { method: 'POST', headers: CONFIG.api.headers })
+        .catch(() => {}); // fire and forget
+    }, 120000);
+
+    return () => {
+      clearInterval(pollInterval);
+      clearInterval(cleanupInterval);
+    };
   }, [isOpen, executionId]);
 
   if (!isOpen) return null;
@@ -336,7 +345,16 @@ export const ExecutionViewModal: React.FC<ExecutionViewModalProps> = ({
           <div className="flex items-center justify-between text-sm">
             <div className="flex items-center space-x-4 text-gray-400">
               <span>Lines: {logs.length}</span>
-              <span>Duration: {Math.floor(logs.length * 0.8)}s</span>
+              {logs.length >= 2 && (() => {
+                const startMs = new Date(logs[0].timestamp).getTime();
+                const endMs = new Date(logs[logs.length - 1].timestamp).getTime();
+                const durationSec = Math.max(0, Math.round((endMs - startMs) / 1000));
+                const h = Math.floor(durationSec / 3600);
+                const m = Math.floor((durationSec % 3600) / 60);
+                const s = durationSec % 60;
+                const label = h > 0 ? `${h}h ${m}m ${s}s` : m > 0 ? `${m}m ${s}s` : `${s}s`;
+                return <span>Duration: {label}</span>;
+              })()}
             </div>
             {!isRunning && (
               <button

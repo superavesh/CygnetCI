@@ -169,7 +169,7 @@ export const K8sMetricsModal: React.FC<Props> = ({ isOpen, onClose, agentUuid, a
               placeholder="Filter by namespace..."
               value={nsFilter}
               onChange={e => setNsFilter(e.target.value)}
-              className="px-3 py-1.5 text-sm border border-gray-300 rounded-lg w-64 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              className="px-3 py-1.5 text-sm border border-gray-300 rounded-lg w-64 focus:ring-2 focus:ring-blue-500 focus:border-transparent text-gray-900 bg-white"
             />
           </div>
         )}

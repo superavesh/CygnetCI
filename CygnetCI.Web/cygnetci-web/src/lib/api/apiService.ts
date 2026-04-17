@@ -424,6 +424,18 @@ class ApiService {
     return await response.json();
   }
 
+  async getPipelineTemplates() {
+    const url = `${CONFIG.api.baseUrl}/pipelines/templates`;
+    const response = await fetch(url, {
+      method: 'GET',
+      headers: CONFIG.api.headers
+    });
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
+    return await response.json();
+  }
+
   async getPipelines(customerId?: number) {
     const url = customerId
       ? `${CONFIG.api.baseUrl}/pipelines?customer_id=${customerId}`
