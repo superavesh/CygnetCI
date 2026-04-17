@@ -389,31 +389,34 @@ public class PipelineExecutionService : IPipelineExecutionService
                 }
             };
 
-            powerShell.Streams.Verbose.DataAdded += (sender, e) =>
+            if (_config.LogVerbosePipelineOutput)
             {
-                if (sender is PSDataCollection<VerboseRecord> collection)
+                powerShell.Streams.Verbose.DataAdded += (sender, e) =>
                 {
-                    var msg = collection[e.Index]?.Message;
-                    if (!string.IsNullOrEmpty(msg))
+                    if (sender is PSDataCollection<VerboseRecord> collection)
                     {
-                        _logger.LogDebug("[Pipeline {PickupId}] VERBOSE: {Output}", pickup.PickupId, msg);
-                        logQueue.Enqueue(($"VERBOSE: {msg}", "debug"));
+                        var msg = collection[e.Index]?.Message;
+                        if (!string.IsNullOrEmpty(msg))
+                        {
+                            _logger.LogDebug("[Pipeline {PickupId}] VERBOSE: {Output}", pickup.PickupId, msg);
+                            logQueue.Enqueue(($"VERBOSE: {msg}", "debug"));
+                        }
                     }
-                }
-            };
+                };
 
-            powerShell.Streams.Debug.DataAdded += (sender, e) =>
-            {
-                if (sender is PSDataCollection<DebugRecord> collection)
+                powerShell.Streams.Debug.DataAdded += (sender, e) =>
                 {
-                    var msg = collection[e.Index]?.Message;
-                    if (!string.IsNullOrEmpty(msg))
+                    if (sender is PSDataCollection<DebugRecord> collection)
                     {
-                        _logger.LogDebug("[Pipeline {PickupId}] DEBUG: {Output}", pickup.PickupId, msg);
-                        logQueue.Enqueue(($"DEBUG: {msg}", "debug"));
+                        var msg = collection[e.Index]?.Message;
+                        if (!string.IsNullOrEmpty(msg))
+                        {
+                            _logger.LogDebug("[Pipeline {PickupId}] DEBUG: {Output}", pickup.PickupId, msg);
+                            logQueue.Enqueue(($"DEBUG: {msg}", "debug"));
+                        }
                     }
-                }
-            };
+                };
+            }
 
             // Execute with timeout using BeginInvoke for real-time streaming
             var timeout = TimeSpan.FromSeconds(_config.ScriptTimeoutSeconds);

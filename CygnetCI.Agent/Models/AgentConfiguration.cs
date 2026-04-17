@@ -19,6 +19,7 @@ public class AgentConfiguration
     public int MaxConcurrentPipelines { get; set; } = 2;
     public int ScriptTimeoutSeconds { get; set; } = 3600;
     public int HttpTimeoutSeconds { get; set; } = 300; // Default 5 minutes — covers large file downloads
+    public bool LogVerbosePipelineOutput { get; set; } = false; // When false, VERBOSE: and DEBUG: PowerShell streams are suppressed
 
     // Proxy Configuration
     public ProxySettings Proxy { get; set; } = new ProxySettings();
