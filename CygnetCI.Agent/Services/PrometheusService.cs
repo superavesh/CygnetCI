@@ -100,43 +100,89 @@ public class PrometheusService : IHostedService
         var nsFilter = _settings.Namespaces.Count > 0
             ? $",namespace=~\"{string.Join("|", _settings.Namespaces)}\""
             : string.Empty;
+        var nsOnly = _settings.Namespaces.Count > 0
+            ? $"namespace=~\"{string.Join("|", _settings.Namespaces)}\""
+            : string.Empty;
 
         var snapshot = new K8sMetricsSnapshot { CollectedAt = DateTime.UtcNow };
 
-        // Run all queries in parallel
+        // Existing per-resource queries
         var tNodeCpu      = QueryAsync("1 - avg by (node) (rate(node_cpu_seconds_total{mode=\"idle\"}[5m]))", ct);
         var tNodeMem      = QueryAsync("1 - (node_memory_MemAvailable_bytes / node_memory_MemTotal_bytes)", ct);
         var tNodeReady    = QueryAsync("kube_node_status_condition{condition=\"Ready\",status=\"true\"}", ct);
-        var tPodPhase     = QueryAsync($"kube_pod_status_phase{{{nsFilter.TrimStart(',')}}}", ct);
-        var tPodRestarts  = QueryAsync($"kube_pod_container_status_restarts_total{{{nsFilter.TrimStart(',')}}}", ct);
+        var tPodPhase     = QueryAsync($"kube_pod_status_phase{{{nsOnly}}}", ct);
+        var tPodRestarts  = QueryAsync($"kube_pod_container_status_restarts_total{{{nsOnly}}}", ct);
         var tPodCpu       = QueryAsync($"rate(container_cpu_usage_seconds_total{{container!=\"\"{nsFilter}}}[5m])", ct);
         var tPodMem       = QueryAsync($"container_memory_working_set_bytes{{container!=\"\"{nsFilter}}}", ct);
-        var tDepDesired   = QueryAsync($"kube_deployment_spec_replicas{{{nsFilter.TrimStart(',')}}}", ct);
-        var tDepReady     = QueryAsync($"kube_deployment_status_replicas_ready{{{nsFilter.TrimStart(',')}}}", ct);
-        var tDepAvail     = QueryAsync($"kube_deployment_status_replicas_available{{{nsFilter.TrimStart(',')}}}", ct);
+        var tDepDesired   = QueryAsync($"kube_deployment_spec_replicas{{{nsOnly}}}", ct);
+        var tDepReady     = QueryAsync($"kube_deployment_status_replicas_ready{{{nsOnly}}}", ct);
+        var tDepAvail     = QueryAsync($"kube_deployment_status_replicas_available{{{nsOnly}}}", ct);
         var tAlerts       = QueryAsync("ALERTS{alertstate=\"firing\"}", ct);
 
-        await Task.WhenAll(tNodeCpu, tNodeMem, tNodeReady, tPodPhase, tPodRestarts,
-                           tPodCpu, tPodMem, tDepDesired, tDepReady, tDepAvail, tAlerts);
+        // Cluster-level overview queries (Grafana namespace dashboard)
+        var tClusterCpu   = ScalarQueryAsync("sum(machine_cpu_cores)", ct);
+        var tClusterMem   = ScalarQueryAsync("sum(machine_memory_bytes)", ct);
+        var tNsCpuUsage   = ScalarQueryAsync($"sum(rate(container_cpu_usage_seconds_total{{container!=\"\"{nsFilter}}}[5m]))", ct);
+        var tNsCpuReq     = ScalarQueryAsync($"sum(kube_pod_container_resource_requests{{resource=\"cpu\"{nsFilter}}})", ct);
+        var tNsCpuLim     = ScalarQueryAsync($"sum(kube_pod_container_resource_limits{{resource=\"cpu\"{nsFilter}}})", ct);
+        var tNsMemUsage   = ScalarQueryAsync($"sum(container_memory_working_set_bytes{{container!=\"\"{nsFilter}}})", ct);
+        var tNsMemReq     = ScalarQueryAsync($"sum(kube_pod_container_resource_requests{{resource=\"memory\"{nsFilter}}})", ct);
+        var tNsMemLim     = ScalarQueryAsync($"sum(kube_pod_container_resource_limits{{resource=\"memory\"{nsFilter}}})", ct);
 
-        var nodeCpu     = tNodeCpu.Result;
-        var nodeMem     = tNodeMem.Result;
-        var nodeReady   = tNodeReady.Result;
-        var podPhase    = tPodPhase.Result;
-        var podRestarts = tPodRestarts.Result;
-        var podCpu      = tPodCpu.Result;
-        var podMem      = tPodMem.Result;
-        var deployDesired = tDepDesired.Result;
-        var deployReady   = tDepReady.Result;
-        var deployAvail   = tDepAvail.Result;
-        var alerts        = tAlerts.Result;
+        // Resource count queries
+        var tSvcCount     = ScalarQueryAsync(string.IsNullOrEmpty(nsOnly) ? "count(kube_service_info)" : $"count(kube_service_info{{{nsOnly}}})", ct);
+        var tStsCount     = ScalarQueryAsync(string.IsNullOrEmpty(nsOnly) ? "count(kube_statefulset_labels)" : $"count(kube_statefulset_labels{{{nsOnly}}})", ct);
+        var tDsCount      = ScalarQueryAsync(string.IsNullOrEmpty(nsOnly) ? "count(kube_daemonset_labels)" : $"count(kube_daemonset_labels{{{nsOnly}}})", ct);
+        var tPvcCount     = ScalarQueryAsync(string.IsNullOrEmpty(nsOnly) ? "count(kube_persistentvolumeclaim_info)" : $"count(kube_persistentvolumeclaim_info{{{nsOnly}}})", ct);
+        var tCmCount      = ScalarQueryAsync(string.IsNullOrEmpty(nsOnly) ? "count(kube_configmap_info)" : $"count(kube_configmap_info{{{nsOnly}}})", ct);
+        var tSecretCount  = ScalarQueryAsync(string.IsNullOrEmpty(nsOnly) ? "count(kube_secret_info)" : $"count(kube_secret_info{{{nsOnly}}})", ct);
+        var tHpaCount     = ScalarQueryAsync(string.IsNullOrEmpty(nsOnly) ? "count(kube_hpa_labels)" : $"count(kube_hpa_labels{{{nsOnly}}})", ct);
 
-        snapshot.Nodes = BuildNodeMetrics(nodeCpu, nodeMem, nodeReady);
-        snapshot.Pods = BuildPodMetrics(podPhase, podRestarts, podCpu, podMem);
-        snapshot.Deployments = BuildDeploymentMetrics(deployDesired, deployReady, deployAvail);
-        snapshot.FiringAlerts = BuildAlerts(alerts);
+        await Task.WhenAll(
+            tNodeCpu, tNodeMem, tNodeReady, tPodPhase, tPodRestarts,
+            tPodCpu, tPodMem, tDepDesired, tDepReady, tDepAvail, tAlerts,
+            tClusterCpu, tClusterMem, tNsCpuUsage, tNsCpuReq, tNsCpuLim,
+            tNsMemUsage, tNsMemReq, tNsMemLim,
+            tSvcCount, tStsCount, tDsCount, tPvcCount, tCmCount, tSecretCount, tHpaCount);
+
+        snapshot.Nodes = BuildNodeMetrics(tNodeCpu.Result, tNodeMem.Result, tNodeReady.Result);
+        snapshot.Pods = BuildPodMetrics(tPodPhase.Result, tPodRestarts.Result, tPodCpu.Result, tPodMem.Result);
+        snapshot.Deployments = BuildDeploymentMetrics(tDepDesired.Result, tDepReady.Result, tDepAvail.Result);
+        snapshot.FiringAlerts = BuildAlerts(tAlerts.Result);
+
+        snapshot.ClusterCpuCoresTotal     = Math.Round(tClusterCpu.Result, 2);
+        snapshot.ClusterMemoryBytesTotal  = Math.Round(tClusterMem.Result, 0);
+        snapshot.NamespaceCpuUsageCores   = Math.Round(tNsCpuUsage.Result, 4);
+        snapshot.NamespaceCpuRequestsCores = Math.Round(tNsCpuReq.Result, 4);
+        snapshot.NamespaceCpuLimitsCores  = Math.Round(tNsCpuLim.Result, 4);
+        snapshot.NamespaceMemoryUsageBytes = Math.Round(tNsMemUsage.Result, 0);
+        snapshot.NamespaceMemoryRequestsBytes = Math.Round(tNsMemReq.Result, 0);
+        snapshot.NamespaceMemoryLimitsBytes = Math.Round(tNsMemLim.Result, 0);
+
+        snapshot.ResourceCounts = new Dictionary<string, int>
+        {
+            ["pods"]         = snapshot.Pods.Count,
+            ["services"]     = (int)tSvcCount.Result,
+            ["deployments"]  = snapshot.Deployments.Count,
+            ["statefulsets"] = (int)tStsCount.Result,
+            ["daemonsets"]   = (int)tDsCount.Result,
+            ["pvcs"]         = (int)tPvcCount.Result,
+            ["configmaps"]   = (int)tCmCount.Result,
+            ["secrets"]      = (int)tSecretCount.Result,
+            ["hpas"]         = (int)tHpaCount.Result,
+        };
 
         return snapshot;
+    }
+
+    private async Task<double> ScalarQueryAsync(string promql, CancellationToken ct)
+    {
+        var results = await QueryAsync(promql, ct);
+        if (results.Count == 0) return 0;
+        double total = 0;
+        foreach (var item in results)
+            total += ParseValue(item?["value"]?[1]?.GetValue<string>());
+        return total;
     }
 
     private async Task<JsonArray> QueryAsync(string promql, CancellationToken ct)

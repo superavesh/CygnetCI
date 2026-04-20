@@ -31,6 +31,9 @@ public class PipelinePickupInfo
     [JsonPropertyName("steps")]
     public List<PipelineStepInfo> Steps { get; set; } = new();
 
+    [JsonPropertyName("log_verbose_output")]
+    public bool LogVerboseOutput { get; set; } = false;
+
     [JsonPropertyName("pipeline")]
     public PipelineInfo? Pipeline { get; set; }
 }

@@ -170,6 +170,7 @@ class Pipeline(Base):
     duration = Column(String(50))
     agent_id = Column(Integer, ForeignKey("agents.id", ondelete="SET NULL"))
     customer_id = Column(Integer, ForeignKey("customers.id", ondelete="CASCADE"), index=True)
+    log_verbose_output = Column(Boolean, default=False, nullable=False, server_default="false")
     created_at = Column(TIMESTAMP, server_default=func.now())
     updated_at = Column(TIMESTAMP, server_default=func.now(), onupdate=func.now())
     

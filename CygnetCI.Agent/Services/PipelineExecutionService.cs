@@ -389,7 +389,7 @@ public class PipelineExecutionService : IPipelineExecutionService
                 }
             };
 
-            if (_config.LogVerbosePipelineOutput)
+            if (pickup.LogVerboseOutput)
             {
                 powerShell.Streams.Verbose.DataAdded += (sender, e) =>
                 {

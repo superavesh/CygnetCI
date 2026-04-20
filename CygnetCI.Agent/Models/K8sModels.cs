@@ -41,6 +41,19 @@ public class K8sMetricsSnapshot
     public List<K8sPodMetric> Pods { get; set; } = new();
     public List<K8sDeploymentMetric> Deployments { get; set; } = new();
     public List<K8sAlert> FiringAlerts { get; set; } = new();
+
+    // Cluster-level overview (mirrors Grafana namespace dashboard)
+    public double ClusterCpuCoresTotal { get; set; }
+    public double ClusterMemoryBytesTotal { get; set; }
+    public double NamespaceCpuUsageCores { get; set; }
+    public double NamespaceCpuRequestsCores { get; set; }
+    public double NamespaceCpuLimitsCores { get; set; }
+    public double NamespaceMemoryUsageBytes { get; set; }
+    public double NamespaceMemoryRequestsBytes { get; set; }
+    public double NamespaceMemoryLimitsBytes { get; set; }
+
+    // Resource counts: pods, services, deployments, statefulsets, daemonsets, pvcs, configmaps, secrets
+    public Dictionary<string, int> ResourceCounts { get; set; } = new();
 }
 
 public class K8sNodeMetric

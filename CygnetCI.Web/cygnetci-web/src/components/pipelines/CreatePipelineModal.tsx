@@ -27,6 +27,7 @@ export interface PipelineFormData {
   description: string;
   branch: string;
   agentId: number | null;
+  logVerboseOutput: boolean;
   steps: Array<{
     name: string;
     command: string;
@@ -46,6 +47,7 @@ export const CreatePipelineModal: React.FC<CreatePipelineModalProps> = ({
   const [description, setDescription] = useState('');
   const [branch, setBranch] = useState('main');
   const [agentId, setAgentId] = useState<number | null>(null);
+  const [logVerboseOutput, setLogVerboseOutput] = useState(false);
   const [steps, setSteps] = useState([
     { name: 'Build', command: 'npm run build', order: 1, shellType: 'cmd' as const }
   ]);
@@ -216,6 +218,7 @@ export const CreatePipelineModal: React.FC<CreatePipelineModalProps> = ({
         description: description.trim(),
         branch: branch.trim(),
         agentId,
+        logVerboseOutput,
         steps: steps.map((step, index) => ({
           ...step,
           order: index + 1
@@ -232,6 +235,7 @@ export const CreatePipelineModal: React.FC<CreatePipelineModalProps> = ({
       setDescription('');
       setBranch('main');
       setAgentId(null);
+      setLogVerboseOutput(false);
       setSteps([{ name: 'Build', command: 'npm run build', order: 1, shellType: 'cmd' }]);
       setParameters([]);
       setErrors({});
@@ -246,6 +250,7 @@ export const CreatePipelineModal: React.FC<CreatePipelineModalProps> = ({
     setDescription('');
     setBranch('main');
     setAgentId(null);
+    setLogVerboseOutput(false);
     setSteps([{ name: 'Build', command: 'npm run build', order: 1, shellType: 'cmd' }]);
     setParameters([]);
     setErrors({});
@@ -383,6 +388,27 @@ export const CreatePipelineModal: React.FC<CreatePipelineModalProps> = ({
             {errors.agentId && (
               <p className="mt-1 text-sm text-red-500">{errors.agentId}</p>
             )}
+          </div>
+
+          {/* Verbose Logging */}
+          <div className="flex items-center justify-between p-3 bg-gray-50 border border-gray-200 rounded-lg">
+            <div>
+              <label className="text-sm font-medium text-gray-700">Enable Verbose Logging</label>
+              <p className="text-xs text-gray-500 mt-0.5">
+                Captures PowerShell VERBOSE and DEBUG streams. Disable for faster UI updates and cleaner logs.
+              </p>
+            </div>
+            <button
+              type="button"
+              onClick={() => setLogVerboseOutput(v => !v)}
+              className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none ${
+                logVerboseOutput ? 'bg-blue-600' : 'bg-gray-300'
+              }`}
+            >
+              <span className={`inline-block h-4 w-4 transform rounded-full bg-white shadow transition-transform ${
+                logVerboseOutput ? 'translate-x-6' : 'translate-x-1'
+              }`} />
+            </button>
           </div>
 
           {/* Pipeline Parameters */}

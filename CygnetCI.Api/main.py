@@ -215,6 +215,7 @@ class PipelineCreate(BaseModel):
     description: Optional[str] = None
     agentId: Optional[int] = None
     customerId: int  # Required - pipeline must belong to a customer
+    logVerboseOutput: bool = False
     steps: List[PipelineStepData] = []
     parameters: List[PipelineParameterData] = []
 
@@ -224,6 +225,7 @@ class PipelineUpdate(BaseModel):
     status: Optional[str] = None
     branch: Optional[str] = None
     agentId: Optional[int] = None
+    logVerboseOutput: Optional[bool] = None
     steps: Optional[List[PipelineStepData]] = None
     parameters: Optional[List[PipelineParameterData]] = None
 
@@ -333,6 +335,7 @@ def format_pipeline_full(pipeline, db: Session):
         "branch": pipeline.branch,
         "commit": pipeline.commit or "N/A",
         "agent_id": pipeline.agent_id,
+        "logVerboseOutput": pipeline.log_verbose_output or False,
         "steps": [
             {
                 "name": step.name,
@@ -1308,6 +1311,7 @@ def create_pipeline(pipeline: PipelineCreate, db: Session = Depends(get_db)):
         status="pending",
         agent_id=pipeline.agentId,
         customer_id=pipeline.customerId,
+        log_verbose_output=pipeline.logVerboseOutput,
         commit="",
         duration="-"
     )
@@ -1370,7 +1374,9 @@ def update_pipeline(pipeline_id: int, pipeline: PipelineUpdate, db: Session = De
         db_pipeline.branch = pipeline.branch
     if pipeline.agentId is not None:
         db_pipeline.agent_id = pipeline.agentId
-    
+    if pipeline.logVerboseOutput is not None:
+        db_pipeline.log_verbose_output = pipeline.logVerboseOutput
+
     # Update steps if provided
     if pipeline.steps is not None:
         # Delete existing steps
@@ -3780,6 +3786,7 @@ def get_pending_pipelines(agent_uuid: str, db: Session = Depends(get_db)):
             "created_at": pickup.created_at.isoformat() if pickup.created_at else None,
             "parameters": parameters,
             "steps": steps_data,
+            "log_verbose_output": pipeline.log_verbose_output if pipeline else False,
             "pipeline": {
                 "name": pipeline.name,
                 "description": pipeline.description,
@@ -5008,6 +5015,7 @@ def get_common_email_presets():
 # A simple dict is fine — metrics are replaced each polling cycle.
 # For persistence across restarts, these could be stored in the DB later.
 _k8s_metrics_store: dict = {}
+_k8s_metrics_history: dict = {}  # uuid -> list of trimmed snapshots (max 60 points for sparklines)
 
 # In-memory store for service log file content (keyed by "{agent_uuid}:{service_name}:{file_name}").
 # Content is pushed by the agent via a dedicated endpoint to avoid routing large
@@ -5052,6 +5060,22 @@ def receive_k8s_metrics(agent_uuid: str, payload: dict, db: Session = Depends(ge
     if not agent:
         raise HTTPException(status_code=404, detail="Agent not found")
     _k8s_metrics_store[agent_uuid] = payload
+
+    # Append trimmed snapshot to history for sparklines (max 60 points)
+    if agent_uuid not in _k8s_metrics_history:
+        _k8s_metrics_history[agent_uuid] = []
+    history = _k8s_metrics_history[agent_uuid]
+    history.append({
+        "collected_at": payload.get("collected_at"),
+        "namespace_cpu_usage_cores": payload.get("namespace_cpu_usage_cores", 0),
+        "namespace_memory_usage_bytes": payload.get("namespace_memory_usage_bytes", 0),
+        "pod_count": len(payload.get("pods", [])),
+        "node_count": len(payload.get("nodes", [])),
+        "alert_count": len(payload.get("firing_alerts", [])),
+    })
+    if len(history) > 60:
+        history.pop(0)
+
     return {"success": True}
 
 @app.get("/agents/{agent_uuid}/k8s-metrics", tags=["🌐 UI - K8s"])
@@ -5065,8 +5089,25 @@ def get_k8s_metrics(agent_uuid: str, db: Session = Depends(get_db)):
         "nodes": [],
         "pods": [],
         "deployments": [],
-        "firing_alerts": []
+        "firing_alerts": [],
+        "cluster_cpu_cores_total": 0,
+        "cluster_memory_bytes_total": 0,
+        "namespace_cpu_usage_cores": 0,
+        "namespace_cpu_requests_cores": 0,
+        "namespace_cpu_limits_cores": 0,
+        "namespace_memory_usage_bytes": 0,
+        "namespace_memory_requests_bytes": 0,
+        "namespace_memory_limits_bytes": 0,
+        "resource_counts": {}
     })
+
+@app.get("/agents/{agent_uuid}/k8s-metrics/history", tags=["🌐 UI - K8s"])
+def get_k8s_metrics_history(agent_uuid: str, db: Session = Depends(get_db)):
+    """Get time-series history of K8s metrics for sparklines"""
+    agent = db.query(models.Agent).filter(models.Agent.uuid == agent_uuid).first()
+    if not agent:
+        raise HTTPException(status_code=404, detail="Agent not found")
+    return _k8s_metrics_history.get(agent_uuid, [])
 
 @app.post("/agents/{agent_uuid}/k8s-onboard", tags=["🌐 UI - K8s"])
 def k8s_onboard_application(agent_uuid: str, payload: dict, db: Session = Depends(get_db)):

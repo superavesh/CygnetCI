@@ -9,6 +9,12 @@
     <PublishReadyToRun>false</PublishReadyToRun>
   </PropertyGroup>
 
+  <!-- Exclude build output folders so the SDK content glob doesn't recurse into them -->
+  <ItemGroup>
+    <Content Remove="dist\**" />
+    <Content Remove="publish\**" />
+  </ItemGroup>
+
   <ItemGroup>
     <PackageReference Include="Microsoft.Extensions.Hosting" Version="10.0.0" />
     <PackageReference Include="Microsoft.Extensions.Hosting.Systemd" Version="10.0.0" />
