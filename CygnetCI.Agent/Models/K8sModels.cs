@@ -54,6 +54,36 @@ public class K8sMetricsSnapshot
 
     // Resource counts: pods, services, deployments, statefulsets, daemonsets, pvcs, configmaps, secrets
     public Dictionary<string, int> ResourceCounts { get; set; } = new();
+
+    // Pod phase breakdown (from kube_pod_status_phase)
+    public int PodPhaseRunning { get; set; }
+    public int PodPhasePending { get; set; }
+    public int PodPhaseFailed { get; set; }
+    public int PodPhaseSucceeded { get; set; }
+    public int PodPhaseUnknown { get; set; }
+
+    // Container status (from kube_pod_container_status_*)
+    public int ContainersRunning { get; set; }
+    public int ContainersWaiting { get; set; }
+    public int ContainersTerminated { get; set; }
+    public double ContainerRestartsLast30m { get; set; }
+
+    // Network I/O (bytes/sec, cluster-level from cAdvisor)
+    public double NetworkReceiveBytesPerSec { get; set; }
+    public double NetworkTransmitBytesPerSec { get; set; }
+
+    // Disk I/O (bytes/sec, node-level from node-exporter)
+    public double DiskReadBytesPerSec { get; set; }
+    public double DiskWriteBytesPerSec { get; set; }
+
+    // Jobs (from kube_job_status_*)
+    public int JobsSucceeded { get; set; }
+    public int JobsActive { get; set; }
+    public int JobsFailed { get; set; }
+
+    // Node counts
+    public int NodesTotal { get; set; }
+    public int NodesUnschedulable { get; set; }
 }
 
 public class K8sNodeMetric

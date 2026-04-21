@@ -4,7 +4,8 @@
       "Bash(find d:/Avesh/CygnetCI/SourceCode/CygnetCI/CygnetCI.Web/cygnetci-web/src -type f -name *release* -o -type f -name *pipeline*)",
       "Bash(find d:/Avesh/CygnetCI/SourceCode/CygnetCI/CygnetCI.Web/cygnetci-web/src/app -type f -name *.tsx -o -type f -name *.ts)",
       "Bash(find d:/Avesh/CygnetCI/SourceCode/CygnetCI/CygnetCI.Web/cygnetci-web/src/components -type f -name *.tsx -o -type f -name *.ts)",
-      "Bash(dotnet publish:*)"
+      "Bash(dotnet publish:*)",
+      "Read(//d/Avesh/CygnetCI/SourceCode/**)"
     ]
   }
 }

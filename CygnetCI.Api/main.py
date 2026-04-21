@@ -5015,7 +5015,8 @@ def get_common_email_presets():
 # A simple dict is fine — metrics are replaced each polling cycle.
 # For persistence across restarts, these could be stored in the DB later.
 _k8s_metrics_store: dict = {}
-_k8s_metrics_history: dict = {}  # uuid -> list of trimmed snapshots (max 60 points for sparklines)
+_k8s_metrics_history: dict = {}       # uuid -> list of trimmed snapshots (max 60 points for sparklines)
+_k8s_metrics_full_history: dict = {}  # uuid -> list of full snapshots (max 120 points for datetime filter)
 
 # In-memory store for service log file content (keyed by "{agent_uuid}:{service_name}:{file_name}").
 # Content is pushed by the agent via a dedicated endpoint to avoid routing large
@@ -5061,6 +5062,14 @@ def receive_k8s_metrics(agent_uuid: str, payload: dict, db: Session = Depends(ge
         raise HTTPException(status_code=404, detail="Agent not found")
     _k8s_metrics_store[agent_uuid] = payload
 
+    # Append full snapshot to full history for datetime filter (max 120 points)
+    if agent_uuid not in _k8s_metrics_full_history:
+        _k8s_metrics_full_history[agent_uuid] = []
+    full_hist = _k8s_metrics_full_history[agent_uuid]
+    full_hist.append(payload)
+    if len(full_hist) > 120:
+        full_hist.pop(0)
+
     # Append trimmed snapshot to history for sparklines (max 60 points)
     if agent_uuid not in _k8s_metrics_history:
         _k8s_metrics_history[agent_uuid] = []
@@ -5078,28 +5087,55 @@ def receive_k8s_metrics(agent_uuid: str, payload: dict, db: Session = Depends(ge
 
     return {"success": True}
 
+_K8S_EMPTY_SNAPSHOT = {
+    "collected_at": None,
+    "nodes": [], "pods": [], "deployments": [], "firing_alerts": [],
+    "cluster_cpu_cores_total": 0, "cluster_memory_bytes_total": 0,
+    "namespace_cpu_usage_cores": 0, "namespace_cpu_requests_cores": 0, "namespace_cpu_limits_cores": 0,
+    "namespace_memory_usage_bytes": 0, "namespace_memory_requests_bytes": 0, "namespace_memory_limits_bytes": 0,
+    "resource_counts": {},
+    "pod_phase_running": 0, "pod_phase_pending": 0, "pod_phase_failed": 0,
+    "pod_phase_succeeded": 0, "pod_phase_unknown": 0,
+    "containers_running": 0, "containers_waiting": 0, "containers_terminated": 0,
+    "container_restarts_last30m": 0,
+    "network_receive_bytes_per_sec": 0, "network_transmit_bytes_per_sec": 0,
+    "disk_read_bytes_per_sec": 0, "disk_write_bytes_per_sec": 0,
+    "jobs_succeeded": 0, "jobs_active": 0, "jobs_failed": 0,
+    "nodes_total": 0, "nodes_unschedulable": 0,
+}
+
 @app.get("/agents/{agent_uuid}/k8s-metrics", tags=["🌐 UI - K8s"])
-def get_k8s_metrics(agent_uuid: str, db: Session = Depends(get_db)):
-    """Get latest K8s observability snapshot for an agent"""
+def get_k8s_metrics(agent_uuid: str, at: Optional[str] = Query(None, description="ISO datetime to retrieve closest historical snapshot"), db: Session = Depends(get_db)):
+    """Get latest K8s observability snapshot for an agent, or closest snapshot to a given datetime"""
     agent = db.query(models.Agent).filter(models.Agent.uuid == agent_uuid).first()
     if not agent:
         raise HTTPException(status_code=404, detail="Agent not found")
-    return _k8s_metrics_store.get(agent_uuid, {
-        "collected_at": None,
-        "nodes": [],
-        "pods": [],
-        "deployments": [],
-        "firing_alerts": [],
-        "cluster_cpu_cores_total": 0,
-        "cluster_memory_bytes_total": 0,
-        "namespace_cpu_usage_cores": 0,
-        "namespace_cpu_requests_cores": 0,
-        "namespace_cpu_limits_cores": 0,
-        "namespace_memory_usage_bytes": 0,
-        "namespace_memory_requests_bytes": 0,
-        "namespace_memory_limits_bytes": 0,
-        "resource_counts": {}
-    })
+
+    if at:
+        # Find closest full snapshot to the requested time
+        try:
+            target_dt = datetime.fromisoformat(at.replace("Z", "+00:00"))
+        except ValueError:
+            raise HTTPException(status_code=400, detail="Invalid datetime format. Use ISO 8601 (e.g. 2026-04-21T10:30:00)")
+
+        full_hist = _k8s_metrics_full_history.get(agent_uuid, [])
+        if not full_hist:
+            return {**_K8S_EMPTY_SNAPSHOT, "collected_at": None, "_historical_note": "No history available"}
+
+        def parse_dt(snap):
+            try:
+                ts = snap.get("collected_at", "")
+                if not ts:
+                    return datetime.min
+                return datetime.fromisoformat(str(ts).replace("Z", "+00:00")).replace(tzinfo=None)
+            except Exception:
+                return datetime.min
+
+        target_naive = target_dt.replace(tzinfo=None)
+        closest = min(full_hist, key=lambda s: abs((parse_dt(s) - target_naive).total_seconds()))
+        return {**_K8S_EMPTY_SNAPSHOT, **closest}
+
+    return {**_K8S_EMPTY_SNAPSHOT, **_k8s_metrics_store.get(agent_uuid, {})}
 
 @app.get("/agents/{agent_uuid}/k8s-metrics/history", tags=["🌐 UI - K8s"])
 def get_k8s_metrics_history(agent_uuid: str, db: Session = Depends(get_db)):

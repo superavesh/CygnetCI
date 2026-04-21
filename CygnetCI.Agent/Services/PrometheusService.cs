@@ -138,12 +138,47 @@ public class PrometheusService : IHostedService
         var tSecretCount  = ScalarQueryAsync(string.IsNullOrEmpty(nsOnly) ? "count(kube_secret_info)" : $"count(kube_secret_info{{{nsOnly}}})", ct);
         var tHpaCount     = ScalarQueryAsync(string.IsNullOrEmpty(nsOnly) ? "count(kube_hpa_labels)" : $"count(kube_hpa_labels{{{nsOnly}}})", ct);
 
+        // Pod phase breakdown
+        var tPodsRunning   = ScalarQueryAsync($"sum(kube_pod_status_phase{{phase=\"Running\"{nsFilter}}})", ct);
+        var tPodsPending   = ScalarQueryAsync($"sum(kube_pod_status_phase{{phase=\"Pending\"{nsFilter}}})", ct);
+        var tPodsFailed    = ScalarQueryAsync($"sum(kube_pod_status_phase{{phase=\"Failed\"{nsFilter}}})", ct);
+        var tPodsSucceeded = ScalarQueryAsync($"sum(kube_pod_status_phase{{phase=\"Succeeded\"{nsFilter}}})", ct);
+        var tPodsUnknown   = ScalarQueryAsync($"sum(kube_pod_status_phase{{phase=\"Unknown\"{nsFilter}}})", ct);
+
+        // Container status
+        var tContRunning    = ScalarQueryAsync(string.IsNullOrEmpty(nsOnly) ? "sum(kube_pod_container_status_running)" : $"sum(kube_pod_container_status_running{{{nsOnly}}})", ct);
+        var tContWaiting    = ScalarQueryAsync(string.IsNullOrEmpty(nsOnly) ? "sum(kube_pod_container_status_waiting)" : $"sum(kube_pod_container_status_waiting{{{nsOnly}}})", ct);
+        var tContTerminated = ScalarQueryAsync(string.IsNullOrEmpty(nsOnly) ? "sum(kube_pod_container_status_terminated)" : $"sum(kube_pod_container_status_terminated{{{nsOnly}}})", ct);
+        var tContRestarts   = ScalarQueryAsync(string.IsNullOrEmpty(nsOnly) ? "sum(delta(kube_pod_container_status_restarts_total[30m]))" : $"sum(delta(kube_pod_container_status_restarts_total{{{nsOnly}}}[30m]))", ct);
+
+        // Network I/O (bytes/sec)
+        var tNetRx = ScalarQueryAsync($"sum(rate(container_network_receive_bytes_total{{container!=\"\"{nsFilter}}}[5m]))", ct);
+        var tNetTx = ScalarQueryAsync($"sum(rate(container_network_transmit_bytes_total{{container!=\"\"{nsFilter}}}[5m]))", ct);
+
+        // Disk I/O (bytes/sec, node-level)
+        var tDiskRead  = ScalarQueryAsync("sum(rate(node_disk_read_bytes_total[5m]))", ct);
+        var tDiskWrite = ScalarQueryAsync("sum(rate(node_disk_written_bytes_total[5m]))", ct);
+
+        // Jobs
+        var tJobsOk     = ScalarQueryAsync(string.IsNullOrEmpty(nsOnly) ? "sum(kube_job_status_succeeded)" : $"sum(kube_job_status_succeeded{{{nsOnly}}})", ct);
+        var tJobsActive = ScalarQueryAsync(string.IsNullOrEmpty(nsOnly) ? "sum(kube_job_status_active)" : $"sum(kube_job_status_active{{{nsOnly}}})", ct);
+        var tJobsFailed = ScalarQueryAsync(string.IsNullOrEmpty(nsOnly) ? "sum(kube_job_status_failed)" : $"sum(kube_job_status_failed{{{nsOnly}}})", ct);
+
+        // Node counts
+        var tNodesTotal         = ScalarQueryAsync("count(kube_node_info)", ct);
+        var tNodesUnschedulable = ScalarQueryAsync("sum(kube_node_spec_unschedulable)", ct);
+
         await Task.WhenAll(
             tNodeCpu, tNodeMem, tNodeReady, tPodPhase, tPodRestarts,
             tPodCpu, tPodMem, tDepDesired, tDepReady, tDepAvail, tAlerts,
             tClusterCpu, tClusterMem, tNsCpuUsage, tNsCpuReq, tNsCpuLim,
             tNsMemUsage, tNsMemReq, tNsMemLim,
-            tSvcCount, tStsCount, tDsCount, tPvcCount, tCmCount, tSecretCount, tHpaCount);
+            tSvcCount, tStsCount, tDsCount, tPvcCount, tCmCount, tSecretCount, tHpaCount,
+            tPodsRunning, tPodsPending, tPodsFailed, tPodsSucceeded, tPodsUnknown,
+            tContRunning, tContWaiting, tContTerminated, tContRestarts,
+            tNetRx, tNetTx, tDiskRead, tDiskWrite,
+            tJobsOk, tJobsActive, tJobsFailed,
+            tNodesTotal, tNodesUnschedulable);
 
         snapshot.Nodes = BuildNodeMetrics(tNodeCpu.Result, tNodeMem.Result, tNodeReady.Result);
         snapshot.Pods = BuildPodMetrics(tPodPhase.Result, tPodRestarts.Result, tPodCpu.Result, tPodMem.Result);
@@ -171,6 +206,34 @@ public class PrometheusService : IHostedService
             ["secrets"]      = (int)tSecretCount.Result,
             ["hpas"]         = (int)tHpaCount.Result,
         };
+
+        // Pod phases
+        snapshot.PodPhaseRunning   = (int)tPodsRunning.Result;
+        snapshot.PodPhasePending   = (int)tPodsPending.Result;
+        snapshot.PodPhaseFailed    = (int)tPodsFailed.Result;
+        snapshot.PodPhaseSucceeded = (int)tPodsSucceeded.Result;
+        snapshot.PodPhaseUnknown   = (int)tPodsUnknown.Result;
+
+        // Container status
+        snapshot.ContainersRunning        = (int)tContRunning.Result;
+        snapshot.ContainersWaiting        = (int)tContWaiting.Result;
+        snapshot.ContainersTerminated     = (int)tContTerminated.Result;
+        snapshot.ContainerRestartsLast30m = Math.Round(tContRestarts.Result, 0);
+
+        // Network & Disk I/O
+        snapshot.NetworkReceiveBytesPerSec  = Math.Round(tNetRx.Result, 0);
+        snapshot.NetworkTransmitBytesPerSec = Math.Round(tNetTx.Result, 0);
+        snapshot.DiskReadBytesPerSec        = Math.Round(tDiskRead.Result, 0);
+        snapshot.DiskWriteBytesPerSec       = Math.Round(tDiskWrite.Result, 0);
+
+        // Jobs
+        snapshot.JobsSucceeded = (int)tJobsOk.Result;
+        snapshot.JobsActive    = (int)tJobsActive.Result;
+        snapshot.JobsFailed    = (int)tJobsFailed.Result;
+
+        // Nodes
+        snapshot.NodesTotal         = (int)tNodesTotal.Result;
+        snapshot.NodesUnschedulable = (int)tNodesUnschedulable.Result;
 
         return snapshot;
     }
