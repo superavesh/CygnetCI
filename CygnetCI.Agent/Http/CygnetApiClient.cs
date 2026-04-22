@@ -61,10 +61,6 @@ public class CygnetApiClient : ICygnetApiClient
                 var customerId  = doc.RootElement.TryGetProperty("customerId",  out var cIdEl) ? cIdEl.GetInt32() : 0;
                 _logger.LogInformation("Agent registered successfully with ID {AgentId}, CustomerId {CustomerId}", agentId, customerId);
 
-                // Set X-Agent-UUID on the shared HttpClient so every subsequent request includes it
-                _httpClient.DefaultRequestHeaders.Remove("X-Agent-UUID");
-                _httpClient.DefaultRequestHeaders.Add("X-Agent-UUID", _config.AgentUuid);
-
                 return (agentId, customerId);
             }
             else

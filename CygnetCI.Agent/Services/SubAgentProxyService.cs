@@ -28,7 +28,7 @@ public class SubAgentProxyService : BackgroundService
         "Proxy-Authorization", "TE", "Trailers", "Upgrade"
     };
 
-    public SubAgentProxyService(
+public SubAgentProxyService(
         ILogger<SubAgentProxyService> logger,
         IOptions<AgentConfiguration> config,
         AgentIdentityService agentIdentity)
@@ -46,7 +46,7 @@ public class SubAgentProxyService : BackgroundService
         _forwardClient = new HttpClient(handler)
         {
             BaseAddress = new Uri(_config.ServerUrl),
-            Timeout = TimeSpan.FromSeconds(120)
+            Timeout = TimeSpan.FromSeconds(300)  // 5 min — accommodates long-polling endpoints
         };
     }
 

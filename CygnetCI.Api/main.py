@@ -455,7 +455,7 @@ app.include_router(customer_api.router)
 # SECURITY: Agent UUID from header
 # ==============================================
 
-def get_agent_uuid(x_agent_uuid: str = Header(..., alias="X-Agent-UUID",
+def get_agent_uuid(x_agent_uuid: str = Header(...,
         description="Agent UUID — must be passed as the X-Agent-UUID request header")):
     """Dependency that extracts the agent UUID from the X-Agent-UUID request header.
     Keeps UUIDs out of URL paths (which appear in server logs, browser history, proxies)."""

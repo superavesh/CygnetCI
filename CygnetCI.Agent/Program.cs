@@ -3,6 +3,7 @@ using CygnetCI.Agent.Http;
 using CygnetCI.Agent.Models;
 using CygnetCI.Agent.Services;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 
 var builder = Host.CreateDefaultBuilder(args)
@@ -44,11 +45,13 @@ var builder = Host.CreateDefaultBuilder(args)
         }
 
         // HTTP Client with Proxy Support
+        services.AddTransient<AgentUuidHeaderHandler>();
         services.AddHttpClient<ICygnetApiClient, CygnetApiClient>(client =>
         {
             client.BaseAddress = new Uri(config.ServerUrl);
             client.Timeout = TimeSpan.FromSeconds(config.HttpTimeoutSeconds);
         })
+        .AddHttpMessageHandler<AgentUuidHeaderHandler>()
         .ConfigurePrimaryHttpMessageHandler(() =>
         {
             var handler = new HttpClientHandler();
