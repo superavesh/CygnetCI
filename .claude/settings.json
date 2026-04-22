@@ -5,7 +5,8 @@
       "Bash(find d:/Avesh/CygnetCI/SourceCode/CygnetCI/CygnetCI.Web/cygnetci-web/src/app -type f -name *.tsx -o -type f -name *.ts)",
       "Bash(find d:/Avesh/CygnetCI/SourceCode/CygnetCI/CygnetCI.Web/cygnetci-web/src/components -type f -name *.tsx -o -type f -name *.ts)",
       "Bash(dotnet publish:*)",
-      "Read(//d/Avesh/CygnetCI/SourceCode/**)"
+      "Read(//d/Avesh/CygnetCI/SourceCode/**)",
+      "Bash(python3 -)"
     ]
   }
 }

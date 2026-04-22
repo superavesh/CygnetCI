@@ -4,6 +4,7 @@ namespace CygnetCI.Agent.Models;
 
 public class ArgocdAppDefinition
 {
+    public string ClusterName { get; set; } = string.Empty;
     public string AppName { get; set; } = string.Empty;
     public string Namespace { get; set; } = "default";
     public string HelmRepoUrl { get; set; } = string.Empty;
@@ -17,6 +18,7 @@ public class ArgocdAppDefinition
 
 public class ArgocdSyncCommand
 {
+    public string ClusterName { get; set; } = string.Empty;
     public string AppName { get; set; } = string.Empty;
     public string ImageTag { get; set; } = string.Empty;
     public string ImageRepository { get; set; } = string.Empty;
@@ -36,6 +38,7 @@ public class ArgocdAppStatus
 
 public class K8sMetricsSnapshot
 {
+    public string ClusterName { get; set; } = string.Empty;
     public DateTime CollectedAt { get; set; } = DateTime.UtcNow;
     public List<K8sNodeMetric> Nodes { get; set; } = new();
     public List<K8sPodMetric> Pods { get; set; } = new();

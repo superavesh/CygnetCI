@@ -45,7 +45,7 @@ export const MetricDetailModal: React.FC<MetricDetailModalProps> = ({
   const fetchHistory = async () => {
     setLoading(true);
     try {
-      let url = `${CONFIG.api.baseUrl}/monitoring/agents/${agentUuid}/metrics/history`;
+      let url = `${CONFIG.api.baseUrl}/monitoring/agents/metrics/history`;
 
       if (useCustomRange && startDate && endDate) {
         url += `?start_date=${startDate}&end_date=${endDate}`;
@@ -53,7 +53,7 @@ export const MetricDetailModal: React.FC<MetricDetailModalProps> = ({
         url += `?hours=${timeRange}`;
       }
 
-      const response = await fetch(url);
+      const response = await fetch(url, { headers: { 'X-Agent-UUID': agentUuid } });
       if (response.ok) {
         const data = await response.json();
         setHistory(data);
@@ -85,10 +85,11 @@ export const MetricDetailModal: React.FC<MetricDetailModalProps> = ({
 
     setDeleting(true);
     try {
-      const url = `${CONFIG.api.baseUrl}/monitoring/agents/${agentUuid}/metrics/history?start_date=${startDateTime.toISOString()}&end_date=${endDateTime.toISOString()}`;
+      const url = `${CONFIG.api.baseUrl}/monitoring/agents/metrics/history?start_date=${startDateTime.toISOString()}&end_date=${endDateTime.toISOString()}`;
 
       const response = await fetch(url, {
-        method: 'DELETE'
+        method: 'DELETE',
+        headers: { 'X-Agent-UUID': agentUuid }
       });
 
       if (response.ok) {

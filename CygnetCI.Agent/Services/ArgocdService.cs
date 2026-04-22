@@ -10,18 +10,18 @@ namespace CygnetCI.Agent.Services;
 
 public interface IArgocdService
 {
-    Task<(bool success, string message)> CreateApplicationAsync(ArgocdAppDefinition definition, CancellationToken ct);
-    Task<(bool success, string message)> SyncApplicationAsync(string appName, string imageRepository, string imageTag, CancellationToken ct);
-    Task<ArgocdAppStatus?> GetApplicationStatusAsync(string appName, CancellationToken ct);
-    Task<List<ArgocdAppStatus>> ListApplicationsAsync(CancellationToken ct);
-    Task<(bool success, string message)> WaitForSyncAsync(string appName, CancellationToken ct);
+    IReadOnlyList<string> ClusterNames { get; }
+    Task<(bool success, string message)> CreateApplicationAsync(string clusterName, ArgocdAppDefinition definition, CancellationToken ct);
+    Task<(bool success, string message)> SyncApplicationAsync(string clusterName, string appName, string imageRepository, string imageTag, CancellationToken ct);
+    Task<ArgocdAppStatus?> GetApplicationStatusAsync(string clusterName, string appName, CancellationToken ct);
+    Task<List<ArgocdAppStatus>> ListApplicationsAsync(string clusterName, CancellationToken ct);
+    Task<(bool success, string message)> WaitForSyncAsync(string clusterName, string appName, CancellationToken ct);
 }
 
 public class ArgocdService : IArgocdService
 {
     private readonly ILogger<ArgocdService> _logger;
-    private readonly ArgocdSettings _settings;
-    private readonly HttpClient _http;
+    private readonly Dictionary<string, (ArgocdSettings Settings, HttpClient Http)> _clusters;
 
     private static readonly JsonSerializerOptions _json = new()
     {
@@ -32,32 +32,56 @@ public class ArgocdService : IArgocdService
     public ArgocdService(ILogger<ArgocdService> logger, IOptions<AgentConfiguration> config)
     {
         _logger = logger;
-        _settings = config.Value.ArgoCD;
+        _clusters = config.Value.KubernetesClusters
+            .Where(c => c.ArgoCD.Enabled && !string.IsNullOrWhiteSpace(c.ArgoCD.ServerUrl))
+            .ToDictionary(
+                c => c.ClusterName,
+                c => (c.ArgoCD, CreateHttpClient(c.ArgoCD)));
+    }
 
+    public IReadOnlyList<string> ClusterNames => _clusters.Keys.ToList();
+
+    private (ArgocdSettings Settings, HttpClient Http) GetCluster(string clusterName)
+    {
+        if (_clusters.TryGetValue(clusterName, out var cluster))
+            return cluster;
+
+        // Fall back to first cluster if name is empty/unset (single-cluster convenience)
+        if (string.IsNullOrWhiteSpace(clusterName) && _clusters.Count > 0)
+            return _clusters.Values.First();
+
+        throw new InvalidOperationException(
+            $"Cluster '{clusterName}' not found or ArgoCD not enabled. Available: {string.Join(", ", _clusters.Keys)}");
+    }
+
+    private static HttpClient CreateHttpClient(ArgocdSettings settings)
+    {
         var handler = new HttpClientHandler();
-        if (_settings.InsecureSkipTlsVerify)
+        if (settings.InsecureSkipTlsVerify)
             handler.ServerCertificateCustomValidationCallback = (_, _, _, _) => true;
 
-        _http = new HttpClient(handler)
+        var http = new HttpClient(handler)
         {
-            BaseAddress = new Uri(_settings.ServerUrl.TrimEnd('/') + "/"),
+            BaseAddress = new Uri(settings.ServerUrl.TrimEnd('/') + "/"),
             Timeout = TimeSpan.FromSeconds(30)
         };
-        _http.DefaultRequestHeaders.Authorization =
-            new AuthenticationHeaderValue("Bearer", _settings.Token);
+        http.DefaultRequestHeaders.Authorization =
+            new AuthenticationHeaderValue("Bearer", settings.Token);
+        return http;
     }
 
     // ─── Create Application (onboarding) ─────────────────────────────────────
 
     public async Task<(bool success, string message)> CreateApplicationAsync(
-        ArgocdAppDefinition definition, CancellationToken ct)
+        string clusterName, ArgocdAppDefinition definition, CancellationToken ct)
     {
         try
         {
-            // Check if app already exists
-            var existing = await GetApplicationStatusAsync(definition.AppName, ct);
+            var (_, http) = GetCluster(clusterName);
+
+            var existing = await GetApplicationStatusAsync(clusterName, definition.AppName, ct);
             if (existing != null)
-                return (true, $"Application '{definition.AppName}' already exists in ArgoCD — skipping creation.");
+                return (true, $"Application '{definition.AppName}' already exists in ArgoCD on cluster '{clusterName}' — skipping creation.");
 
             var helmParams = new List<object>
             {
@@ -65,7 +89,6 @@ public class ArgocdService : IArgocdService
                 new { name = "image.tag", value = definition.ImageTag },
                 new { name = "replicaCount", value = definition.Replicas.ToString() }
             };
-
             foreach (var (k, v) in definition.HelmValues)
                 helmParams.Add(new { name = k, value = v });
 
@@ -91,14 +114,14 @@ public class ArgocdService : IArgocdService
                     },
                     syncPolicy = new
                     {
-                        automated = (object?)null,   // manual sync — CygnetCI controls when to sync
+                        automated = (object?)null,
                         syncOptions = new[] { "CreateNamespace=true" }
                     }
                 }
             };
 
             var json = JsonSerializer.Serialize(appBody, _json);
-            using var response = await _http.PostAsync(
+            using var response = await http.PostAsync(
                 "api/v1/applications",
                 new StringContent(json, Encoding.UTF8, "application/json"),
                 ct);
@@ -106,16 +129,19 @@ public class ArgocdService : IArgocdService
             var body = await response.Content.ReadAsStringAsync(ct);
             if (response.IsSuccessStatusCode)
             {
-                _logger.LogInformation("ArgoCD application '{App}' created successfully", definition.AppName);
-                return (true, $"Application '{definition.AppName}' created in ArgoCD.");
+                _logger.LogInformation("ArgoCD application '{App}' created on cluster '{Cluster}'",
+                    definition.AppName, clusterName);
+                return (true, $"Application '{definition.AppName}' created in ArgoCD on cluster '{clusterName}'.");
             }
 
-            _logger.LogError("ArgoCD create application failed: {Status} {Body}", response.StatusCode, body);
+            _logger.LogError("ArgoCD create application failed on cluster '{Cluster}': {Status} {Body}",
+                clusterName, response.StatusCode, body);
             return (false, $"ArgoCD returned {(int)response.StatusCode}: {body}");
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Failed to create ArgoCD application '{App}'", definition.AppName);
+            _logger.LogError(ex, "Failed to create ArgoCD application '{App}' on cluster '{Cluster}'",
+                definition.AppName, clusterName);
             return (false, ex.Message);
         }
     }
@@ -123,13 +149,14 @@ public class ArgocdService : IArgocdService
     // ─── Sync (update image tag + trigger sync) ───────────────────────────────
 
     public async Task<(bool success, string message)> SyncApplicationAsync(
-        string appName, string imageRepository, string imageTag, CancellationToken ct)
+        string clusterName, string appName, string imageRepository, string imageTag, CancellationToken ct)
     {
         try
         {
-            // Step 1: patch image parameters
-            _logger.LogInformation("Setting image {Repo}:{Tag} on ArgoCD app '{App}'",
-                imageRepository, imageTag, appName);
+            var (_, http) = GetCluster(clusterName);
+
+            _logger.LogInformation("Setting image {Repo}:{Tag} on ArgoCD app '{App}' (cluster '{Cluster}')",
+                imageRepository, imageTag, appName, clusterName);
 
             var patchBody = new
             {
@@ -150,7 +177,7 @@ public class ArgocdService : IArgocdService
             };
 
             var patchJson = JsonSerializer.Serialize(patchBody, _json);
-            using var patchResp = await _http.PatchAsync(
+            using var patchResp = await http.PatchAsync(
                 $"api/v1/applications/{appName}",
                 new StringContent(patchJson, Encoding.UTF8, "application/merge-patch+json"),
                 ct);
@@ -161,10 +188,11 @@ public class ArgocdService : IArgocdService
                 return (false, $"Failed to update image tag — ArgoCD returned {(int)patchResp.StatusCode}: {patchBody2}");
             }
 
-            // Step 2: trigger sync
-            _logger.LogInformation("Triggering ArgoCD sync for app '{App}'", appName);
+            _logger.LogInformation("Triggering ArgoCD sync for app '{App}' on cluster '{Cluster}'",
+                appName, clusterName);
+
             var syncBody = JsonSerializer.Serialize(new { prune = false, dryRun = false }, _json);
-            using var syncResp = await _http.PostAsync(
+            using var syncResp = await http.PostAsync(
                 $"api/v1/applications/{appName}/sync",
                 new StringContent(syncBody, Encoding.UTF8, "application/json"),
                 ct);
@@ -175,52 +203,57 @@ public class ArgocdService : IArgocdService
                 return (false, $"Sync trigger failed — ArgoCD returned {(int)syncResp.StatusCode}: {sb}");
             }
 
-            return (true, $"Sync triggered for '{appName}' with image {imageRepository}:{imageTag}");
+            return (true, $"Sync triggered for '{appName}' with image {imageRepository}:{imageTag} on cluster '{clusterName}'");
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Failed to sync ArgoCD application '{App}'", appName);
+            _logger.LogError(ex, "Failed to sync ArgoCD application '{App}' on cluster '{Cluster}'",
+                appName, clusterName);
             return (false, ex.Message);
         }
     }
 
     // ─── Poll until Synced + Healthy ─────────────────────────────────────────
 
-    public async Task<(bool success, string message)> WaitForSyncAsync(string appName, CancellationToken ct)
+    public async Task<(bool success, string message)> WaitForSyncAsync(
+        string clusterName, string appName, CancellationToken ct)
     {
-        var deadline = DateTime.UtcNow.AddSeconds(_settings.SyncTimeoutSeconds);
+        var (settings, _) = GetCluster(clusterName);
+        var deadline = DateTime.UtcNow.AddSeconds(settings.SyncTimeoutSeconds);
 
-        _logger.LogInformation("Waiting for ArgoCD sync of '{App}' (timeout {Timeout}s)",
-            appName, _settings.SyncTimeoutSeconds);
+        _logger.LogInformation("Waiting for ArgoCD sync of '{App}' on cluster '{Cluster}' (timeout {Timeout}s)",
+            appName, clusterName, settings.SyncTimeoutSeconds);
 
         while (DateTime.UtcNow < deadline && !ct.IsCancellationRequested)
         {
-            var status = await GetApplicationStatusAsync(appName, ct);
+            var status = await GetApplicationStatusAsync(clusterName, appName, ct);
             if (status == null)
-                return (false, $"Application '{appName}' not found in ArgoCD");
+                return (false, $"Application '{appName}' not found in ArgoCD on cluster '{clusterName}'");
 
-            _logger.LogDebug("ArgoCD '{App}' sync={Sync} health={Health}",
-                appName, status.SyncStatus, status.HealthStatus);
+            _logger.LogDebug("ArgoCD '{App}' on '{Cluster}': sync={Sync} health={Health}",
+                appName, clusterName, status.SyncStatus, status.HealthStatus);
 
             if (status.SyncStatus == "Synced" && status.HealthStatus == "Healthy")
-                return (true, $"Application '{appName}' is Synced and Healthy. Image: {status.CurrentImage}");
+                return (true, $"Application '{appName}' is Synced and Healthy on cluster '{clusterName}'. Image: {status.CurrentImage}");
 
             if (status.HealthStatus == "Degraded")
-                return (false, $"Application '{appName}' is Degraded: {status.Message}");
+                return (false, $"Application '{appName}' is Degraded on cluster '{clusterName}': {status.Message}");
 
-            await Task.Delay(TimeSpan.FromSeconds(_settings.SyncPollIntervalSeconds), ct);
+            await Task.Delay(TimeSpan.FromSeconds(settings.SyncPollIntervalSeconds), ct);
         }
 
-        return (false, $"Timed out waiting for '{appName}' to sync after {_settings.SyncTimeoutSeconds}s");
+        return (false, $"Timed out waiting for '{appName}' to sync on cluster '{clusterName}' after {settings.SyncTimeoutSeconds}s");
     }
 
     // ─── Get single app status ────────────────────────────────────────────────
 
-    public async Task<ArgocdAppStatus?> GetApplicationStatusAsync(string appName, CancellationToken ct)
+    public async Task<ArgocdAppStatus?> GetApplicationStatusAsync(
+        string clusterName, string appName, CancellationToken ct)
     {
         try
         {
-            using var resp = await _http.GetAsync($"api/v1/applications/{appName}", ct);
+            var (_, http) = GetCluster(clusterName);
+            using var resp = await http.GetAsync($"api/v1/applications/{appName}", ct);
             if (resp.StatusCode == System.Net.HttpStatusCode.NotFound) return null;
             resp.EnsureSuccessStatusCode();
 
@@ -229,18 +262,20 @@ public class ArgocdService : IArgocdService
         }
         catch (Exception ex)
         {
-            _logger.LogWarning(ex, "Failed to get ArgoCD app status for '{App}'", appName);
+            _logger.LogWarning(ex, "Failed to get ArgoCD app status for '{App}' on cluster '{Cluster}'",
+                appName, clusterName);
             return null;
         }
     }
 
     // ─── List all apps ────────────────────────────────────────────────────────
 
-    public async Task<List<ArgocdAppStatus>> ListApplicationsAsync(CancellationToken ct)
+    public async Task<List<ArgocdAppStatus>> ListApplicationsAsync(string clusterName, CancellationToken ct)
     {
         try
         {
-            using var resp = await _http.GetAsync("api/v1/applications", ct);
+            var (_, http) = GetCluster(clusterName);
+            using var resp = await http.GetAsync("api/v1/applications", ct);
             resp.EnsureSuccessStatusCode();
 
             var json = await resp.Content.ReadAsStringAsync(ct);
@@ -256,7 +291,7 @@ public class ArgocdService : IArgocdService
         }
         catch (Exception ex)
         {
-            _logger.LogWarning(ex, "Failed to list ArgoCD applications");
+            _logger.LogWarning(ex, "Failed to list ArgoCD applications on cluster '{Cluster}'", clusterName);
             return new List<ArgocdAppStatus>();
         }
     }
@@ -270,12 +305,11 @@ public class ArgocdService : IArgocdService
             var doc = JsonNode.Parse(json);
             if (doc == null) return null;
 
-            var name = doc["metadata"]?["name"]?.GetValue<string>() ?? string.Empty;
-            var sync = doc["status"]?["sync"]?["status"]?.GetValue<string>() ?? "Unknown";
+            var name   = doc["metadata"]?["name"]?.GetValue<string>() ?? string.Empty;
+            var sync   = doc["status"]?["sync"]?["status"]?.GetValue<string>() ?? "Unknown";
             var health = doc["status"]?["health"]?["status"]?.GetValue<string>() ?? "Unknown";
             var message = doc["status"]?["operationState"]?["message"]?.GetValue<string>() ?? string.Empty;
 
-            // Extract deployed image from summary
             var images = doc["status"]?["summary"]?["images"]?.AsArray();
             var currentImage = images?.FirstOrDefault()?.GetValue<string>() ?? string.Empty;
 
@@ -286,12 +320,12 @@ public class ArgocdService : IArgocdService
 
             return new ArgocdAppStatus
             {
-                AppName = name,
-                SyncStatus = sync,
-                HealthStatus = health,
-                Message = message,
-                CurrentImage = currentImage,
-                LastSyncedAt = lastSynced
+                AppName       = name,
+                SyncStatus    = sync,
+                HealthStatus  = health,
+                Message       = message,
+                CurrentImage  = currentImage,
+                LastSyncedAt  = lastSynced
             };
         }
         catch { return null; }

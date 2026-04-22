@@ -105,14 +105,14 @@ var builder = Host.CreateDefaultBuilder(args)
             services.AddHostedService<SubAgentProxyService>();
         }
 
-        // ArgoCD service (only when enabled in config)
-        if (config.ArgoCD.Enabled)
+        // ArgoCD service (only when at least one cluster has ArgoCD enabled)
+        if (config.KubernetesClusters.Any(c => c.ArgoCD.Enabled && !string.IsNullOrWhiteSpace(c.ArgoCD.ServerUrl)))
         {
             services.AddSingleton<IArgocdService, ArgocdService>();
         }
 
-        // Prometheus K8s metrics polling (only when enabled in config)
-        if (config.Prometheus.Enabled)
+        // Prometheus K8s metrics polling (only when at least one cluster has Prometheus enabled)
+        if (config.KubernetesClusters.Any(c => c.Prometheus.Enabled && !string.IsNullOrWhiteSpace(c.Prometheus.Url)))
         {
             services.AddHostedService<PrometheusService>();
         }

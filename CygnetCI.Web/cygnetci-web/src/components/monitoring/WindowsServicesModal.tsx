@@ -39,7 +39,8 @@ export const WindowsServicesModal: React.FC<WindowsServicesModalProps> = ({
     setLoading(true);
     try {
       const response = await fetch(
-        `${CONFIG.api.baseUrl}/monitoring/agents/${agentUuid}/windows-services`
+        `${CONFIG.api.baseUrl}/monitoring/agents/windows-services`,
+        { headers: { 'X-Agent-UUID': agentUuid } }
       );
       if (response.ok) {
         const data = await response.json();
@@ -56,8 +57,8 @@ export const WindowsServicesModal: React.FC<WindowsServicesModalProps> = ({
     setActionLoading(serviceName);
     try {
       const response = await fetch(
-        `${CONFIG.api.baseUrl}/monitoring/agents/${agentUuid}/windows-services/control?service_name=${serviceName}&action=${action}`,
-        { method: 'POST' }
+        `${CONFIG.api.baseUrl}/monitoring/agents/windows-services/control?service_name=${serviceName}&action=${action}`,
+        { method: 'POST', headers: { 'X-Agent-UUID': agentUuid } }
       );
 
       if (response.ok) {

@@ -210,7 +210,7 @@ public class CommandExecutionService : ICommandExecutionService
             if (definition == null || string.IsNullOrEmpty(definition.AppName))
                 return (false, "Invalid command data: AppName is required");
 
-            return await _argocd.CreateApplicationAsync(definition, cancellationToken);
+            return await _argocd.CreateApplicationAsync(definition.ClusterName, definition, cancellationToken);
         }
         catch (JsonException ex)
         {
@@ -233,12 +233,12 @@ public class CommandExecutionService : ICommandExecutionService
 
             // Trigger sync
             var (triggerOk, triggerMsg) = await _argocd.SyncApplicationAsync(
-                syncCmd.AppName, syncCmd.ImageRepository, syncCmd.ImageTag, cancellationToken);
+                syncCmd.ClusterName, syncCmd.AppName, syncCmd.ImageRepository, syncCmd.ImageTag, cancellationToken);
 
             if (!triggerOk) return (false, triggerMsg);
 
             // Wait for completion
-            return await _argocd.WaitForSyncAsync(syncCmd.AppName, cancellationToken);
+            return await _argocd.WaitForSyncAsync(syncCmd.ClusterName, syncCmd.AppName, cancellationToken);
         }
         catch (JsonException ex)
         {

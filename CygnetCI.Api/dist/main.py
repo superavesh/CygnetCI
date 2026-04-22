@@ -1,5 +1,5 @@
 # main.py - Complete FastAPI Implementation with Database
-from fastapi import FastAPI, HTTPException, Depends, Query, UploadFile, File, Form, Response
+from fastapi import FastAPI, HTTPException, Depends, Query, Body, UploadFile, File, Form, Response, Header
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse
 from pydantic import BaseModel, Field
@@ -452,6 +452,16 @@ app.add_middleware(
 app.include_router(customer_api.router)
 
 # ==============================================
+# SECURITY: Agent UUID from header
+# ==============================================
+
+def get_agent_uuid(x_agent_uuid: str = Header(..., alias="X-Agent-UUID",
+        description="Agent UUID — must be passed as the X-Agent-UUID request header")):
+    """Dependency that extracts the agent UUID from the X-Agent-UUID request header.
+    Keeps UUIDs out of URL paths (which appear in server logs, browser history, proxies)."""
+    return x_agent_uuid
+
+# ==============================================
 # ENDPOINTS
 # ==============================================
 
@@ -799,9 +809,9 @@ def get_agents_metrics(customer_id: int = None, db: Session = Depends(get_db)):
 
     return result
 
-@app.get("/monitoring/agents/{agent_uuid}/metrics/history", tags=["🌐 UI - Monitoring"])
+@app.get("/monitoring/agents/metrics/history", tags=["🌐 UI - Monitoring"])
 def get_agent_metrics_history(
-    agent_uuid: str,
+    agent_uuid: str = Depends(get_agent_uuid),
     hours: int = Query(1, ge=1, le=24),
     db: Session = Depends(get_db)
 ):
@@ -830,9 +840,9 @@ def get_agent_metrics_history(
         for metric in metrics
     ]
 
-@app.delete("/monitoring/agents/{agent_uuid}/metrics/history", tags=["🌐 UI - Monitoring"])
+@app.delete("/monitoring/agents/metrics/history", tags=["🌐 UI - Monitoring"])
 def delete_agent_metrics_history(
-    agent_uuid: str,
+    agent_uuid: str = Depends(get_agent_uuid),
     start_date: str = Query(..., description="Start datetime in ISO format"),
     end_date: str = Query(..., description="End datetime in ISO format"),
     db: Session = Depends(get_db)
@@ -879,8 +889,8 @@ def ping_api():
         "uptime": "running"
     }
 
-@app.post("/monitoring/agents/{agent_uuid}/report", tags=["🤖 Agent - Monitoring"])
-def report_monitoring_data(agent_uuid: str, data: dict, db: Session = Depends(get_db)):
+@app.post("/monitoring/agents/report", tags=["🤖 Agent - Monitoring"])
+def report_monitoring_data(agent_uuid: str = Depends(get_agent_uuid), data: dict = Body(...), db: Session = Depends(get_db)):
     """Agent reports its monitoring data (Windows services, drives, pings)"""
     agent = db.query(models.Agent).filter(models.Agent.uuid == agent_uuid).first()
     if not agent:
@@ -950,8 +960,8 @@ def report_monitoring_data(agent_uuid: str, data: dict, db: Session = Depends(ge
         db.rollback()
         raise HTTPException(status_code=500, detail=str(e))
 
-@app.get("/monitoring/agents/{agent_uuid}/windows-services", tags=["🌐 UI - Monitoring"])
-def get_agent_windows_services(agent_uuid: str, db: Session = Depends(get_db)):
+@app.get("/monitoring/agents/windows-services", tags=["🌐 UI - Monitoring"])
+def get_agent_windows_services(agent_uuid: str = Depends(get_agent_uuid), db: Session = Depends(get_db)):
     """Get Windows services starting with 'CI' for an agent"""
     agent = db.query(models.Agent).filter(models.Agent.uuid == agent_uuid).first()
     if not agent:
@@ -973,9 +983,9 @@ def get_agent_windows_services(agent_uuid: str, db: Session = Depends(get_db)):
         for s in services
     ]
 
-@app.post("/monitoring/agents/{agent_uuid}/windows-services/control", tags=["🌐 UI - Monitoring"])
+@app.post("/monitoring/agents/windows-services/control", tags=["🌐 UI - Monitoring"])
 def control_windows_service(
-    agent_uuid: str,
+    agent_uuid: str = Depends(get_agent_uuid),
     service_name: str = None,
     action: str = None,
     db: Session = Depends(get_db)
@@ -1018,8 +1028,8 @@ def control_windows_service(
         "agent_uuid": agent_uuid
     }
 
-@app.get("/monitoring/agents/{agent_uuid}/drive-info", tags=["🌐 UI - Monitoring"])
-def get_agent_drive_info(agent_uuid: str, db: Session = Depends(get_db)):
+@app.get("/monitoring/agents/drive-info", tags=["🌐 UI - Monitoring"])
+def get_agent_drive_info(agent_uuid: str = Depends(get_agent_uuid), db: Session = Depends(get_db)):
     """Get drive information for an agent"""
     agent = db.query(models.Agent).filter(models.Agent.uuid == agent_uuid).first()
     if not agent:
@@ -1042,8 +1052,8 @@ def get_agent_drive_info(agent_uuid: str, db: Session = Depends(get_db)):
         for drive in drives
     ]
 
-@app.get("/monitoring/agents/{agent_uuid}/website-ping", tags=["🌐 UI - Monitoring"])
-def get_agent_website_ping(agent_uuid: str, db: Session = Depends(get_db)):
+@app.get("/monitoring/agents/website-ping", tags=["🌐 UI - Monitoring"])
+def get_agent_website_ping(agent_uuid: str = Depends(get_agent_uuid), db: Session = Depends(get_db)):
     """Get website/API ping status from agent (from agent's appsettings.json configuration)"""
     agent = db.query(models.Agent).filter(models.Agent.uuid == agent_uuid).first()
     if not agent:
@@ -1075,10 +1085,10 @@ def get_agent_website_ping(agent_uuid: str, db: Session = Depends(get_db)):
 
     return unique_pings
 
-@app.get("/monitoring/agents/{agent_uuid}/logs/{service_name}", tags=["🌐 UI - Monitoring"])
+@app.get("/monitoring/agents/logs/{service_name}", tags=["🌐 UI - Monitoring"])
 def get_service_logs(
-    agent_uuid: str,
-    service_name: str,
+    agent_uuid: str = Depends(get_agent_uuid),
+    service_name: str = None,
     date: Optional[str] = None,
     limit: int = Query(100, ge=1, le=1000),
     db: Session = Depends(get_db)
@@ -1145,8 +1155,8 @@ def get_command_result(command_id: int, db: Session = Depends(get_db)):
         "completed_at": command.completed_at.isoformat() if command.completed_at else None,
     }
 
-@app.post("/monitoring/agents/{agent_uuid}/service-log-files/{service_name}", tags=["🌐 UI - Monitoring"])
-def request_service_log_list(agent_uuid: str, service_name: str, db: Session = Depends(get_db)):
+@app.post("/monitoring/agents/service-log-files/{service_name}", tags=["🌐 UI - Monitoring"])
+def request_service_log_list(agent_uuid: str = Depends(get_agent_uuid), service_name: str = None, db: Session = Depends(get_db)):
     """Ask the agent to list log files for a service. Returns command_id to poll."""
     agent = db.query(models.Agent).filter(models.Agent.uuid == agent_uuid).first()
     if not agent:
@@ -1163,10 +1173,10 @@ def request_service_log_list(agent_uuid: str, service_name: str, db: Session = D
     db.refresh(cmd)
     return {"command_id": cmd.id}
 
-@app.post("/monitoring/agents/{agent_uuid}/service-log-read/{service_name}", tags=["🌐 UI - Monitoring"])
+@app.post("/monitoring/agents/service-log-read/{service_name}", tags=["🌐 UI - Monitoring"])
 def request_service_log_read(
-    agent_uuid: str,
-    service_name: str,
+    agent_uuid: str = Depends(get_agent_uuid),
+    service_name: str = None,
     file_name: str = Query(...),
     max_kb: int = Query(512, ge=1, le=4096),
     db: Session = Depends(get_db)
@@ -3108,8 +3118,8 @@ def push_file_to_agent(request: FilePushRequest, db: Session = Depends(get_db)):
         "version": transfer_file.version
     }
 
-@app.get("/transfer/agent/{agent_uuid}/downloads", tags=["🤖 Agent - File Transfer"])
-def get_agent_downloads(agent_uuid: str, db: Session = Depends(get_db)):
+@app.get("/transfer/agent/downloads", tags=["🤖 Agent - File Transfer"])
+def get_agent_downloads(agent_uuid: str = Depends(get_agent_uuid), db: Session = Depends(get_db)):
     """Get all pending downloads for an agent"""
     pickups = db.query(models.TransferFilePickup)\
         .filter(
@@ -3344,8 +3354,8 @@ def delete_transfer_file(file_id: int, db: Session = Depends(get_db)):
 # AGENT COMMUNICATION ENDPOINTS
 # ==============================================
 
-@app.post("/agents/{agent_uuid}/heartbeat", tags=["🤖 Agent - Registration & Health"])
-def agent_heartbeat(agent_uuid: str, heartbeat: dict, db: Session = Depends(get_db)):
+@app.post("/agents/heartbeat", tags=["🤖 Agent - Registration & Health"])
+def agent_heartbeat(agent_uuid: str = Depends(get_agent_uuid), heartbeat: dict = Body(...), db: Session = Depends(get_db)):
     """Agent sends heartbeat with system metrics"""
     agent = db.query(models.Agent).filter(models.Agent.uuid == agent_uuid).first()
 
@@ -3377,8 +3387,8 @@ def agent_heartbeat(agent_uuid: str, heartbeat: dict, db: Session = Depends(get_
 
     return {"success": True, "message": "Heartbeat received"}
 
-@app.get("/tasks/agent/{agent_uuid}/pending", tags=["🤖 Agent - Task Execution"])
-def get_pending_tasks(agent_uuid: str, db: Session = Depends(get_db)):
+@app.get("/tasks/agent/pending", tags=["🤖 Agent - Task Execution"])
+def get_pending_tasks(agent_uuid: str = Depends(get_agent_uuid), db: Session = Depends(get_db)):
     """Get pending tasks for a specific agent"""
     agent = db.query(models.Agent).filter(models.Agent.uuid == agent_uuid).first()
 
@@ -3452,8 +3462,8 @@ def complete_task(task_id: int, completion_data: dict, db: Session = Depends(get
 # AGENT COMMAND ENDPOINTS (Service Control, etc.)
 # ==============================================
 
-@app.get("/commands/agent/{agent_uuid}/pending", tags=["🤖 Agent - Task Execution"])
-def get_pending_commands(agent_uuid: str, db: Session = Depends(get_db)):
+@app.get("/commands/agent/pending", tags=["🤖 Agent - Task Execution"])
+def get_pending_commands(agent_uuid: str = Depends(get_agent_uuid), db: Session = Depends(get_db)):
     """Get pending commands for a specific agent (e.g., service start/stop)"""
     agent = db.query(models.Agent).filter(models.Agent.uuid == agent_uuid).first()
 
@@ -3516,8 +3526,8 @@ def complete_command(command_id: int, completion_data: dict, db: Session = Depen
 # RELEASE PICKUP ENDPOINTS (Agent Communication)
 # ==============================================
 
-@app.get("/releases/pickup/{agent_uuid}", tags=["🤖 Agent - Release Execution"])
-def get_pending_releases(agent_uuid: str, db: Session = Depends(get_db)):
+@app.get("/releases/pickup/pending", tags=["🤖 Agent - Release Execution"])
+def get_pending_releases(agent_uuid: str = Depends(get_agent_uuid), db: Session = Depends(get_db)):
     """Get pending release pickups for a specific agent"""
     # Verify agent exists
     agent = db.query(models.Agent).filter(models.Agent.uuid == agent_uuid).first()
@@ -3725,8 +3735,8 @@ def add_release_pickup_log(pickup_id: int, log_data: dict, db: Session = Depends
 # PIPELINE PICKUP ENDPOINTS (Agent Polling)
 # ==============================================
 
-@app.get("/pipelines/pickup/{agent_uuid}", tags=["🤖 Agent - Pipeline Execution"])
-def get_pending_pipelines(agent_uuid: str, db: Session = Depends(get_db)):
+@app.get("/pipelines/pickup/pending", tags=["🤖 Agent - Pipeline Execution"])
+def get_pending_pipelines(agent_uuid: str = Depends(get_agent_uuid), db: Session = Depends(get_db)):
     """Get pending pipeline pickups for a specific agent"""
     # Verify agent exists
     agent = db.query(models.Agent).filter(models.Agent.uuid == agent_uuid).first()
@@ -5011,20 +5021,19 @@ def get_common_email_presets():
 # K8S / ARGOCD / PROMETHEUS
 # ==============================================
 
-# In-memory store for K8s metrics per agent (keyed by agent_uuid).
-# A simple dict is fine — metrics are replaced each polling cycle.
-# For persistence across restarts, these could be stored in the DB later.
-_k8s_metrics_store: dict = {}
-_k8s_metrics_history: dict = {}       # uuid -> list of trimmed snapshots (max 60 points for sparklines)
-_k8s_metrics_full_history: dict = {}  # uuid -> list of full snapshots (max 120 points for datetime filter)
+# In-memory store for K8s metrics.
+# Keys are "{agent_uuid}:{cluster_name}" to support multiple clusters per agent.
+_k8s_metrics_store: dict = {}        # latest snapshot per (agent, cluster)
+_k8s_metrics_history: dict = {}      # trimmed sparkline history per (agent, cluster) — max 60 points
+_k8s_metrics_full_history: dict = {} # full snapshot history per (agent, cluster) — max 120 points for datetime filter
 
 # In-memory store for service log file content (keyed by "{agent_uuid}:{service_name}:{file_name}").
 # Content is pushed by the agent via a dedicated endpoint to avoid routing large
 # payloads through the generic command-result mechanism (which can hit IIS body limits).
 _service_log_content_store: dict = {}
 
-@app.post("/agents/{agent_uuid}/service-log-content", tags=["🤖 Agent - File Logs"])
-def receive_service_log_content(agent_uuid: str, payload: dict, db: Session = Depends(get_db)):
+@app.post("/agents/service-log-content", tags=["🤖 Agent - File Logs"])
+def receive_service_log_content(agent_uuid: str = Depends(get_agent_uuid), payload: dict = Body(...), db: Session = Depends(get_db)):
     """Agent pushes log file content here. Stored in memory so the UI can retrieve it."""
     agent = db.query(models.Agent).filter(models.Agent.uuid == agent_uuid).first()
     if not agent:
@@ -5037,9 +5046,9 @@ def receive_service_log_content(agent_uuid: str, payload: dict, db: Session = De
     _service_log_content_store[key] = payload
     return {"success": True}
 
-@app.get("/agents/{agent_uuid}/service-log-content", tags=["🌐 UI - File Logs"])
+@app.get("/agents/service-log-content", tags=["🌐 UI - File Logs"])
 def get_service_log_content(
-    agent_uuid: str,
+    agent_uuid: str = Depends(get_agent_uuid),
     service_name: str = Query(...),
     file_name: str = Query(...),
     db: Session = Depends(get_db)
@@ -5054,28 +5063,33 @@ def get_service_log_content(
         raise HTTPException(status_code=404, detail="Content not available yet")
     return data
 
-@app.post("/agents/{agent_uuid}/k8s-metrics", tags=["🤖 Agent - K8s"])
-def receive_k8s_metrics(agent_uuid: str, payload: dict, db: Session = Depends(get_db)):
-    """Receive K8s observability snapshot from a Prometheus-enabled agent"""
+@app.post("/agents/k8s-metrics", tags=["🤖 Agent - K8s"])
+def receive_k8s_metrics(agent_uuid: str = Depends(get_agent_uuid), payload: dict = Body(...), db: Session = Depends(get_db)):
+    """Receive K8s observability snapshot from a Prometheus-enabled agent. Payload must include cluster_name."""
     agent = db.query(models.Agent).filter(models.Agent.uuid == agent_uuid).first()
     if not agent:
         raise HTTPException(status_code=404, detail="Agent not found")
-    _k8s_metrics_store[agent_uuid] = payload
 
-    # Append full snapshot to full history for datetime filter (max 120 points)
-    if agent_uuid not in _k8s_metrics_full_history:
-        _k8s_metrics_full_history[agent_uuid] = []
-    full_hist = _k8s_metrics_full_history[agent_uuid]
+    cluster_name = payload.get("cluster_name") or "default"
+    key = f"{agent_uuid}:{cluster_name}"
+
+    _k8s_metrics_store[key] = payload
+
+    # Full snapshot history for datetime filter (max 120 points per cluster)
+    if key not in _k8s_metrics_full_history:
+        _k8s_metrics_full_history[key] = []
+    full_hist = _k8s_metrics_full_history[key]
     full_hist.append(payload)
     if len(full_hist) > 120:
         full_hist.pop(0)
 
-    # Append trimmed snapshot to history for sparklines (max 60 points)
-    if agent_uuid not in _k8s_metrics_history:
-        _k8s_metrics_history[agent_uuid] = []
-    history = _k8s_metrics_history[agent_uuid]
+    # Trimmed sparkline history (max 60 points per cluster)
+    if key not in _k8s_metrics_history:
+        _k8s_metrics_history[key] = []
+    history = _k8s_metrics_history[key]
     history.append({
         "collected_at": payload.get("collected_at"),
+        "cluster_name": cluster_name,
         "namespace_cpu_usage_cores": payload.get("namespace_cpu_usage_cores", 0),
         "namespace_memory_usage_bytes": payload.get("namespace_memory_usage_bytes", 0),
         "pod_count": len(payload.get("pods", [])),
@@ -5104,21 +5118,43 @@ _K8S_EMPTY_SNAPSHOT = {
     "nodes_total": 0, "nodes_unschedulable": 0,
 }
 
-@app.get("/agents/{agent_uuid}/k8s-metrics", tags=["🌐 UI - K8s"])
-def get_k8s_metrics(agent_uuid: str, at: Optional[str] = Query(None, description="ISO datetime to retrieve closest historical snapshot"), db: Session = Depends(get_db)):
-    """Get latest K8s observability snapshot for an agent, or closest snapshot to a given datetime"""
+@app.get("/agents/k8s-clusters", tags=["🌐 UI - K8s"])
+def get_k8s_clusters(agent_uuid: str = Depends(get_agent_uuid), db: Session = Depends(get_db)):
+    """List all cluster names that have reported metrics for this agent."""
+    agent = db.query(models.Agent).filter(models.Agent.uuid == agent_uuid).first()
+    if not agent:
+        raise HTTPException(status_code=404, detail="Agent not found")
+    prefix = f"{agent_uuid}:"
+    clusters = sorted({k[len(prefix):] for k in _k8s_metrics_store if k.startswith(prefix)})
+    return clusters
+
+@app.get("/agents/k8s-metrics", tags=["🌐 UI - K8s"])
+def get_k8s_metrics(
+    agent_uuid: str = Depends(get_agent_uuid),
+    cluster_name: Optional[str] = Query(None, description="Cluster name. Omit to get the first available cluster."),
+    at: Optional[str] = Query(None, description="ISO datetime to retrieve closest historical snapshot"),
+    db: Session = Depends(get_db)
+):
+    """Get latest K8s observability snapshot for an agent + cluster, or closest snapshot to a given datetime."""
     agent = db.query(models.Agent).filter(models.Agent.uuid == agent_uuid).first()
     if not agent:
         raise HTTPException(status_code=404, detail="Agent not found")
 
+    # Resolve cluster key — fall back to first available if not specified
+    if cluster_name:
+        key = f"{agent_uuid}:{cluster_name}"
+    else:
+        prefix = f"{agent_uuid}:"
+        candidates = [k for k in _k8s_metrics_store if k.startswith(prefix)]
+        key = candidates[0] if candidates else f"{agent_uuid}:default"
+
     if at:
-        # Find closest full snapshot to the requested time
         try:
             target_dt = datetime.fromisoformat(at.replace("Z", "+00:00"))
         except ValueError:
-            raise HTTPException(status_code=400, detail="Invalid datetime format. Use ISO 8601 (e.g. 2026-04-21T10:30:00)")
+            raise HTTPException(status_code=400, detail="Invalid datetime format. Use ISO 8601.")
 
-        full_hist = _k8s_metrics_full_history.get(agent_uuid, [])
+        full_hist = _k8s_metrics_full_history.get(key, [])
         if not full_hist:
             return {**_K8S_EMPTY_SNAPSHOT, "collected_at": None, "_historical_note": "No history available"}
 
@@ -5135,18 +5171,30 @@ def get_k8s_metrics(agent_uuid: str, at: Optional[str] = Query(None, description
         closest = min(full_hist, key=lambda s: abs((parse_dt(s) - target_naive).total_seconds()))
         return {**_K8S_EMPTY_SNAPSHOT, **closest}
 
-    return {**_K8S_EMPTY_SNAPSHOT, **_k8s_metrics_store.get(agent_uuid, {})}
+    return {**_K8S_EMPTY_SNAPSHOT, **_k8s_metrics_store.get(key, {})}
 
-@app.get("/agents/{agent_uuid}/k8s-metrics/history", tags=["🌐 UI - K8s"])
-def get_k8s_metrics_history(agent_uuid: str, db: Session = Depends(get_db)):
-    """Get time-series history of K8s metrics for sparklines"""
+@app.get("/agents/k8s-metrics/history", tags=["🌐 UI - K8s"])
+def get_k8s_metrics_history(
+    agent_uuid: str = Depends(get_agent_uuid),
+    cluster_name: Optional[str] = Query(None, description="Cluster name. Omit to get the first available cluster."),
+    db: Session = Depends(get_db)
+):
+    """Get time-series history of K8s metrics for sparklines."""
     agent = db.query(models.Agent).filter(models.Agent.uuid == agent_uuid).first()
     if not agent:
         raise HTTPException(status_code=404, detail="Agent not found")
-    return _k8s_metrics_history.get(agent_uuid, [])
 
-@app.post("/agents/{agent_uuid}/k8s-onboard", tags=["🌐 UI - K8s"])
-def k8s_onboard_application(agent_uuid: str, payload: dict, db: Session = Depends(get_db)):
+    if cluster_name:
+        key = f"{agent_uuid}:{cluster_name}"
+    else:
+        prefix = f"{agent_uuid}:"
+        candidates = [k for k in _k8s_metrics_history if k.startswith(prefix)]
+        key = candidates[0] if candidates else f"{agent_uuid}:default"
+
+    return _k8s_metrics_history.get(key, [])
+
+@app.post("/agents/k8s-onboard", tags=["🌐 UI - K8s"])
+def k8s_onboard_application(agent_uuid: str = Depends(get_agent_uuid), payload: dict = Body(...), db: Session = Depends(get_db)):
     """
     Send a k8s_onboard command to an agent — creates an ArgoCD Application for a new workload.
     payload: { app_name, namespace, helm_repo_url, helm_chart_name, helm_chart_version,
@@ -5168,8 +5216,8 @@ def k8s_onboard_application(agent_uuid: str, payload: dict, db: Session = Depend
     db.refresh(command)
     return {"success": True, "command_id": command.id}
 
-@app.post("/agents/{agent_uuid}/k8s-sync", tags=["🌐 UI - K8s"])
-def k8s_sync_application(agent_uuid: str, payload: dict, db: Session = Depends(get_db)):
+@app.post("/agents/k8s-sync", tags=["🌐 UI - K8s"])
+def k8s_sync_application(agent_uuid: str = Depends(get_agent_uuid), payload: dict = Body(...), db: Session = Depends(get_db)):
     """
     Send a k8s_argocd_sync command to an agent — updates image tag and triggers ArgoCD sync.
     payload: { app_name, image_repository, image_tag }

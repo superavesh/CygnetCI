@@ -32,9 +32,9 @@ public class AgentConfiguration
     // Services to monitor — works on both Windows and Linux
     public MonitoredServicesConfig MonitoredServices { get; set; } = new MonitoredServicesConfig();
 
-    // Kubernetes / ArgoCD / Prometheus (all disabled by default — only active when configured)
-    public ArgocdSettings ArgoCD { get; set; } = new ArgocdSettings();
-    public PrometheusSettings Prometheus { get; set; } = new PrometheusSettings();
+    // Kubernetes clusters — each entry configures one cluster with its own ArgoCD + Prometheus endpoints.
+    // Multiple clusters are supported: the agent polls each enabled cluster in parallel.
+    public List<KubernetesClusterConfig> KubernetesClusters { get; set; } = new();
 }
 
 public class ProxySettings
@@ -83,6 +83,14 @@ public class MonitoredServicesConfig
     /// Windows default was "CI". Leave empty to skip prefix matching.
     /// </summary>
     public List<string> Prefixes { get; set; } = new List<string>();
+}
+
+// Groups one K8s cluster's ArgoCD + Prometheus config under a friendly name.
+public class KubernetesClusterConfig
+{
+    public string ClusterName { get; set; } = string.Empty;
+    public ArgocdSettings ArgoCD { get; set; } = new ArgocdSettings();
+    public PrometheusSettings Prometheus { get; set; } = new PrometheusSettings();
 }
 
 public class ArgocdSettings

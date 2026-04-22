@@ -66,7 +66,8 @@ async function fetchFileContent(
   while (Date.now() - start < POLL_TIMEOUT_MS) {
     await new Promise(r => setTimeout(r, POLL_INTERVAL_MS));
     const res = await fetch(
-      `${apiBase}/agents/${agentUuid}/service-log-content?service_name=${encodeURIComponent(serviceName)}&file_name=${encodeURIComponent(fileName)}`
+      `${apiBase}/agents/service-log-content?service_name=${encodeURIComponent(serviceName)}&file_name=${encodeURIComponent(fileName)}`,
+      { headers: { 'X-Agent-UUID': agentUuid } }
     );
     if (res.status === 404) continue; // not ready yet
     if (!res.ok) throw new Error(`Failed to fetch file content: ${res.statusText}`);
@@ -113,8 +114,8 @@ export const ServiceLogsModal: React.FC<ServiceLogsModalProps> = ({
     try {
       // Issue command
       const res = await fetch(
-        `${apiBase}/monitoring/agents/${agentUuid}/service-log-files/${encodeURIComponent(serviceName)}`,
-        { method: 'POST' }
+        `${apiBase}/monitoring/agents/service-log-files/${encodeURIComponent(serviceName)}`,
+        { method: 'POST', headers: { 'X-Agent-UUID': agentUuid } }
       );
       if (!res.ok) throw new Error('Failed to issue command');
       const { command_id } = await res.json();
@@ -140,8 +141,8 @@ export const ServiceLogsModal: React.FC<ServiceLogsModalProps> = ({
   const readFileViaAgent = async (fileName: string, maxKb: number): Promise<LogReadResult> => {
     // 1. Issue service_log_read command (tells agent which file to read)
     const res = await fetch(
-      `${apiBase}/monitoring/agents/${agentUuid}/service-log-read/${encodeURIComponent(serviceName)}?file_name=${encodeURIComponent(fileName)}&max_kb=${maxKb}`,
-      { method: 'POST' }
+      `${apiBase}/monitoring/agents/service-log-read/${encodeURIComponent(serviceName)}?file_name=${encodeURIComponent(fileName)}&max_kb=${maxKb}`,
+      { method: 'POST', headers: { 'X-Agent-UUID': agentUuid } }
     );
     if (!res.ok) throw new Error('Failed to issue read command');
     const { command_id } = await res.json();

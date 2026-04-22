@@ -60,6 +60,11 @@ public class CygnetApiClient : ICygnetApiClient
                 var agentId     = doc.RootElement.TryGetProperty("id",         out var idEl)  ? idEl.GetInt32()  : 0;
                 var customerId  = doc.RootElement.TryGetProperty("customerId",  out var cIdEl) ? cIdEl.GetInt32() : 0;
                 _logger.LogInformation("Agent registered successfully with ID {AgentId}, CustomerId {CustomerId}", agentId, customerId);
+
+                // Set X-Agent-UUID on the shared HttpClient so every subsequent request includes it
+                _httpClient.DefaultRequestHeaders.Remove("X-Agent-UUID");
+                _httpClient.DefaultRequestHeaders.Add("X-Agent-UUID", _config.AgentUuid);
+
                 return (agentId, customerId);
             }
             else
@@ -95,7 +100,7 @@ public class CygnetApiClient : ICygnetApiClient
                 "application/json");
 
             var response = await _httpClient.PostAsync(
-                $"/agents/{_config.AgentUuid}/heartbeat",
+                "/agents/heartbeat",
                 content,
                 cancellationToken);
 
@@ -145,7 +150,7 @@ public class CygnetApiClient : ICygnetApiClient
                 "application/json");
 
             var response = await _httpClient.PostAsync(
-                $"/monitoring/agents/{_config.AgentUuid}/report",
+                "/monitoring/agents/report",
                 content,
                 cancellationToken);
 
@@ -165,7 +170,7 @@ public class CygnetApiClient : ICygnetApiClient
         try
         {
             var response = await _httpClient.GetAsync(
-                $"/tasks/agent/{_config.AgentUuid}/pending",
+                "/tasks/agent/pending",
                 cancellationToken);
 
             response.EnsureSuccessStatusCode();
@@ -236,7 +241,7 @@ public class CygnetApiClient : ICygnetApiClient
         try
         {
             var response = await _httpClient.GetAsync(
-                $"/transfer/agent/{_config.AgentUuid}/downloads",
+                "/transfer/agent/downloads",
                 cancellationToken);
 
             response.EnsureSuccessStatusCode();
@@ -299,7 +304,7 @@ public class CygnetApiClient : ICygnetApiClient
         try
         {
             var response = await _httpClient.GetAsync(
-                $"/releases/pickup/{_config.AgentUuid}",
+                "/releases/pickup/pending",
                 cancellationToken);
 
             response.EnsureSuccessStatusCode();
@@ -408,7 +413,7 @@ public class CygnetApiClient : ICygnetApiClient
         try
         {
             var response = await _httpClient.GetAsync(
-                $"/pipelines/pickup/{_config.AgentUuid}",
+                "/pipelines/pickup/pending",
                 cancellationToken);
 
             if (response.IsSuccessStatusCode)
@@ -545,7 +550,7 @@ public class CygnetApiClient : ICygnetApiClient
                 "application/json");
 
             var response = await _httpClient.PostAsync(
-                $"/agents/{_config.AgentUuid}/k8s-metrics",
+                "/agents/k8s-metrics",
                 content,
                 cancellationToken);
 
@@ -587,7 +592,7 @@ public class CygnetApiClient : ICygnetApiClient
         try
         {
             var response = await _httpClient.GetAsync(
-                $"/commands/agent/{_config.AgentUuid}/pending",
+                "/commands/agent/pending",
                 cancellationToken);
 
             response.EnsureSuccessStatusCode();
@@ -670,7 +675,7 @@ public class CygnetApiClient : ICygnetApiClient
                 "application/json");
 
             var response = await _httpClient.PostAsync(
-                $"/agents/{_config.AgentUuid}/service-log-content",
+                "/agents/service-log-content",
                 body,
                 cancellationToken);
 

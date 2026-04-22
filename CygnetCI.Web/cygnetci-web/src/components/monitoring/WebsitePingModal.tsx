@@ -34,7 +34,8 @@ export const WebsitePingModal: React.FC<WebsitePingModalProps> = ({
     setRefreshing(true);
     try {
       const response = await fetch(
-        `${CONFIG.api.baseUrl}/monitoring/agents/${agentUuid}/website-ping`
+        `${CONFIG.api.baseUrl}/monitoring/agents/website-ping`,
+        { headers: { 'X-Agent-UUID': agentUuid } }
       );
       if (response.ok) {
         const data = await response.json();

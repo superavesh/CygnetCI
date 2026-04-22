@@ -33,7 +33,8 @@ export const DriveInfoModal: React.FC<DriveInfoModalProps> = ({
     setLoading(true);
     try {
       const response = await fetch(
-        `${CONFIG.api.baseUrl}/monitoring/agents/${agentUuid}/drive-info`
+        `${CONFIG.api.baseUrl}/monitoring/agents/drive-info`,
+        { headers: { 'X-Agent-UUID': agentUuid } }
       );
       if (response.ok) {
         const data = await response.json();
