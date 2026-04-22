@@ -804,7 +804,7 @@ def get_agents_metrics(customer_id: int = None, db: Session = Depends(get_db)):
             "disk": latest_resource.disk if latest_resource else 0,
             "jobs": agent.jobs,
             "last_seen": agent.last_seen.isoformat() if agent.last_seen else None,
-            "has_k8s_data": agent.uuid in _k8s_metrics_store
+            "has_k8s_data": any(k.startswith(f"{agent.uuid}:") for k in _k8s_metrics_store)
         })
 
     return result
