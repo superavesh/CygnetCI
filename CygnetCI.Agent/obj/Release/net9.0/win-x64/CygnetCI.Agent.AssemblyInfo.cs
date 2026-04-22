@@ -14,7 +14,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("CygnetCI.Agent")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Release")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+1af9d7cc1d4f0ea66f160572e600c11fadc750c9")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+3ff310fba09cf9025c2aeb41d0cb0ae57b8428f6")]
 [assembly: System.Reflection.AssemblyProductAttribute("CygnetCI.Agent")]
 [assembly: System.Reflection.AssemblyTitleAttribute("CygnetCI.Agent")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]

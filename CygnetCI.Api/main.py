@@ -710,7 +710,7 @@ def create_agent(agent: AgentCreate, response: Response, db: Session = Depends(g
     response.status_code = 201
     return format_agent(db_agent)
 
-@app.get("/agents/{agent_id}", tags=["🌐 UI - Agents"])
+@app.get("/agents/{agent_id:int}", tags=["🌐 UI - Agents"])
 def get_agent(agent_id: int, db: Session = Depends(get_db)):
     """Get agent by ID"""
     agent = db.query(models.Agent).filter(models.Agent.id == agent_id).first()
@@ -718,7 +718,7 @@ def get_agent(agent_id: int, db: Session = Depends(get_db)):
         raise HTTPException(status_code=404, detail="Agent not found")
     return format_agent(agent)
 
-@app.put("/agents/{agent_id}", tags=["🌐 UI - Agents"])
+@app.put("/agents/{agent_id:int}", tags=["🌐 UI - Agents"])
 def update_agent(agent_id: int, agent: AgentUpdate, db: Session = Depends(get_db)):
     """Update an existing agent"""
     db_agent = db.query(models.Agent).filter(models.Agent.id == agent_id).first()
@@ -737,7 +737,7 @@ def update_agent(agent_id: int, agent: AgentUpdate, db: Session = Depends(get_db
     
     return format_agent(db_agent)
 
-@app.delete("/agents/{agent_id}", tags=["🌐 UI - Agents"])
+@app.delete("/agents/{agent_id:int}", tags=["🌐 UI - Agents"])
 def delete_agent(agent_id: int, db: Session = Depends(get_db)):
     """Delete an agent"""
     db_agent = db.query(models.Agent).filter(models.Agent.id == agent_id).first()
@@ -749,7 +749,7 @@ def delete_agent(agent_id: int, db: Session = Depends(get_db)):
     
     return {"success": True, "message": "Agent deleted successfully"}
 
-@app.get("/agents/{agent_id}/logs", tags=["🌐 UI - Agents"])
+@app.get("/agents/{agent_id:int}/logs", tags=["🌐 UI - Agents"])
 def get_agent_logs(
     agent_id: int,
     limit: int = Query(50, ge=1, le=500),

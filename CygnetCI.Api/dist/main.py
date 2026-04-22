@@ -455,7 +455,7 @@ app.include_router(customer_api.router)
 # SECURITY: Agent UUID from header
 # ==============================================
 
-def get_agent_uuid(x_agent_uuid: str = Header(..., alias="X-Agent-UUID",
+def get_agent_uuid(x_agent_uuid: str = Header(...,
         description="Agent UUID — must be passed as the X-Agent-UUID request header")):
     """Dependency that extracts the agent UUID from the X-Agent-UUID request header.
     Keeps UUIDs out of URL paths (which appear in server logs, browser history, proxies)."""
@@ -710,7 +710,7 @@ def create_agent(agent: AgentCreate, response: Response, db: Session = Depends(g
     response.status_code = 201
     return format_agent(db_agent)
 
-@app.get("/agents/{agent_id}", tags=["🌐 UI - Agents"])
+@app.get("/agents/{agent_id:int}", tags=["🌐 UI - Agents"])
 def get_agent(agent_id: int, db: Session = Depends(get_db)):
     """Get agent by ID"""
     agent = db.query(models.Agent).filter(models.Agent.id == agent_id).first()
@@ -718,7 +718,7 @@ def get_agent(agent_id: int, db: Session = Depends(get_db)):
         raise HTTPException(status_code=404, detail="Agent not found")
     return format_agent(agent)
 
-@app.put("/agents/{agent_id}", tags=["🌐 UI - Agents"])
+@app.put("/agents/{agent_id:int}", tags=["🌐 UI - Agents"])
 def update_agent(agent_id: int, agent: AgentUpdate, db: Session = Depends(get_db)):
     """Update an existing agent"""
     db_agent = db.query(models.Agent).filter(models.Agent.id == agent_id).first()
@@ -737,7 +737,7 @@ def update_agent(agent_id: int, agent: AgentUpdate, db: Session = Depends(get_db
     
     return format_agent(db_agent)
 
-@app.delete("/agents/{agent_id}", tags=["🌐 UI - Agents"])
+@app.delete("/agents/{agent_id:int}", tags=["🌐 UI - Agents"])
 def delete_agent(agent_id: int, db: Session = Depends(get_db)):
     """Delete an agent"""
     db_agent = db.query(models.Agent).filter(models.Agent.id == agent_id).first()
@@ -749,7 +749,7 @@ def delete_agent(agent_id: int, db: Session = Depends(get_db)):
     
     return {"success": True, "message": "Agent deleted successfully"}
 
-@app.get("/agents/{agent_id}/logs", tags=["🌐 UI - Agents"])
+@app.get("/agents/{agent_id:int}/logs", tags=["🌐 UI - Agents"])
 def get_agent_logs(
     agent_id: int,
     limit: int = Query(50, ge=1, le=500),
@@ -804,7 +804,7 @@ def get_agents_metrics(customer_id: int = None, db: Session = Depends(get_db)):
             "disk": latest_resource.disk if latest_resource else 0,
             "jobs": agent.jobs,
             "last_seen": agent.last_seen.isoformat() if agent.last_seen else None,
-            "has_k8s_data": agent.uuid in _k8s_metrics_store
+            "has_k8s_data": any(k.startswith(f"{agent.uuid}:") for k in _k8s_metrics_store)
         })
 
     return result
