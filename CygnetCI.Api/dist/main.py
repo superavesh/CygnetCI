@@ -1305,14 +1305,6 @@ def get_pipelines(
 def create_pipeline(pipeline: PipelineCreate, db: Session = Depends(get_db)):
     """Create a new pipeline with steps and parameters"""
 
-    # DEBUG: Log what we received
-    print(f"DEBUG: Received pipeline data:")
-    print(f"  Name: {pipeline.name}")
-    print(f"  AgentId: {pipeline.agentId}")
-    print(f"  Steps count: {len(pipeline.steps)}")
-    print(f"  Steps: {pipeline.steps}")
-    print(f"  Parameters count: {len(pipeline.parameters)}")
-
     # Create pipeline
     db_pipeline = models.Pipeline(
         name=pipeline.name,
@@ -3173,9 +3165,8 @@ def download_file(pickup_id: int, db: Session = Depends(get_db)):
     if not os.path.exists(transfer_file.file_path):
         raise HTTPException(status_code=404, detail="File not found on disk")
 
-    # Update pickup status
-    pickup.status = "downloaded"
-    pickup.downloaded_at = datetime.now()
+    # Mark as downloading — acknowledge endpoint will set final status
+    pickup.status = "downloading"
     db.commit()
 
     return FileResponse(

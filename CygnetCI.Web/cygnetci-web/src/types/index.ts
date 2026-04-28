@@ -225,7 +225,8 @@ export interface TransferFilePickup {
   version: string;
   agent_uuid: string;
   agent_name?: string;
-  status: 'pending' | 'downloaded' | 'failed';
+  status: 'pending' | 'downloading' | 'downloaded' | 'failed';
+  file_size_bytes?: number;
   requested_by?: string;
   requested_at: string;
   downloaded_at?: string;
