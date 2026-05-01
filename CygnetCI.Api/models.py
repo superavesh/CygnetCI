@@ -740,7 +740,7 @@ class TransferFilePickup(Base):
 
     __table_args__ = (
         CheckConstraint("file_type IN ('script', 'artifact')", name="check_pickup_file_type"),
-        CheckConstraint("status IN ('pending', 'downloaded', 'failed')", name="check_pickup_status"),
+        CheckConstraint("status IN ('pending', 'downloading', 'downloaded', 'failed')", name="check_pickup_status"),
     )
 
 
@@ -914,6 +914,15 @@ class EmailAlert(Base):
         CheckConstraint("category IN ('inbox', 'ignorable', 'moderate', 'critical', 'resolved')", name="check_email_category"),
         CheckConstraint("priority IN ('low', 'medium', 'high')", name="check_email_priority"),
     )
+
+
+class AlertSettings(Base):
+    __tablename__ = "alert_settings"
+
+    id = Column(Integer, primary_key=True, index=True)
+    key = Column(String(100), unique=True, nullable=False)
+    value = Column(String(255), nullable=False)
+    updated_at = Column(TIMESTAMP, server_default=func.now(), onupdate=func.now())
 
 
 class EmailConfig(Base):

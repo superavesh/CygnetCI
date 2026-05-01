@@ -2,7 +2,8 @@
 
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, Suspense } from 'react';
+import { useSearchParams } from 'next/navigation';
 import {
   Monitor, Activity, Cpu, HardDrive, Server, Settings,
   RefreshCw, Globe, ChevronRight, Container
@@ -31,11 +32,13 @@ interface AgentMetrics {
 
 type ModalType = 'cpu' | 'memory' | 'disk' | 'services' | 'drives' | 'ping' | 'k8s' | null;
 
-export default function MonitoringPage() {
+function MonitoringPageInner() {
   const { selectedCustomer } = useCustomer();
+  const searchParams = useSearchParams();
   const [agents, setAgents] = useState<AgentMetrics[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+  const [highlightedAgentId, setHighlightedAgentId] = useState<number | null>(null);
 
   // Modal states
   const [activeModal, setActiveModal] = useState<ModalType>(null);
@@ -72,6 +75,18 @@ export default function MonitoringPage() {
     setActiveModal(null);
     setSelectedAgent(null);
   };
+
+  // Auto-select agent from URL param ?agentId=<id> and scroll to it
+  useEffect(() => {
+    const agentIdParam = searchParams.get('agentId');
+    if (!agentIdParam) return;
+    const id = parseInt(agentIdParam, 10);
+    setHighlightedAgentId(id);
+    // Scroll after a short delay to let the list render
+    setTimeout(() => {
+      document.getElementById(`agent-${id}`)?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }, 600);
+  }, [searchParams, agents]);
 
   useEffect(() => {
     fetchAgentsMetrics();
@@ -197,10 +212,14 @@ export default function MonitoringPage() {
           const memColor = getMetricColor(agent.memory);
           const diskColor = getMetricColor(agent.disk);
 
+          const isHighlighted = highlightedAgentId === agent.id;
           return (
             <div
               key={agent.id}
-              className="bg-white rounded-lg shadow-md border border-gray-200 p-6 hover:shadow-lg transition-shadow"
+              id={`agent-${agent.id}`}
+              className={`bg-white rounded-lg shadow-md border p-6 hover:shadow-lg transition-shadow ${
+                isHighlighted ? 'border-blue-500 ring-2 ring-blue-400 ring-offset-1' : 'border-gray-200'
+              }`}
             >
               {/* Agent Header */}
               <div className="flex items-center justify-between mb-5 pb-4 border-b border-gray-200">
@@ -430,5 +449,17 @@ export default function MonitoringPage() {
         />
       )}
     </div>
+  );
+}
+
+export default function MonitoringPage() {
+  return (
+    <Suspense fallback={
+      <div className="flex items-center justify-center h-screen bg-gray-50">
+        <RefreshCw className="h-12 w-12 animate-spin text-blue-600" />
+      </div>
+    }>
+      <MonitoringPageInner />
+    </Suspense>
   );
 }

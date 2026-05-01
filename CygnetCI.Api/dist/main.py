@@ -3236,6 +3236,7 @@ def get_all_pickups(
             "file_name": transfer_file.file_name if transfer_file else "Unknown",
             "file_type": pickup.file_type,
             "version": pickup.version,
+            "file_size_bytes": transfer_file.file_size_bytes if transfer_file else None,
             "agent_uuid": pickup.agent_uuid,
             "agent_name": pickup.agent_name,
             "status": pickup.status,
@@ -5228,6 +5229,132 @@ def k8s_sync_application(agent_uuid: str = Depends(get_agent_uuid), payload: dic
     db.commit()
     db.refresh(command)
     return {"success": True, "command_id": command.id}
+
+
+# ==============================================
+# ALERT SETTINGS & SUMMARY
+# ==============================================
+
+_ALERT_DEFAULTS = {
+    "cpu_alert_threshold": "80",
+    "ram_alert_threshold": "80",
+    "alert_refresh_interval": "30",
+}
+
+def _get_alert_settings(db: Session) -> dict:
+    rows = db.query(models.AlertSettings).all()
+    settings = dict(_ALERT_DEFAULTS)
+    for row in rows:
+        settings[row.key] = row.value
+    return settings
+
+def _upsert_setting(db: Session, key: str, value: str):
+    row = db.query(models.AlertSettings).filter(models.AlertSettings.key == key).first()
+    if row:
+        row.value = value
+    else:
+        db.add(models.AlertSettings(key=key, value=value))
+
+@app.get("/settings/alerts", tags=["🌐 UI - Dashboard"])
+def get_alert_settings_endpoint(db: Session = Depends(get_db)):
+    """Get alert threshold settings."""
+    raw = _get_alert_settings(db)
+    return {
+        "cpu_alert_threshold": int(raw["cpu_alert_threshold"]),
+        "ram_alert_threshold": int(raw["ram_alert_threshold"]),
+        "alert_refresh_interval": int(raw["alert_refresh_interval"]),
+    }
+
+class AlertSettingsUpdate(BaseModel):
+    cpu_alert_threshold: Optional[int] = None
+    ram_alert_threshold: Optional[int] = None
+    alert_refresh_interval: Optional[int] = None
+
+@app.put("/settings/alerts", tags=["🌐 UI - Dashboard"])
+def update_alert_settings(body: AlertSettingsUpdate, db: Session = Depends(get_db)):
+    """Update alert threshold settings."""
+    if body.cpu_alert_threshold is not None:
+        _upsert_setting(db, "cpu_alert_threshold", str(body.cpu_alert_threshold))
+    if body.ram_alert_threshold is not None:
+        _upsert_setting(db, "ram_alert_threshold", str(body.ram_alert_threshold))
+    if body.alert_refresh_interval is not None:
+        _upsert_setting(db, "alert_refresh_interval", str(body.alert_refresh_interval))
+    db.commit()
+    return get_alert_settings_endpoint(db)
+
+@app.get("/alerts/summary", tags=["🌐 UI - Dashboard"])
+def get_alerts_summary(db: Session = Depends(get_db)):
+    """Return all agents that have at least one active alert (CPU, RAM, stopped services, failed/evicted pods)."""
+    raw = _get_alert_settings(db)
+    cpu_threshold = int(raw["cpu_alert_threshold"])
+    ram_threshold = int(raw["ram_alert_threshold"])
+
+    agents = db.query(models.Agent).all()
+
+    result = []
+    for agent in agents:
+        alerts: dict = {}
+
+        # CPU
+        if agent.cpu is not None and agent.cpu > cpu_threshold:
+            alerts["cpu"] = {"value": agent.cpu, "threshold": cpu_threshold}
+
+        # RAM
+        if agent.memory is not None and agent.memory > ram_threshold:
+            alerts["ram"] = {"value": agent.memory, "threshold": ram_threshold}
+
+        # Stopped Windows services
+        stopped = (
+            db.query(models.AgentWindowsService)
+            .filter(
+                models.AgentWindowsService.agent_id == agent.id,
+                models.AgentWindowsService.status == "Stopped",
+            )
+            .all()
+        )
+        if stopped:
+            alerts["stopped_services"] = [
+                {"name": s.service_name, "display_name": s.display_name}
+                for s in stopped
+            ]
+
+        # Failed / Evicted pods from in-memory K8s store
+        agent_prefix = f"{agent.uuid}:"
+        failed_pods = []
+        for key, payload in _k8s_metrics_store.items():
+            if not key.startswith(agent_prefix):
+                continue
+            cluster_name = key[len(agent_prefix):]
+            for pod in payload.get("pods", []):
+                phase = pod.get("phase", "")
+                reason = pod.get("reason", "")
+                if phase in ("Failed", "Unknown") or reason == "Evicted":
+                    failed_pods.append({
+                        "cluster": cluster_name,
+                        "namespace": pod.get("namespace"),
+                        "name": pod.get("name"),
+                        "phase": phase,
+                        "reason": reason,
+                    })
+        if failed_pods:
+            alerts["failed_pods"] = failed_pods
+
+        if not alerts:
+            continue
+
+        customer = db.query(models.Customer).filter(models.Customer.id == agent.customer_id).first()
+        result.append({
+            "agent_id": agent.id,
+            "agent_uuid": agent.uuid,
+            "agent_name": agent.name,
+            "agent_status": agent.status,
+            "customer_id": agent.customer_id,
+            "customer_name": customer.display_name if customer else "Unknown",
+            "last_seen": agent.last_seen.isoformat() if agent.last_seen else None,
+            "alerts": alerts,
+        })
+
+    return result
 
 
 # ==============================================

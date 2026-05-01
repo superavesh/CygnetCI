@@ -894,6 +894,25 @@ class ApiService {
 
     return await response.json();
   }
+
+  async getAlertsSummary() {
+    return this.fetchData('/alerts/summary');
+  }
+
+  async getAlertSettings() {
+    return this.fetchData('/settings/alerts');
+  }
+
+  async updateAlertSettings(settings: { cpu_alert_threshold?: number; ram_alert_threshold?: number; alert_refresh_interval?: number }) {
+    const url = `${CONFIG.api.baseUrl}/settings/alerts`;
+    const response = await fetch(url, {
+      method: 'PUT',
+      headers: CONFIG.api.headers,
+      body: JSON.stringify(settings),
+    });
+    if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+    return await response.json();
+  }
 }
 
 export const apiService = new ApiService();
