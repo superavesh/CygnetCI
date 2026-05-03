@@ -46,12 +46,14 @@ var builder = Host.CreateDefaultBuilder(args)
 
         // HTTP Client with Proxy Support
         services.AddTransient<AgentUuidHeaderHandler>();
+        services.AddTransient<HmacCredentialHandler>();
         services.AddHttpClient<ICygnetApiClient, CygnetApiClient>(client =>
         {
             client.BaseAddress = new Uri(config.ServerUrl);
             client.Timeout = TimeSpan.FromSeconds(config.HttpTimeoutSeconds);
         })
         .AddHttpMessageHandler<AgentUuidHeaderHandler>()
+        .AddHttpMessageHandler<HmacCredentialHandler>()
         .ConfigurePrimaryHttpMessageHandler(() =>
         {
             var handler = new HttpClientHandler();

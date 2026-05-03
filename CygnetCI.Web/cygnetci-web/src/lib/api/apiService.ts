@@ -903,7 +903,7 @@ class ApiService {
     return this.fetchData('/settings/alerts');
   }
 
-  async updateAlertSettings(settings: { cpu_alert_threshold?: number; ram_alert_threshold?: number; alert_refresh_interval?: number }) {
+  async updateAlertSettings(settings: { cpu_alert_threshold?: number; ram_alert_threshold?: number; disk_alert_threshold?: number; alert_refresh_interval?: number }) {
     const url = `${CONFIG.api.baseUrl}/settings/alerts`;
     const response = await fetch(url, {
       method: 'PUT',

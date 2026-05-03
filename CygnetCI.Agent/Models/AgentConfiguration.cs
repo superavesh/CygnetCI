@@ -6,6 +6,8 @@ public class AgentConfiguration
     public string AgentUuid { get; set; } = string.Empty;
     public string AgentName { get; set; } = Environment.MachineName;
     public string Location { get; set; } = "Default Location";
+    public string ClientId { get; set; } = string.Empty;
+    public string ClientSecret { get; set; } = string.Empty;
     public int HeartbeatIntervalSeconds { get; set; } = 30;
     public int MonitoringIntervalSeconds { get; set; } = 60;
     public int TaskPollingIntervalSeconds { get; set; } = 5;

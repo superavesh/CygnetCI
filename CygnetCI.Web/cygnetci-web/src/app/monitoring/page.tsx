@@ -33,7 +33,7 @@ interface AgentMetrics {
 type ModalType = 'cpu' | 'memory' | 'disk' | 'services' | 'drives' | 'ping' | 'k8s' | null;
 
 function MonitoringPageInner() {
-  const { selectedCustomer } = useCustomer();
+  const { selectedCustomer, customers, setSelectedCustomer } = useCustomer();
   const searchParams = useSearchParams();
   const [agents, setAgents] = useState<AgentMetrics[]>([]);
   const [loading, setLoading] = useState(true);
@@ -76,17 +76,25 @@ function MonitoringPageInner() {
     setSelectedAgent(null);
   };
 
-  // Auto-select agent from URL param ?agentId=<id> and scroll to it
+  // Switch customer and highlight agent from URL params ?agentId=&customerId=
   useEffect(() => {
     const agentIdParam = searchParams.get('agentId');
+    const customerIdParam = searchParams.get('customerId');
+
+    if (customerIdParam && customers.length > 0) {
+      const targetCustomer = customers.find(c => c.id === parseInt(customerIdParam, 10));
+      if (targetCustomer && selectedCustomer?.id !== targetCustomer.id) {
+        setSelectedCustomer(targetCustomer);
+      }
+    }
+
     if (!agentIdParam) return;
     const id = parseInt(agentIdParam, 10);
     setHighlightedAgentId(id);
-    // Scroll after a short delay to let the list render
     setTimeout(() => {
       document.getElementById(`agent-${id}`)?.scrollIntoView({ behavior: 'smooth', block: 'center' });
     }, 600);
-  }, [searchParams, agents]);
+  }, [searchParams, customers]);
 
   useEffect(() => {
     fetchAgentsMetrics();

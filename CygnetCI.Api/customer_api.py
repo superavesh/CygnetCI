@@ -1,4 +1,5 @@
 # customer_api.py - Customer API endpoints
+import secrets
 from fastapi import APIRouter, HTTPException, Depends
 from sqlalchemy.orm import Session
 from typing import List
@@ -32,9 +33,15 @@ class CustomerUpdate(BaseModel):
     contact_phone: str | None = None
     address: str | None = None
     is_active: bool | None = None
+    ip_allowlist: list[str] | None = None
 
 class CustomerResponse(CustomerBase):
     id: int
+    client_id: str | None = None
+    client_secret: str | None = None
+    credentials_enabled: bool = False
+    ip_allowlist: list[str] | None = None
+    ip_restriction_enabled: bool = False
     created_at: datetime
     updated_at: datetime
 
@@ -95,7 +102,6 @@ def get_customer(customer_id: int, db: Session = Depends(get_db)):
 @router.post("", response_model=CustomerResponse, status_code=201)
 def create_customer(customer: CustomerCreate, db: Session = Depends(get_db)):
     """Create a new customer"""
-    # Check if customer with same name already exists
     existing = db.query(Customer).filter(Customer.name == customer.name).first()
     if existing:
         raise HTTPException(status_code=400, detail="Customer with this name already exists")
@@ -113,10 +119,8 @@ def update_customer(customer_id: int, customer: CustomerUpdate, db: Session = De
     if not db_customer:
         raise HTTPException(status_code=404, detail="Customer not found")
 
-    # Update only provided fields
     update_data = customer.model_dump(exclude_unset=True)
 
-    # Check name uniqueness if name is being updated
     if "name" in update_data and update_data["name"] != db_customer.name:
         existing = db.query(Customer).filter(Customer.name == update_data["name"]).first()
         if existing:
@@ -137,11 +141,88 @@ def delete_customer(customer_id: int, db: Session = Depends(get_db)):
     if not db_customer:
         raise HTTPException(status_code=404, detail="Customer not found")
 
-    # Soft delete - set is_active to False instead of actually deleting
     db_customer.is_active = False
     db_customer.updated_at = datetime.utcnow()
     db.commit()
     return None
+
+@router.post("/{customer_id}/activate", response_model=CustomerResponse)
+def activate_customer(customer_id: int, db: Session = Depends(get_db)):
+    """Activate a customer"""
+    db_customer = db.query(Customer).filter(Customer.id == customer_id).first()
+    if not db_customer:
+        raise HTTPException(status_code=404, detail="Customer not found")
+
+    db_customer.is_active = True
+    db_customer.updated_at = datetime.utcnow()
+    db.commit()
+    db.refresh(db_customer)
+    return db_customer
+
+@router.post("/{customer_id}/deactivate", response_model=CustomerResponse)
+def deactivate_customer(customer_id: int, db: Session = Depends(get_db)):
+    """Deactivate a customer"""
+    db_customer = db.query(Customer).filter(Customer.id == customer_id).first()
+    if not db_customer:
+        raise HTTPException(status_code=404, detail="Customer not found")
+
+    db_customer.is_active = False
+    db_customer.updated_at = datetime.utcnow()
+    db.commit()
+    db.refresh(db_customer)
+    return db_customer
+
+@router.post("/{customer_id}/generate-credentials", response_model=CustomerResponse)
+def generate_credentials(customer_id: int, db: Session = Depends(get_db)):
+    """Generate new client_id and client_secret for a customer"""
+    db_customer = db.query(Customer).filter(Customer.id == customer_id).first()
+    if not db_customer:
+        raise HTTPException(status_code=404, detail="Customer not found")
+
+    db_customer.client_id = secrets.token_hex(32)       # 64 hex chars
+    db_customer.client_secret = secrets.token_hex(64)   # 128 hex chars
+    db_customer.updated_at = datetime.utcnow()
+    db.commit()
+    db.refresh(db_customer)
+    return db_customer
+
+@router.post("/{customer_id}/toggle-credentials", response_model=CustomerResponse)
+def toggle_credentials(customer_id: int, db: Session = Depends(get_db)):
+    """Enable or disable HMAC credential enforcement for a customer"""
+    db_customer = db.query(Customer).filter(Customer.id == customer_id).first()
+    if not db_customer:
+        raise HTTPException(status_code=404, detail="Customer not found")
+
+    if not db_customer.client_id or not db_customer.client_secret:
+        raise HTTPException(
+            status_code=400,
+            detail="Generate credentials first before enabling"
+        )
+
+    db_customer.credentials_enabled = not db_customer.credentials_enabled
+    db_customer.updated_at = datetime.utcnow()
+    db.commit()
+    db.refresh(db_customer)
+    return db_customer
+
+@router.post("/{customer_id}/toggle-ip-restriction", response_model=CustomerResponse)
+def toggle_ip_restriction(customer_id: int, db: Session = Depends(get_db)):
+    """Enable or disable IP restriction enforcement for a customer"""
+    db_customer = db.query(Customer).filter(Customer.id == customer_id).first()
+    if not db_customer:
+        raise HTTPException(status_code=404, detail="Customer not found")
+
+    if not db_customer.ip_allowlist:
+        raise HTTPException(
+            status_code=400,
+            detail="Add at least one IP rule before enabling IP restriction"
+        )
+
+    db_customer.ip_restriction_enabled = not db_customer.ip_restriction_enabled
+    db_customer.updated_at = datetime.utcnow()
+    db.commit()
+    db.refresh(db_customer)
+    return db_customer
 
 @router.get("/{customer_id}/statistics", response_model=CustomerStatistics)
 def get_customer_statistics(customer_id: int, db: Session = Depends(get_db)):
@@ -150,31 +231,12 @@ def get_customer_statistics(customer_id: int, db: Session = Depends(get_db)):
     if not customer:
         raise HTTPException(status_code=404, detail="Customer not found")
 
-    # Count total agents
     total_agents = db.query(Agent).filter(Agent.customer_id == customer_id).count()
-
-    # Count online agents
-    online_agents = db.query(Agent).filter(
-        Agent.customer_id == customer_id,
-        Agent.status == "online"
-    ).count()
-
-    # Count total pipelines
+    online_agents = db.query(Agent).filter(Agent.customer_id == customer_id, Agent.status == "online").count()
     total_pipelines = db.query(Pipeline).filter(Pipeline.customer_id == customer_id).count()
-
-    # Count successful pipelines
-    successful_pipelines = db.query(Pipeline).filter(
-        Pipeline.customer_id == customer_id,
-        Pipeline.status == "success"
-    ).count()
-
-    # Count total releases
+    successful_pipelines = db.query(Pipeline).filter(Pipeline.customer_id == customer_id, Pipeline.status == "success").count()
     total_releases = db.query(Release).filter(Release.customer_id == customer_id).count()
-
-    # Count total services
     total_services = db.query(Service).filter(Service.customer_id == customer_id).count()
-
-    # Count total users (through UserCustomer many-to-many relationship)
     total_users = db.query(UserCustomer).filter(UserCustomer.customer_id == customer_id).count()
 
     return CustomerStatistics(

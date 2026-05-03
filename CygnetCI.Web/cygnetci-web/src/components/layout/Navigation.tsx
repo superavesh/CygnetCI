@@ -2,7 +2,7 @@
 
 'use client';
 
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useSidebar } from '@/lib/contexts/SidebarContext';
@@ -37,6 +37,12 @@ const navItems = [
 export const Navigation: React.FC = () => {
   const pathname = usePathname();
   const { isCollapsed, setIsCollapsed } = useSidebar();
+  const [currentPath, setCurrentPath] = useState('');
+
+  useEffect(() => {
+    const p = window.location.pathname.replace(/\/$/, '') || '/';
+    setCurrentPath(p);
+  }, [pathname]);
 
   return (
     <nav
@@ -49,7 +55,7 @@ export const Navigation: React.FC = () => {
       {/* Navigation Items */}
       <div className="flex flex-col py-4 overflow-y-auto h-full">
         {navItems.map(item => {
-          const isActive = pathname === item.href;
+          const isActive = currentPath === item.href;
           return (
             <Link
               key={item.id}

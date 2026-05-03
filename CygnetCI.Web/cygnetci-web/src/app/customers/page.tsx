@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { CONFIG } from '@/lib/config';
 import { useCustomer } from '@/lib/contexts/CustomerContext';
-import { Building2, Plus, Edit2, Trash2, Power, Mail, Phone, MapPin, Search, X, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Building2, Plus, Edit2, Trash2, Power, Mail, Phone, MapPin, Search, X, ChevronLeft, ChevronRight, RefreshCw, Eye, EyeOff, Copy, ShieldCheck, ShieldOff, Globe, Trash } from 'lucide-react';
 
 interface Customer {
   id: number;
@@ -15,6 +15,11 @@ interface Customer {
   address?: string;
   is_active: boolean;
   logo_url?: string;
+  client_id?: string;
+  client_secret?: string;
+  credentials_enabled: boolean;
+  ip_allowlist?: string[];
+  ip_restriction_enabled: boolean;
   created_at: string;
   updated_at: string;
 }
@@ -53,6 +58,14 @@ export default function CustomersPage() {
 
   // Filter state
   const [searchQuery, setSearchQuery] = useState('');
+
+  // Credential UI state
+  const [showSecret, setShowSecret] = useState(false);
+  const [credentialLoading, setCredentialLoading] = useState(false);
+
+  // IP restriction UI state
+  const [newIpEntry, setNewIpEntry] = useState('');
+  const [ipLoading, setIpLoading] = useState(false);
 
   useEffect(() => {
     fetchCustomers();
@@ -204,6 +217,7 @@ export default function CustomersPage() {
 
   const openEditModal = (customer: Customer) => {
     setSelectedCustomer(customer);
+    setShowSecret(false);
     setFormData({
       name: customer.name,
       display_name: customer.display_name,
@@ -213,6 +227,113 @@ export default function CustomersPage() {
       address: customer.address || ''
     });
     setShowEditModal(true);
+  };
+
+  const handleGenerateCredentials = async () => {
+    if (!selectedCustomer) return;
+    if (!confirm('Generate new credentials? This will invalidate any existing credentials configured in agents.')) return;
+    setCredentialLoading(true);
+    try {
+      const response = await fetch(`${CONFIG.api.baseUrl}/customers/${selectedCustomer.id}/generate-credentials`, {
+        method: 'POST'
+      });
+      if (!response.ok) throw new Error('Failed to generate credentials');
+      const updated: Customer = await response.json();
+      setSelectedCustomer(updated);
+      setCustomers(prev => prev.map(c => c.id === updated.id ? updated : c));
+    } catch (error) {
+      alert('Failed to generate credentials');
+    } finally {
+      setCredentialLoading(false);
+    }
+  };
+
+  const handleToggleCredentials = async () => {
+    if (!selectedCustomer) return;
+    const action = selectedCustomer.credentials_enabled ? 'disable' : 'enable';
+    if (!confirm(`${action === 'enable' ? 'Enable' : 'Disable'} credential enforcement for this customer?\n\n${action === 'enable' ? 'Agents without credentials configured will get 401 errors.' : 'All agents can connect without credential validation.'}`)) return;
+    setCredentialLoading(true);
+    try {
+      const response = await fetch(`${CONFIG.api.baseUrl}/customers/${selectedCustomer.id}/toggle-credentials`, {
+        method: 'POST'
+      });
+      if (!response.ok) {
+        const err = await response.json();
+        alert(err.detail || 'Failed to toggle credentials');
+        return;
+      }
+      const updated: Customer = await response.json();
+      setSelectedCustomer(updated);
+      setCustomers(prev => prev.map(c => c.id === updated.id ? updated : c));
+    } catch (error) {
+      alert('Failed to toggle credentials');
+    } finally {
+      setCredentialLoading(false);
+    }
+  };
+
+  const copyToClipboard = (text: string) => {
+    navigator.clipboard.writeText(text);
+  };
+
+  const handleAddIpEntry = async () => {
+    if (!selectedCustomer || !newIpEntry.trim()) return;
+    const entry = newIpEntry.trim();
+    const current = selectedCustomer.ip_allowlist || [];
+    if (current.includes(entry)) { setNewIpEntry(''); return; }
+    const updated = [...current, entry];
+    await saveIpAllowlist(updated);
+    setNewIpEntry('');
+  };
+
+  const handleRemoveIpEntry = async (entry: string) => {
+    if (!selectedCustomer) return;
+    const updated = (selectedCustomer.ip_allowlist || []).filter(e => e !== entry);
+    await saveIpAllowlist(updated);
+  };
+
+  const saveIpAllowlist = async (allowlist: string[]) => {
+    if (!selectedCustomer) return;
+    setIpLoading(true);
+    try {
+      const response = await fetch(`${CONFIG.api.baseUrl}/customers/${selectedCustomer.id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ ip_allowlist: allowlist })
+      });
+      if (!response.ok) throw new Error('Failed to save IP allowlist');
+      const updated: Customer = await response.json();
+      setSelectedCustomer(updated);
+      setCustomers(prev => prev.map(c => c.id === updated.id ? updated : c));
+    } catch {
+      alert('Failed to save IP allowlist');
+    } finally {
+      setIpLoading(false);
+    }
+  };
+
+  const handleToggleIpRestriction = async () => {
+    if (!selectedCustomer) return;
+    const action = selectedCustomer.ip_restriction_enabled ? 'disable' : 'enable';
+    if (!confirm(`${action === 'enable' ? 'Enable' : 'Disable'} IP restriction for this customer?\n\n${action === 'enable' ? 'Agents connecting from IPs not in the allowlist will be rejected.' : 'All IPs will be allowed.'}`)) return;
+    setIpLoading(true);
+    try {
+      const response = await fetch(`${CONFIG.api.baseUrl}/customers/${selectedCustomer.id}/toggle-ip-restriction`, {
+        method: 'POST'
+      });
+      if (!response.ok) {
+        const err = await response.json();
+        alert(err.detail || 'Failed to toggle IP restriction');
+        return;
+      }
+      const updated: Customer = await response.json();
+      setSelectedCustomer(updated);
+      setCustomers(prev => prev.map(c => c.id === updated.id ? updated : c));
+    } catch {
+      alert('Failed to toggle IP restriction');
+    } finally {
+      setIpLoading(false);
+    }
   };
 
   // Pagination logic
@@ -411,9 +532,9 @@ export default function CustomersPage() {
                 <button
                   onClick={() => handlePageChange(currentPage - 1)}
                   disabled={currentPage === 1}
-                  className="p-2 rounded-lg border border-gray-300 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                  className="px-3 py-2 rounded-lg border border-gray-300 bg-white hover:bg-gray-50 disabled:opacity-40 disabled:cursor-not-allowed transition-colors text-gray-700 text-sm font-medium"
                 >
-                  <ChevronLeft className="h-4 w-4 text-gray-600" />
+                  &#8249;
                 </button>
 
                 {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
@@ -433,9 +554,9 @@ export default function CustomersPage() {
                 <button
                   onClick={() => handlePageChange(currentPage + 1)}
                   disabled={currentPage === totalPages}
-                  className="p-2 rounded-lg border border-gray-300 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                  className="px-3 py-2 rounded-lg border border-gray-300 bg-white hover:bg-gray-50 disabled:opacity-40 disabled:cursor-not-allowed transition-colors text-gray-700 text-sm font-medium"
                 >
-                  <ChevronRight className="h-4 w-4 text-gray-600" />
+                  &#8250;
                 </button>
               </div>
 
@@ -652,6 +773,187 @@ export default function CustomersPage() {
                   rows={2}
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-900 bg-white"
                 />
+              </div>
+
+              {/* API Credentials Section */}
+              <div className="border border-gray-200 rounded-lg p-4 space-y-3">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <h3 className="text-sm font-semibold text-gray-800">Agent API Credentials</h3>
+                    <p className="text-xs text-gray-500 mt-0.5">HMAC-SHA256 credential enforcement for agent communication</p>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    {selectedCustomer.credentials_enabled ? (
+                      <span className="flex items-center gap-1 px-2 py-1 bg-green-100 text-green-700 rounded-full text-xs font-medium">
+                        <ShieldCheck className="h-3 w-3" /> Enabled
+                      </span>
+                    ) : (
+                      <span className="flex items-center gap-1 px-2 py-1 bg-gray-100 text-gray-600 rounded-full text-xs font-medium">
+                        <ShieldOff className="h-3 w-3" /> Disabled
+                      </span>
+                    )}
+                  </div>
+                </div>
+
+                {selectedCustomer.client_id ? (
+                  <>
+                    <div>
+                      <label className="block text-xs font-medium text-gray-600 mb-1">Client ID (64 chars)</label>
+                      <div className="flex items-center gap-2">
+                        <input
+                          type="text"
+                          value={selectedCustomer.client_id}
+                          readOnly
+                          className="flex-1 px-3 py-2 border border-gray-300 rounded-lg text-xs font-mono text-gray-700 bg-gray-50"
+                        />
+                        <button
+                          onClick={() => copyToClipboard(selectedCustomer.client_id!)}
+                          className="p-2 text-gray-500 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
+                          title="Copy Client ID"
+                        >
+                          <Copy className="h-4 w-4" />
+                        </button>
+                      </div>
+                    </div>
+                    <div>
+                      <label className="block text-xs font-medium text-gray-600 mb-1">Client Secret (128 chars)</label>
+                      <div className="flex items-center gap-2">
+                        <input
+                          type={showSecret ? 'text' : 'password'}
+                          value={selectedCustomer.client_secret}
+                          readOnly
+                          className="flex-1 px-3 py-2 border border-gray-300 rounded-lg text-xs font-mono text-gray-700 bg-gray-50"
+                        />
+                        <button
+                          onClick={() => setShowSecret(!showSecret)}
+                          className="p-2 text-gray-500 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
+                          title={showSecret ? 'Hide' : 'Show'}
+                        >
+                          {showSecret ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                        </button>
+                        <button
+                          onClick={() => copyToClipboard(selectedCustomer.client_secret!)}
+                          className="p-2 text-gray-500 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
+                          title="Copy Client Secret"
+                        >
+                          <Copy className="h-4 w-4" />
+                        </button>
+                      </div>
+                    </div>
+                    <div className="flex gap-2 pt-1">
+                      <button
+                        onClick={handleGenerateCredentials}
+                        disabled={credentialLoading}
+                        className="flex items-center gap-1.5 px-3 py-1.5 text-xs border border-gray-300 text-gray-700 hover:bg-gray-50 rounded-lg transition-colors disabled:opacity-50"
+                      >
+                        <RefreshCw className={`h-3 w-3 ${credentialLoading ? 'animate-spin' : ''}`} />
+                        Regenerate
+                      </button>
+                      <button
+                        onClick={handleToggleCredentials}
+                        disabled={credentialLoading}
+                        className={`flex items-center gap-1.5 px-3 py-1.5 text-xs rounded-lg transition-colors disabled:opacity-50 ${
+                          selectedCustomer.credentials_enabled
+                            ? 'border border-red-300 text-red-600 hover:bg-red-50'
+                            : 'border border-green-300 text-green-600 hover:bg-green-50'
+                        }`}
+                      >
+                        {selectedCustomer.credentials_enabled
+                          ? <><ShieldOff className="h-3 w-3" /> Disable</>
+                          : <><ShieldCheck className="h-3 w-3" /> Enable</>
+                        }
+                      </button>
+                    </div>
+                  </>
+                ) : (
+                  <button
+                    onClick={handleGenerateCredentials}
+                    disabled={credentialLoading}
+                    className="flex items-center gap-2 px-4 py-2 bg-blue-500 hover:bg-blue-600 text-white text-sm rounded-lg transition-colors disabled:opacity-50"
+                  >
+                    <RefreshCw className={`h-4 w-4 ${credentialLoading ? 'animate-spin' : ''}`} />
+                    Generate Credentials
+                  </button>
+                )}
+              </div>
+
+              {/* IP Restriction Section */}
+              <div className="border border-gray-200 rounded-lg p-4 space-y-3">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <h3 className="text-sm font-semibold text-gray-800 flex items-center gap-1.5">
+                      <Globe className="h-4 w-4 text-gray-500" /> IP Restriction
+                    </h3>
+                    <p className="text-xs text-gray-500 mt-0.5">Allow agent connections only from specified IPs, ranges, or CIDRs</p>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    {selectedCustomer.ip_restriction_enabled ? (
+                      <span className="flex items-center gap-1 px-2 py-1 bg-green-100 text-green-700 rounded-full text-xs font-medium">
+                        <ShieldCheck className="h-3 w-3" /> Enabled
+                      </span>
+                    ) : (
+                      <span className="flex items-center gap-1 px-2 py-1 bg-gray-100 text-gray-600 rounded-full text-xs font-medium">
+                        <ShieldOff className="h-3 w-3" /> Disabled
+                      </span>
+                    )}
+                  </div>
+                </div>
+
+                {/* Add entry */}
+                <div className="flex gap-2">
+                  <input
+                    type="text"
+                    value={newIpEntry}
+                    onChange={e => setNewIpEntry(e.target.value)}
+                    onKeyDown={e => e.key === 'Enter' && handleAddIpEntry()}
+                    placeholder="e.g. 1.2.3.4  or  10.0.0.0/8  or  192.168.1.1-192.168.1.50"
+                    className="flex-1 px-3 py-2 border border-gray-300 rounded-lg text-sm text-gray-900 bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  />
+                  <button
+                    onClick={handleAddIpEntry}
+                    disabled={!newIpEntry.trim() || ipLoading}
+                    className="px-3 py-2 bg-blue-500 hover:bg-blue-600 text-white text-sm rounded-lg disabled:opacity-50 transition-colors"
+                  >
+                    Add
+                  </button>
+                </div>
+
+                {/* Allowlist entries */}
+                {selectedCustomer.ip_allowlist && selectedCustomer.ip_allowlist.length > 0 ? (
+                  <div className="space-y-1 max-h-40 overflow-y-auto">
+                    {selectedCustomer.ip_allowlist.map(entry => (
+                      <div key={entry} className="flex items-center justify-between px-3 py-1.5 bg-gray-50 border border-gray-200 rounded-lg">
+                        <span className="text-xs font-mono text-gray-700">{entry}</span>
+                        <button
+                          onClick={() => handleRemoveIpEntry(entry)}
+                          disabled={ipLoading}
+                          className="text-red-400 hover:text-red-600 transition-colors disabled:opacity-50 ml-2"
+                          title="Remove"
+                        >
+                          <Trash className="h-3.5 w-3.5" />
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <p className="text-xs text-gray-400 text-center py-2">No IP rules added yet</p>
+                )}
+
+                {/* Enable / Disable toggle */}
+                <button
+                  onClick={handleToggleIpRestriction}
+                  disabled={ipLoading}
+                  className={`flex items-center gap-1.5 px-3 py-1.5 text-xs rounded-lg transition-colors disabled:opacity-50 ${
+                    selectedCustomer.ip_restriction_enabled
+                      ? 'border border-red-300 text-red-600 hover:bg-red-50'
+                      : 'border border-green-300 text-green-600 hover:bg-green-50'
+                  }`}
+                >
+                  {selectedCustomer.ip_restriction_enabled
+                    ? <><ShieldOff className="h-3 w-3" /> Disable IP Restriction</>
+                    : <><ShieldCheck className="h-3 w-3" /> Enable IP Restriction</>
+                  }
+                </button>
               </div>
             </div>
 

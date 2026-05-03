@@ -761,6 +761,11 @@ class Customer(Base):
     is_active = Column(Boolean, default=True, nullable=False)
     logo_url = Column(String(500))
     settings = Column(JSONB)  # For customer-specific configuration
+    client_id = Column(String(64), nullable=True, unique=True)
+    client_secret = Column(String(128), nullable=True)
+    credentials_enabled = Column(Boolean, default=False, nullable=False)
+    ip_allowlist = Column(JSONB, nullable=True)          # list of IPs / CIDRs / ranges
+    ip_restriction_enabled = Column(Boolean, default=False, nullable=False)
     created_at = Column(TIMESTAMP, server_default=func.now(), nullable=False)
     updated_at = Column(TIMESTAMP, server_default=func.now(), onupdate=func.now(), nullable=False)
 

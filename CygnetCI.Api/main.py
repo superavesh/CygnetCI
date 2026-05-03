@@ -1,7 +1,7 @@
 # main.py - Complete FastAPI Implementation with Database
-from fastapi import FastAPI, HTTPException, Depends, Query, Body, UploadFile, File, Form, Response, Header
+from fastapi import FastAPI, HTTPException, Depends, Query, Body, UploadFile, File, Form, Response, Header, Request
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import FileResponse
+from fastapi.responses import FileResponse, JSONResponse
 from pydantic import BaseModel, Field
 from typing import List, Optional, Dict, Any
 from datetime import datetime, timedelta
@@ -10,6 +10,9 @@ from sqlalchemy.orm import Session
 import uvicorn
 import os
 import hashlib
+import hmac as hmac_lib
+import time
+import ipaddress
 import shutil
 import bcrypt
 
@@ -448,8 +451,189 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+# ==============================================
+# SECURITY: HMAC credential validation middleware
+# ==============================================
+
+import threading
+import asyncio
+
+# Cache agent security settings for 60 seconds to avoid a DB hit on every agent request
+_security_cache: dict = {}
+_security_cache_lock = threading.Lock()
+_SECURITY_CACHE_TTL = 60  # seconds
+
+def _get_cached_security(agent_uuid: str):
+    with _security_cache_lock:
+        entry = _security_cache.get(agent_uuid)
+    if entry and (time.time() - entry["ts"]) < _SECURITY_CACHE_TTL:
+        return entry["data"]
+    return None
+
+def _set_cached_security(agent_uuid: str, data):
+    with _security_cache_lock:
+        _security_cache[agent_uuid] = {"ts": time.time(), "data": data}
+
+def _get_real_ip(request: Request) -> str:
+    """Extract the real client IP, checking proxy headers before falling back to direct connection."""
+    real_ip = request.headers.get("X-Real-IP")
+    if real_ip:
+        return real_ip.strip().split(",")[0].strip()
+    forwarded_for = request.headers.get("X-Forwarded-For")
+    if forwarded_for:
+        return forwarded_for.strip().split(",")[0].strip()
+    return request.client.host if request.client else ""
+
+def _ip_in_allowlist(ip_str: str, allowlist: list) -> bool:
+    """Check whether ip_str matches any entry in allowlist (IP, CIDR, or range)."""
+    try:
+        client_ip = ipaddress.ip_address(ip_str)
+    except ValueError:
+        return False
+
+    for entry in allowlist:
+        entry = entry.strip()
+        try:
+            if "-" in entry and not entry.startswith("-"):
+                # Range: 192.168.1.1-192.168.1.50
+                start_str, end_str = entry.split("-", 1)
+                start = ipaddress.ip_address(start_str.strip())
+                end = ipaddress.ip_address(end_str.strip())
+                if start <= client_ip <= end:
+                    return True
+            elif "/" in entry:
+                # CIDR: 192.168.1.0/24
+                if client_ip in ipaddress.ip_network(entry, strict=False):
+                    return True
+            else:
+                # Exact IP
+                if client_ip == ipaddress.ip_address(entry):
+                    return True
+        except ValueError:
+            continue  # skip malformed entries
+
+    return False
+
+@app.middleware("http")
+async def security_middleware(request: Request, call_next):
+    # Always pass OPTIONS preflight through untouched so CORS middleware can handle it
+    if request.method == "OPTIONS":
+        return await call_next(request)
+
+    agent_uuid = request.headers.get("X-Agent-UUID")
+
+    if not agent_uuid:
+        return await call_next(request)
+
+    if request.url.path == "/agents" and request.method == "POST":
+        return await call_next(request)
+
+    # Check cache first — no DB connection needed on a hit
+    sec = _get_cached_security(agent_uuid)
+
+    if sec is None:
+        # Cache miss — open DB, query once, close BEFORE calling call_next
+        # (call_next opens its own get_db connection; holding two simultaneously exhausts the pool)
+        from database import SessionLocal
+        db = SessionLocal()
+        try:
+            agent = db.query(models.Agent).filter(models.Agent.uuid == agent_uuid).first()
+            if not agent or not agent.customer_id:
+                _set_cached_security(agent_uuid, False)
+                sec = False
+            else:
+                customer = db.query(models.Customer).filter(models.Customer.id == agent.customer_id).first()
+                if not customer:
+                    _set_cached_security(agent_uuid, False)
+                    sec = False
+                else:
+                    sec = {
+                        "credentials_enabled": customer.credentials_enabled,
+                        "client_id": customer.client_id,
+                        "client_secret": customer.client_secret,
+                        "ip_restriction_enabled": customer.ip_restriction_enabled,
+                        "ip_allowlist": customer.ip_allowlist,
+                    }
+                    _set_cached_security(agent_uuid, sec)
+        finally:
+            db.close()  # always closed before call_next runs
+
+    # sec=False means agent/customer not found — pass through
+    if not sec:
+        return await call_next(request)
+
+    # --- IP Restriction check ---
+    if sec["ip_restriction_enabled"] and sec["ip_allowlist"]:
+        real_ip = _get_real_ip(request)
+        if not _ip_in_allowlist(real_ip, sec["ip_allowlist"]):
+            return JSONResponse(
+                status_code=403,
+                content={"detail": f"Access denied: IP {real_ip} is not in the allowlist"}
+            )
+
+    # --- HMAC credential check ---
+    if not sec["credentials_enabled"]:
+        return await call_next(request)
+
+    client_id = request.headers.get("X-Client-ID")
+    signature = request.headers.get("X-Client-Signature")
+
+    if not client_id or not signature:
+        return JSONResponse(status_code=401, content={"detail": "Missing credentials headers"})
+
+    if client_id != sec["client_id"]:
+        return JSONResponse(status_code=401, content={"detail": "Invalid credentials"})
+
+    current_minute = int(time.time() // 60)
+    valid = False
+    for minute in [current_minute, current_minute - 1]:
+        msg = f"{client_id}:{minute}".encode()
+        expected = hmac_lib.new(sec["client_secret"].encode(), msg, hashlib.sha256).hexdigest()
+        if hmac_lib.compare_digest(expected, signature.lower()):
+            valid = True
+            break
+
+    if not valid:
+        return JSONResponse(status_code=401, content={"detail": "Invalid credentials"})
+
+    return await call_next(request)
+
 # Include customer API router
 app.include_router(customer_api.router)
+
+# ==============================================
+# BACKGROUND: Proactive agent status checker
+# ==============================================
+
+async def _agent_status_checker():
+    """Background task: marks agents offline when last_seen exceeds 2-minute threshold."""
+    from database import SessionLocal
+    while True:
+        await asyncio.sleep(60)
+        try:
+            db = SessionLocal()
+            try:
+                offline_threshold = datetime.now() - timedelta(minutes=2)
+                stale = (
+                    db.query(models.Agent)
+                    .filter(
+                        models.Agent.status != "offline",
+                        models.Agent.last_seen < offline_threshold,
+                    )
+                    .all()
+                )
+                if stale:
+                    for agent in stale:
+                        agent.status = "offline"
+                    db.commit()
+            finally:
+                db.close()
+        except Exception:
+            pass  # never crash the loop
+
+@app.on_event("startup")
+async def startup_event():
+    asyncio.create_task(_agent_status_checker())
 
 # ==============================================
 # SECURITY: Agent UUID from header
@@ -5238,6 +5422,7 @@ def k8s_sync_application(agent_uuid: str = Depends(get_agent_uuid), payload: dic
 _ALERT_DEFAULTS = {
     "cpu_alert_threshold": "80",
     "ram_alert_threshold": "80",
+    "disk_alert_threshold": "85",
     "alert_refresh_interval": "30",
 }
 
@@ -5262,12 +5447,14 @@ def get_alert_settings_endpoint(db: Session = Depends(get_db)):
     return {
         "cpu_alert_threshold": int(raw["cpu_alert_threshold"]),
         "ram_alert_threshold": int(raw["ram_alert_threshold"]),
+        "disk_alert_threshold": int(raw["disk_alert_threshold"]),
         "alert_refresh_interval": int(raw["alert_refresh_interval"]),
     }
 
 class AlertSettingsUpdate(BaseModel):
     cpu_alert_threshold: Optional[int] = None
     ram_alert_threshold: Optional[int] = None
+    disk_alert_threshold: Optional[int] = None
     alert_refresh_interval: Optional[int] = None
 
 @app.put("/settings/alerts", tags=["🌐 UI - Dashboard"])
@@ -5277,6 +5464,8 @@ def update_alert_settings(body: AlertSettingsUpdate, db: Session = Depends(get_d
         _upsert_setting(db, "cpu_alert_threshold", str(body.cpu_alert_threshold))
     if body.ram_alert_threshold is not None:
         _upsert_setting(db, "ram_alert_threshold", str(body.ram_alert_threshold))
+    if body.disk_alert_threshold is not None:
+        _upsert_setting(db, "disk_alert_threshold", str(body.disk_alert_threshold))
     if body.alert_refresh_interval is not None:
         _upsert_setting(db, "alert_refresh_interval", str(body.alert_refresh_interval))
     db.commit()
@@ -5284,10 +5473,11 @@ def update_alert_settings(body: AlertSettingsUpdate, db: Session = Depends(get_d
 
 @app.get("/alerts/summary", tags=["🌐 UI - Dashboard"])
 def get_alerts_summary(db: Session = Depends(get_db)):
-    """Return all agents that have at least one active alert (CPU, RAM, stopped services, failed/evicted pods)."""
+    """Return all agents that have at least one active alert (CPU, RAM, disk, stopped services, failed/evicted pods)."""
     raw = _get_alert_settings(db)
     cpu_threshold = int(raw["cpu_alert_threshold"])
     ram_threshold = int(raw["ram_alert_threshold"])
+    disk_threshold = int(raw["disk_alert_threshold"])
 
     agents = db.query(models.Agent).all()
 
@@ -5303,7 +5493,29 @@ def get_alerts_summary(db: Session = Depends(get_db)):
         if agent.memory is not None and agent.memory > ram_threshold:
             alerts["ram"] = {"value": agent.memory, "threshold": ram_threshold}
 
-        # Stopped Windows services (latest report per agent)
+        # Disk — check latest reported drives
+        overloaded_drives = (
+            db.query(models.AgentDriveInfo)
+            .filter(
+                models.AgentDriveInfo.agent_id == agent.id,
+                models.AgentDriveInfo.percent_used > disk_threshold,
+            )
+            .all()
+        )
+        if overloaded_drives:
+            alerts["disk"] = [
+                {
+                    "drive": d.drive_letter,
+                    "label": d.drive_label,
+                    "percent_used": d.percent_used,
+                    "used_gb": d.used_gb,
+                    "total_gb": d.total_gb,
+                    "threshold": disk_threshold,
+                }
+                for d in overloaded_drives
+            ]
+
+        # Stopped Windows services
         stopped = (
             db.query(models.AgentWindowsService)
             .filter(
