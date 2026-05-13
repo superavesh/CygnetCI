@@ -797,9 +797,12 @@ def get_dashboard_data(customer_id: int = None, db: Session = Depends(get_db)):
 # ==================== AGENTS ====================
 
 @app.get("/agents", tags=["🌐 UI - Agents"])
-def get_agents(db: Session = Depends(get_db)):
+def get_agents(customer_id: int = None, db: Session = Depends(get_db)):
     """Get all agents with automatic status update based on last heartbeat"""
-    agents = db.query(models.Agent).all()
+    agents_query = db.query(models.Agent)
+    if customer_id is not None:
+        agents_query = agents_query.filter(models.Agent.customer_id == customer_id)
+    agents = agents_query.all()
 
     # Compute effective status based on last heartbeat (2 minutes timeout)
     offline_threshold = datetime.now() - timedelta(minutes=2)

@@ -616,8 +616,10 @@ class ApiService {
     return await response.json();
   }
 
-  async getAgents() {
-    const url = `${CONFIG.api.baseUrl}/agents`;
+  async getAgents(customerId?: number) {
+    const url = customerId
+      ? `${CONFIG.api.baseUrl}/agents?customer_id=${customerId}`
+      : `${CONFIG.api.baseUrl}/agents`;
     const response = await fetch(url, {
       method: 'GET',
       headers: CONFIG.api.headers

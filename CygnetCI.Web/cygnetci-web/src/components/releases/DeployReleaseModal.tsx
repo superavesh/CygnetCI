@@ -5,6 +5,7 @@
 import React, { useState, useEffect } from 'react';
 import { X, Play, Lock, ArrowRight, CheckCircle, Server } from 'lucide-react';
 import { apiService } from '@/lib/api/apiService';
+import { useCustomer } from '@/lib/contexts/CustomerContext';
 import type { Release, Environment, Pipeline, Agent } from '@/types';
 
 interface DeployReleaseModalProps {
@@ -14,6 +15,7 @@ interface DeployReleaseModalProps {
 }
 
 export const DeployReleaseModal: React.FC<DeployReleaseModalProps> = ({ release, onClose, onSuccess }) => {
+  const { selectedCustomer } = useCustomer();
   const [triggeredBy, setTriggeredBy] = useState('');
   const [artifactVersion, setArtifactVersion] = useState('');
   const [parameters, setParameters] = useState<Record<string, any>>({});
@@ -34,7 +36,7 @@ export const DeployReleaseModal: React.FC<DeployReleaseModalProps> = ({ release,
     try {
       const [envsData, agentsData] = await Promise.all([
         apiService.getEnvironments(),
-        apiService.getAgents()
+        apiService.getAgents(selectedCustomer?.id)
       ]);
       setEnvironments(envsData);
       setAgents(agentsData.filter((agent: Agent) => agent.status === 'online'));

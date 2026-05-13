@@ -5,6 +5,7 @@
 import React, { useState, useEffect } from 'react';
 import { X, Play, Server } from 'lucide-react';
 import { apiService } from '@/lib/api/apiService';
+import { useCustomer } from '@/lib/contexts/CustomerContext';
 import type { Agent } from '@/types';
 import type { PipelineParameter } from './CreatePipelineModal';
 
@@ -23,6 +24,7 @@ export const RunPipelineModal: React.FC<RunPipelineModalProps> = ({
   pipeline,
   parameters
 }) => {
+  const { selectedCustomer } = useCustomer();
   const [paramValues, setParamValues] = useState<Record<string, any>>({});
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [agents, setAgents] = useState<Agent[]>([]);
@@ -42,11 +44,11 @@ export const RunPipelineModal: React.FC<RunPipelineModalProps> = ({
     if (isOpen) {
       fetchAgents();
     }
-  }, [isOpen]);
+  }, [isOpen, selectedCustomer]);
 
   const fetchAgents = async () => {
     try {
-      const agentsData = await apiService.getAgents();
+      const agentsData = await apiService.getAgents(selectedCustomer?.id);
       setAgents(agentsData.filter((agent: Agent) => agent.status === 'online'));
     } catch (err) {
       console.error('Failed to fetch agents:', err);
