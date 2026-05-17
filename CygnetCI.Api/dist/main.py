@@ -639,10 +639,20 @@ async def startup_event():
 # SECURITY: Agent UUID from header
 # ==============================================
 
-def get_agent_uuid(x_agent_uuid: str = Header(...,
-        description="Agent UUID — must be passed as the X-Agent-UUID request header")):
+def get_agent_uuid(
+    x_agent_uuid: str = Header(...,
+        description="Agent UUID — must be passed as the X-Agent-UUID request header"),
+    x_client_id: Optional[str] = Header(None,
+        description="Client ID for HMAC-SHA256 authentication. Required when the customer has credentials enabled. "
+                    "Set in the agent's appsettings.json under ClientId."),
+    x_client_signature: Optional[str] = Header(None,
+        description="HMAC-SHA256 signature: hex(HMAC-SHA256(key=ClientSecret, msg='{ClientId}:{unix_minutes}')). "
+                    "Required when the customer has credentials enabled. Set ClientSecret in appsettings.json.")
+):
     """Dependency that extracts the agent UUID from the X-Agent-UUID request header.
-    Keeps UUIDs out of URL paths (which appear in server logs, browser history, proxies)."""
+    Keeps UUIDs out of URL paths (which appear in server logs, browser history, proxies).
+    Credential headers (X-Client-ID, X-Client-Signature) are validated centrally by the security middleware
+    when the customer has credentials enabled — they must be present here so Swagger documents them."""
     return x_agent_uuid
 
 # ==============================================
