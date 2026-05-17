@@ -30,8 +30,7 @@ const navItems = [
   { id: 'monitoring', name: 'Monitoring', icon: Monitor, href: '/monitoring' },
   { id: 'email-alerts', name: 'Email Alerts', icon: Mail, href: '/email-alerts' },
   { id: 'customers', name: 'Customers', icon: Building2, href: '/customers' },
-  { id: 'users', name: 'Users', icon: Users, href: '/users' },
-  { id: 'tasks', name: 'Tasks', icon: Activity, href: '/tasks' }
+  { id: 'users', name: 'Users', icon: Users, href: '/users' }
 ];
 
 export const Navigation: React.FC = () => {

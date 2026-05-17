@@ -6,7 +6,9 @@
       "Bash(find d:/Avesh/CygnetCI/SourceCode/CygnetCI/CygnetCI.Web/cygnetci-web/src/components -type f -name *.tsx -o -type f -name *.ts)",
       "Bash(dotnet publish:*)",
       "Read(//d/Avesh/CygnetCI/SourceCode/**)",
-      "Bash(python3 -)"
+      "Bash(python3 -)",
+      "Read(//c/Users/amkhatri/Downloads/**)",
+      "PowerShell($lines = \\(Get-Content \"C:\\\\Users\\\\amkhatri\\\\Downloads\\\\python_22016_202651452747.log\" | Measure-Object -Line\\).Lines; Write-Host \"Total lines: $lines\")"
     ]
   }
 }

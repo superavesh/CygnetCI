@@ -40,9 +40,9 @@ interface AuditLog {
   user_id: number;
   user_name: string;
   action: string;
-  resource: string;
+  resource_type: string;
   details: string | Record<string, any>;
-  timestamp: string;
+  created_at: string;
 }
 
 type NotificationType = 'success' | 'error' | 'info';
@@ -451,7 +451,7 @@ export default function UsersPage() {
       const matchesSearch = !query || (
         log.user_name?.toLowerCase().includes(query) ||
         log.action?.toLowerCase().includes(query) ||
-        log.resource?.toLowerCase().includes(query) ||
+        log.resource_type?.toLowerCase().includes(query) ||
         detailsStr.toLowerCase().includes(query)
       );
 
@@ -459,7 +459,7 @@ export default function UsersPage() {
       const matchesAction = auditFilterAction === 'all' || log.action === auditFilterAction;
 
       // Date filters
-      const logDate = new Date(log.timestamp);
+      const logDate = new Date(log.created_at);
       const matchesDateFrom = !auditDateFrom || logDate >= new Date(auditDateFrom);
       const matchesDateTo = !auditDateTo || logDate <= new Date(auditDateTo + 'T23:59:59');
 
@@ -1160,8 +1160,8 @@ export default function UsersPage() {
                           <div className="flex items-center gap-2">
                             <Clock className="h-4 w-4 text-blue-500" />
                             <div>
-                              <div className="font-medium">{new Date(log.timestamp).toLocaleDateString()}</div>
-                              <div className="text-xs text-gray-500">{new Date(log.timestamp).toLocaleTimeString()}</div>
+                              <div className="font-medium">{new Date(log.created_at).toLocaleDateString()}</div>
+                              <div className="text-xs text-gray-500">{new Date(log.created_at).toLocaleTimeString()}</div>
                             </div>
                           </div>
                         </td>
@@ -1190,7 +1190,7 @@ export default function UsersPage() {
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap">
                           <span className="text-sm font-medium text-gray-900 bg-gray-100 px-2 py-1 rounded">
-                            {log.resource}
+                            {log.resource_type}
                           </span>
                         </td>
                         <td className="px-6 py-4 text-sm text-gray-600 max-w-md">
@@ -1218,7 +1218,7 @@ export default function UsersPage() {
                   <span className="font-semibold text-gray-900">{auditLogs.length}</span> total logs
                 </span>
                 <span className="text-xs">
-                  Last updated: {auditLogs.length > 0 ? new Date(auditLogs[0].timestamp).toLocaleString() : 'N/A'}
+                  Last updated: {auditLogs.length > 0 ? new Date(auditLogs[0].created_at).toLocaleString() : 'N/A'}
                 </span>
               </div>
             </div>

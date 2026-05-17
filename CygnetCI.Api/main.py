@@ -4378,16 +4378,24 @@ def get_audit_logs(
 
     logs = query.order_by(models.AuditLog.created_at.desc()).offset(offset).limit(limit).all()
 
+    # Build user lookup to resolve user_id → name in one query
+    user_ids = list({log.user_id for log in logs if log.user_id})
+    users_map = {}
+    if user_ids:
+        users = db.query(models.User).filter(models.User.id.in_(user_ids)).all()
+        users_map = {u.id: (u.full_name or u.username) for u in users}
+
     return [{
         "id": log.id,
         "user_id": log.user_id,
+        "user_name": users_map.get(log.user_id, "Unknown"),
         "action": log.action,
         "resource_type": log.resource_type,
         "resource_id": log.resource_id,
         "details": log.details,
         "ip_address": log.ip_address,
         "user_agent": log.user_agent,
-        "created_at": log.created_at
+        "created_at": log.created_at.isoformat() if log.created_at else None
     } for log in logs]
 
 
@@ -5209,7 +5217,9 @@ _k8s_metrics_full_history: dict = {} # full snapshot history per (agent, cluster
 # In-memory store for service log file content (keyed by "{agent_uuid}:{service_name}:{file_name}").
 # Content is pushed by the agent via a dedicated endpoint to avoid routing large
 # payloads through the generic command-result mechanism (which can hit IIS body limits).
+# Entries expire after 10 minutes to prevent unbounded memory growth.
 _service_log_content_store: dict = {}
+_SERVICE_LOG_TTL = 600  # seconds
 
 @app.post("/agents/service-log-content", tags=["🤖 Agent - File Logs"])
 def receive_service_log_content(agent_uuid: str = Depends(get_agent_uuid), payload: dict = Body(...), db: Session = Depends(get_db)):
@@ -5222,7 +5232,12 @@ def receive_service_log_content(agent_uuid: str = Depends(get_agent_uuid), paylo
     if not service_name or not file_name:
         raise HTTPException(status_code=400, detail="service_name and file_name are required")
     key = f"{agent_uuid}:{service_name}:{file_name}"
-    _service_log_content_store[key] = payload
+    _service_log_content_store[key] = {"payload": payload, "ts": time.time()}
+    # Evict entries older than TTL to prevent unbounded memory growth
+    now = time.time()
+    expired = [k for k, v in _service_log_content_store.items() if now - v["ts"] > _SERVICE_LOG_TTL]
+    for k in expired:
+        del _service_log_content_store[k]
     return {"success": True}
 
 @app.get("/agents/service-log-content", tags=["🌐 UI - File Logs"])
@@ -5237,10 +5252,10 @@ def get_service_log_content(
     if not agent:
         raise HTTPException(status_code=404, detail="Agent not found")
     key = f"{agent_uuid}:{service_name}:{file_name}"
-    data = _service_log_content_store.pop(key, None)  # consume once — free memory
-    if data is None:
+    entry = _service_log_content_store.pop(key, None)  # consume once — free memory
+    if entry is None:
         raise HTTPException(status_code=404, detail="Content not available yet")
-    return data
+    return entry["payload"]
 
 @app.post("/agents/k8s-metrics", tags=["🤖 Agent - K8s"])
 def receive_k8s_metrics(agent_uuid: str = Depends(get_agent_uuid), payload: dict = Body(...), db: Session = Depends(get_db)):
