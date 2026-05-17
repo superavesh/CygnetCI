@@ -328,6 +328,18 @@ public class PipelineExecutionService : IPipelineExecutionService
             powerShell.AddScript($"$env:EXECUTION_ID = '{pickup.PipelineExecutionId}'");
             powerShell.AddScript($"$env:STEP_NAME = '{step.Name}'");
 
+            // Control verbose/debug output based on pipeline setting
+            if (pickup.LogVerboseOutput)
+            {
+                powerShell.AddScript("$VerbosePreference = 'Continue'");
+                powerShell.AddScript("$DebugPreference = 'Continue'");
+            }
+            else
+            {
+                powerShell.AddScript("$VerbosePreference = 'SilentlyContinue'");
+                powerShell.AddScript("$DebugPreference = 'SilentlyContinue'");
+            }
+
             // Add the actual command
             powerShell.AddScript(command);
 
