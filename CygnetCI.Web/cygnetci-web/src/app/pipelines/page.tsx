@@ -3,11 +3,12 @@
 'use client';
 
 import React, { useState } from 'react';
-import { Play, Plus, Settings, Eye, Sliders, RefreshCw, History } from 'lucide-react';
+import { Play, Plus, Settings, Sliders, RefreshCw, History, ChevronUp, ChevronDown, Download, Upload, FileDown } from 'lucide-react';
 import { useData } from '@/lib/hooks/useData';
 import { useCustomer } from '@/lib/contexts/CustomerContext';
 import { PipelineFilter, filterPipelines } from '@/components/tables/PipelineFilter';
 import { CreatePipelineModal, PipelineFormData } from '@/components/pipelines/CreatePipelineModal';
+import { PipelineImportModal } from '@/components/pipelines/PipelineImportModal';
 import { EditPipelineModal } from '@/components/pipelines/EditPipelineModal';
 import { ExecutionViewModal } from '@/components/pipelines/ExecutionViewModal';
 import { ExecutionHistoryModal } from '@/components/pipelines/ExecutionHistoryModal';
@@ -19,6 +20,8 @@ export default function PipelinesPage() {
   const { selectedCustomer } = useCustomer();
   const { pipelines, agents, refetch } = useData(selectedCustomer?.id);
   const [filterQuery, setFilterQuery] = useState('');
+  const [sortKey, setSortKey] = useState<string>('name');
+  const [sortDir, setSortDir] = useState<'asc' | 'desc'>('asc');
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
   const [showExecutionModal, setShowExecutionModal] = useState(false);
@@ -27,6 +30,8 @@ export default function PipelinesPage() {
   const [selectedPipeline, setSelectedPipeline] = useState<any | null>(null);
   const [currentExecutionId, setCurrentExecutionId] = useState<number | null>(null);
   const [openedLogsFromHistory, setOpenedLogsFromHistory] = useState(false);
+  const [showImportModal, setShowImportModal] = useState(false);
+  const [exporting, setExporting] = useState(false);
 
   const handleCreatePipeline = async (data: PipelineFormData) => {
     if (!selectedCustomer) {
@@ -166,8 +171,64 @@ export default function PipelinesPage() {
     setShowExecutionModal(true);
   };
 
-  // Apply filters to pipelines
+  const downloadJson = (data: object, filename: string) => {
+    const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url; a.download = filename;
+    document.body.appendChild(a); a.click();
+    document.body.removeChild(a); URL.revokeObjectURL(url);
+  };
+
+  const buildExportPayload = (ps: any[]) => ({
+    cygnetci_version: 1,
+    exported_at: new Date().toISOString(),
+    type: ps.length === 1 ? 'pipeline' : 'pipeline_collection',
+    pipelines: ps.map(p => ({
+      name: p.name,
+      description: p.description ?? '',
+      branch: p.branch ?? '',
+      steps: (p.steps ?? []).map((s: any) => ({ name: s.name, command: s.command, order: s.order, shellType: s.shellType })),
+      parameters: (p.parameters ?? []).map((pm: any) => ({ name: pm.name, type: pm.type, defaultValue: pm.defaultValue, required: pm.required, description: pm.description, choices: pm.choices ?? [] })),
+    })),
+  });
+
+  const handleExportSingle = async (pipeline: any) => {
+    try {
+      const full = await apiService.getPipeline(pipeline.id);
+      downloadJson(buildExportPayload([full]), `pipeline-${pipeline.name.replace(/\s+/g, '-')}.json`);
+    } catch { alert('Failed to export pipeline'); }
+  };
+
+  const handleExportAll = async () => {
+    setExporting(true);
+    try {
+      const full = await Promise.all(sortedPipelines.map(p => apiService.getPipeline(p.id)));
+      const name = selectedCustomer?.display_name ?? 'all';
+      downloadJson(buildExportPayload(full), `pipelines-${name.replace(/\s+/g, '-')}-${new Date().toISOString().slice(0, 10)}.json`);
+    } catch { alert('Failed to export pipelines'); }
+    finally { setExporting(false); }
+  };
+
+  const handleSort = (col: string) => {
+    if (sortKey === col) setSortDir(d => d === 'asc' ? 'desc' : 'asc');
+    else { setSortKey(col); setSortDir('asc'); }
+  };
+
+  // Apply filters then sort
   const filteredPipelines = filterPipelines(pipelines, filterQuery);
+  const sortedPipelines = [...filteredPipelines].sort((a, b) => {
+    let cmp = 0;
+    switch (sortKey) {
+      case 'name':     cmp = (a.name ?? '').localeCompare(b.name ?? ''); break;
+      case 'status':   cmp = (a.status ?? '').localeCompare(b.status ?? ''); break;
+      case 'branch':   cmp = (a.branch ?? '').localeCompare(b.branch ?? ''); break;
+      case 'lastRun':  cmp = (a.lastRun ?? '').localeCompare(b.lastRun ?? ''); break;
+      case 'duration': cmp = (a.duration ?? '').localeCompare(b.duration ?? ''); break;
+      default:         cmp = (a.name ?? '').localeCompare(b.name ?? '');
+    }
+    return sortDir === 'asc' ? cmp : -cmp;
+  });
 
   return (
     <>
@@ -180,20 +241,20 @@ export default function PipelinesPage() {
               {selectedCustomer && ` • Filtering for ${selectedCustomer.display_name}`}
             </p>
           </div>
-          <div className="flex gap-3">
-            <button
-              onClick={refetch}
-              className="bg-gray-100 hover:bg-gray-200 text-gray-700 px-4 py-2 rounded-lg flex items-center space-x-2 transition-colors"
-            >
-              <RefreshCw className="h-4 w-4" />
-              <span>Refresh</span>
+          <div className="flex gap-2 flex-wrap">
+            <button onClick={refetch} className="bg-gray-100 hover:bg-gray-200 text-gray-700 px-3 py-2 rounded-lg flex items-center gap-2 transition-colors text-sm">
+              <RefreshCw className="h-4 w-4" /><span>Refresh</span>
             </button>
-            <button
-              onClick={() => setShowCreateModal(true)}
-              className="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-lg flex items-center space-x-2 transition-colors"
-            >
-              <Plus className="h-4 w-4" />
-              <span>New Pipeline</span>
+            <button onClick={handleExportAll} disabled={exporting || sortedPipelines.length === 0}
+              className="bg-gray-100 hover:bg-gray-200 text-gray-700 px-3 py-2 rounded-lg flex items-center gap-2 transition-colors text-sm disabled:opacity-50">
+              {exporting ? <RefreshCw className="h-4 w-4 animate-spin" /> : <Download className="h-4 w-4" />}
+              <span>Export All</span>
+            </button>
+            <button onClick={() => setShowImportModal(true)} className="bg-gray-100 hover:bg-gray-200 text-gray-700 px-3 py-2 rounded-lg flex items-center gap-2 transition-colors text-sm">
+              <Upload className="h-4 w-4" /><span>Import</span>
+            </button>
+            <button onClick={() => setShowCreateModal(true)} className="bg-blue-500 hover:bg-blue-600 text-white px-3 py-2 rounded-lg flex items-center gap-2 transition-colors text-sm">
+              <Plus className="h-4 w-4" /><span>New Pipeline</span>
             </button>
           </div>
         </div>
@@ -202,23 +263,37 @@ export default function PipelinesPage() {
         <PipelineFilter onFilter={setFilterQuery} />
 
         {/* Enhanced Pipeline Table with Actions */}
-        {filteredPipelines.length > 0 ? (
+        {sortedPipelines.length > 0 ? (
           <div className="bg-white rounded-xl shadow-lg border border-gray-100 overflow-hidden">
             <div className="overflow-x-auto">
               <table className="w-full">
                 <thead className="bg-gray-50 border-b border-gray-200">
                   <tr>
-                    <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase">Pipeline</th>
-                    <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase">Status</th>
-                    <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase">Branch</th>
-                    <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase">Last Run</th>
-                    <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase">Duration</th>
+                    {[
+                      { label: 'Pipeline', col: 'name' },
+                      { label: 'Status',   col: 'status' },
+                      { label: 'Branch',   col: 'branch' },
+                      { label: 'Last Run', col: 'lastRun' },
+                      { label: 'Duration', col: 'duration' },
+                    ].map(({ label, col }) => (
+                      <th key={col} onClick={() => handleSort(col)}
+                        className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase cursor-pointer select-none hover:text-gray-800 group">
+                        <div className="flex items-center gap-1">
+                          {label}
+                          <span className={`transition-opacity ${sortKey === col ? 'opacity-100 text-blue-500' : 'opacity-0 group-hover:opacity-40'}`}>
+                            {sortKey === col && sortDir === 'asc'
+                              ? <ChevronUp className="h-3.5 w-3.5" />
+                              : <ChevronDown className="h-3.5 w-3.5" />}
+                          </span>
+                        </div>
+                      </th>
+                    ))}
                     <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase">Config</th>
                     <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase">Actions</th>
                   </tr>
                 </thead>
                 <tbody className="bg-white divide-y divide-gray-200">
-                  {filteredPipelines.map(pipeline => {
+                  {sortedPipelines.map(pipeline => {
                     const hasParameters = pipeline.parameters && pipeline.parameters.length > 0;
                     const hasSteps = pipeline.steps && pipeline.steps.length > 0;
                     
@@ -299,6 +374,13 @@ export default function PipelinesPage() {
                             >
                               <Settings className="h-4 w-4" />
                             </button>
+                            <button
+                              onClick={() => handleExportSingle(pipeline)}
+                              className="text-gray-400 hover:text-green-600 transition-colors"
+                              title="Export Pipeline"
+                            >
+                              <FileDown className="h-4 w-4" />
+                            </button>
                           </div>
                         </td>
                       </tr>
@@ -374,6 +456,13 @@ export default function PipelinesPage() {
         pipelineName={selectedPipeline?.name || ''}
         onViewLogs={handleViewLogs}
       />
+
+      {showImportModal && (
+        <PipelineImportModal
+          onClose={() => setShowImportModal(false)}
+          onImported={() => { setShowImportModal(false); refetch(); }}
+        />
+      )}
 
       <ExecutionViewModal
         isOpen={showExecutionModal}

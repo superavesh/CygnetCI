@@ -3,7 +3,7 @@
 'use client';
 
 import React, { useState, useEffect, useCallback } from 'react';
-import { Rocket, Plus, Play, Trash2, Pencil, RefreshCw, History, ArrowRight } from 'lucide-react';
+import { Rocket, Plus, Play, Trash2, Pencil, RefreshCw, History, ArrowRight, ChevronUp, ChevronDown, Download, Upload, FileDown } from 'lucide-react';
 import { apiService } from '@/lib/api/apiService';
 import type { Release, Environment, ReleaseExecution } from '@/types';
 import { CreateReleaseModal } from '@/components/releases/CreateReleaseModal';
@@ -11,6 +11,7 @@ import { DeployReleaseModal } from '@/components/releases/DeployReleaseModal';
 import { ReleaseExecutionHistoryModal } from '@/components/releases/ReleaseExecutionHistoryModal';
 import { ReleaseExecutionViewModal } from '@/components/releases/ReleaseExecutionViewModal';
 import { ReleaseFilter, filterReleases } from '@/components/tables/ReleaseFilter';
+import { ReleaseImportModal } from '@/components/releases/ReleaseImportModal';
 import { useCustomer } from '@/lib/contexts/CustomerContext';
 
 export default function ReleasesPage() {
@@ -27,6 +28,10 @@ export default function ReleasesPage() {
   const [selectedRelease, setSelectedRelease] = useState<Release | null>(null);
   const [currentExecutionId, setCurrentExecutionId] = useState<number | null>(null);
   const [filterQuery, setFilterQuery] = useState('');
+  const [sortKey, setSortKey] = useState<string>('name');
+  const [sortDir, setSortDir] = useState<'asc' | 'desc'>('asc');
+  const [showImportModal, setShowImportModal] = useState(false);
+  const [exporting, setExporting] = useState(false);
 
   const fetchData = useCallback(async () => {
     // Don't fetch if no customer is selected
@@ -95,8 +100,82 @@ export default function ReleasesPage() {
     return classes[status as keyof typeof classes] || 'bg-gray-600 text-white';
   };
 
-  // Apply filters to releases
+  const downloadJson = (data: object, filename: string) => {
+    const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url; a.download = filename;
+    document.body.appendChild(a); a.click();
+    document.body.removeChild(a); URL.revokeObjectURL(url);
+  };
+
+  const buildReleaseExportPayload = (rs: Release[]) => ({
+    cygnetci_version: 1,
+    exported_at: new Date().toISOString(),
+    type: rs.length === 1 ? 'release' : 'release_collection',
+    releases: rs.map(r => {
+      const isPipelineBased = (r.pipelines?.length ?? 0) > 0;
+      return {
+        name: r.name,
+        description: r.description ?? '',
+        version: r.version ?? '',
+        type: isPipelineBased ? 'pipeline_based' : 'environment_based',
+        ...(isPipelineBased ? {
+          pipelines: (r.pipelines ?? []).map(rp => ({
+            pipeline_name: rp.pipeline?.name ?? `Pipeline ${rp.pipeline_id}`,
+            order_index: rp.order_index,
+            execution_mode: rp.execution_mode,
+            position_x: rp.position_x,
+            position_y: rp.position_y,
+          })),
+        } : {
+          stages: (r.stages ?? []).map(s => ({
+            environment_name: s.environment?.name ?? `Environment ${s.environment_id}`,
+            order_index: s.order_index,
+            pre_deployment_approval: s.pre_deployment_approval,
+            post_deployment_approval: s.post_deployment_approval,
+            auto_deploy: s.auto_deploy,
+          })),
+        }),
+      };
+    }),
+  });
+
+  const handleExportSingle = (release: Release) => {
+    downloadJson(buildReleaseExportPayload([release]), `release-${release.name.replace(/\s+/g, '-')}.json`);
+  };
+
+  const handleExportAll = async () => {
+    setExporting(true);
+    try {
+      const name = selectedCustomer?.display_name ?? 'all';
+      downloadJson(buildReleaseExportPayload(sortedReleases), `releases-${name.replace(/\s+/g, '-')}-${new Date().toISOString().slice(0, 10)}.json`);
+    } finally { setExporting(false); }
+  };
+
+  const handleSort = (col: string) => {
+    if (sortKey === col) setSortDir(d => d === 'asc' ? 'desc' : 'asc');
+    else { setSortKey(col); setSortDir('asc'); }
+  };
+
+  // Apply filters then sort
   const filteredReleases = filterReleases(releases, filterQuery);
+  const sortedReleases = [...filteredReleases].sort((a, b) => {
+    let cmp = 0;
+    switch (sortKey) {
+      case 'name':    cmp = (a.name ?? '').localeCompare(b.name ?? ''); break;
+      case 'type': {
+        const at = (a.pipelines?.length ?? 0) > 0 ? 'Pipeline-Based' : 'Environment-Based';
+        const bt = (b.pipelines?.length ?? 0) > 0 ? 'Pipeline-Based' : 'Environment-Based';
+        cmp = at.localeCompare(bt);
+        break;
+      }
+      case 'status':  cmp = (a.status ?? '').localeCompare(b.status ?? ''); break;
+      case 'created': cmp = new Date(a.created_at).getTime() - new Date(b.created_at).getTime(); break;
+      default:        cmp = (a.name ?? '').localeCompare(b.name ?? '');
+    }
+    return sortDir === 'asc' ? cmp : -cmp;
+  });
 
   if (loading) {
     return (
@@ -120,21 +199,23 @@ export default function ReleasesPage() {
               {selectedCustomer && ` • Filtering for ${selectedCustomer.display_name}`}
             </p>
           </div>
-          <div className="flex gap-3">
-            <button
-              onClick={fetchData}
-              disabled={loading}
-              className="bg-gray-100 hover:bg-gray-200 text-gray-700 px-4 py-2 rounded-lg flex items-center space-x-2 transition-colors disabled:opacity-50"
-            >
-              <RefreshCw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
-              <span>Refresh</span>
+          <div className="flex gap-2 flex-wrap">
+            <button onClick={fetchData} disabled={loading}
+              className="bg-gray-100 hover:bg-gray-200 text-gray-700 px-3 py-2 rounded-lg flex items-center gap-2 transition-colors text-sm disabled:opacity-50">
+              <RefreshCw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} /><span>Refresh</span>
             </button>
-            <button
-              onClick={() => setShowCreateModal(true)}
-              className="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-lg flex items-center space-x-2 transition-colors"
-            >
-              <Plus className="h-4 w-4" />
-              <span>New Release</span>
+            <button onClick={handleExportAll} disabled={exporting || sortedReleases.length === 0}
+              className="bg-gray-100 hover:bg-gray-200 text-gray-700 px-3 py-2 rounded-lg flex items-center gap-2 transition-colors text-sm disabled:opacity-50">
+              {exporting ? <RefreshCw className="h-4 w-4 animate-spin" /> : <Download className="h-4 w-4" />}
+              <span>Export All</span>
+            </button>
+            <button onClick={() => setShowImportModal(true)}
+              className="bg-gray-100 hover:bg-gray-200 text-gray-700 px-3 py-2 rounded-lg flex items-center gap-2 transition-colors text-sm">
+              <Upload className="h-4 w-4" /><span>Import</span>
+            </button>
+            <button onClick={() => setShowCreateModal(true)}
+              className="bg-blue-500 hover:bg-blue-600 text-white px-3 py-2 rounded-lg flex items-center gap-2 transition-colors text-sm">
+              <Plus className="h-4 w-4" /><span>New Release</span>
             </button>
           </div>
         </div>
@@ -149,22 +230,46 @@ export default function ReleasesPage() {
         <ReleaseFilter onFilter={setFilterQuery} />
 
         {/* Releases Table */}
-        {filteredReleases.length > 0 ? (
+        {sortedReleases.length > 0 ? (
           <div className="bg-white rounded-xl shadow-lg border border-gray-100 overflow-hidden">
             <div className="overflow-x-auto">
               <table className="w-full">
                 <thead className="bg-gray-50 border-b border-gray-200">
                   <tr>
-                    <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase">Release</th>
-                    <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase">Type</th>
+                    {(['name', 'type'] as const).map(col => {
+                      const label = col === 'name' ? 'Release' : 'Type';
+                      return (
+                        <th key={col} onClick={() => handleSort(col)}
+                          className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase cursor-pointer select-none hover:text-gray-800 group">
+                          <div className="flex items-center gap-1">
+                            {label}
+                            <span className={`transition-opacity ${sortKey === col ? 'opacity-100 text-blue-500' : 'opacity-0 group-hover:opacity-40'}`}>
+                              {sortKey === col && sortDir === 'asc' ? <ChevronUp className="h-3.5 w-3.5" /> : <ChevronDown className="h-3.5 w-3.5" />}
+                            </span>
+                          </div>
+                        </th>
+                      );
+                    })}
                     <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase">Configuration</th>
-                    <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase">Status</th>
-                    <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase">Created</th>
+                    {(['status', 'created'] as const).map(col => {
+                      const label = col === 'status' ? 'Status' : 'Created';
+                      return (
+                        <th key={col} onClick={() => handleSort(col)}
+                          className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase cursor-pointer select-none hover:text-gray-800 group">
+                          <div className="flex items-center gap-1">
+                            {label}
+                            <span className={`transition-opacity ${sortKey === col ? 'opacity-100 text-blue-500' : 'opacity-0 group-hover:opacity-40'}`}>
+                              {sortKey === col && sortDir === 'asc' ? <ChevronUp className="h-3.5 w-3.5" /> : <ChevronDown className="h-3.5 w-3.5" />}
+                            </span>
+                          </div>
+                        </th>
+                      );
+                    })}
                     <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase">Actions</th>
                   </tr>
                 </thead>
                 <tbody className="bg-white divide-y divide-gray-200">
-                  {filteredReleases.map(release => {
+                  {sortedReleases.map(release => {
                     const hasPipelines = release.pipelines && release.pipelines.length > 0;
                     const hasStages = release.stages && release.stages.length > 0;
                     const isPipelineBased = hasPipelines;
@@ -280,6 +385,13 @@ export default function ReleasesPage() {
                               <History className="h-4 w-4" />
                             </button>
                             <button
+                              onClick={() => handleExportSingle(release)}
+                              className="text-gray-400 hover:text-green-600 transition-colors"
+                              title="Export Release"
+                            >
+                              <FileDown className="h-4 w-4" />
+                            </button>
+                            <button
                               onClick={() => handleDelete(release.id)}
                               className="text-red-600 hover:text-red-700 transition-colors"
                               title="Delete Release"
@@ -318,6 +430,13 @@ export default function ReleasesPage() {
       </div>
 
       {/* Modals */}
+      {showImportModal && (
+        <ReleaseImportModal
+          onClose={() => setShowImportModal(false)}
+          onImported={() => { setShowImportModal(false); fetchData(); }}
+        />
+      )}
+
       {showCreateModal && (
         <CreateReleaseModal
           onClose={() => setShowCreateModal(false)}

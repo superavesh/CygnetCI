@@ -921,6 +921,112 @@ class EmailAlert(Base):
     )
 
 
+# ==================== TICKETING MODELS ====================
+
+class Ticket(Base):
+    """Support/issue tickets with resolution tracking"""
+    __tablename__ = "tickets"
+
+    id = Column(Integer, primary_key=True, index=True)
+    ticket_number = Column(String(20), unique=True, nullable=False, index=True)  # TKT-0001
+    title = Column(String(255), nullable=False)
+    description = Column(Text)
+    status = Column(String(20), nullable=False, default="open")
+    priority = Column(String(20), nullable=False, default="medium")
+    type = Column(String(20), nullable=False, default="task")
+
+    # People
+    created_by = Column(Integer, ForeignKey("users.id", ondelete="SET NULL"), nullable=True)
+    assigned_to = Column(Integer, ForeignKey("users.id", ondelete="SET NULL"), nullable=True)
+
+    # Optional links
+    customer_id = Column(Integer, ForeignKey("customers.id", ondelete="SET NULL"), nullable=True, index=True)
+    pipeline_id = Column(Integer, ForeignKey("pipelines.id", ondelete="SET NULL"), nullable=True)
+    release_id = Column(Integer, ForeignKey("releases.id", ondelete="SET NULL"), nullable=True)
+    agent_id = Column(Integer, ForeignKey("agents.id", ondelete="SET NULL"), nullable=True)
+
+    # Resolution
+    root_cause = Column(Text)
+    resolution_steps = Column(JSONB)   # array of strings
+    resolution_commands = Column(Text)
+    resolved_by = Column(Integer, ForeignKey("users.id", ondelete="SET NULL"), nullable=True)
+    resolved_at = Column(TIMESTAMP)
+
+    created_at = Column(TIMESTAMP, server_default=func.now(), nullable=False)
+    updated_at = Column(TIMESTAMP, server_default=func.now(), onupdate=func.now(), nullable=False)
+
+    __table_args__ = (
+        CheckConstraint("status IN ('open', 'in_progress', 'resolved', 'closed')", name="check_ticket_status"),
+        CheckConstraint("priority IN ('critical', 'high', 'medium', 'low')", name="check_ticket_priority"),
+        CheckConstraint("type IN ('bug', 'task', 'improvement', 'question')", name="check_ticket_type"),
+    )
+
+
+class TicketAttachment(Base):
+    __tablename__ = "ticket_attachments"
+
+    id = Column(Integer, primary_key=True, index=True)
+    ticket_id = Column(Integer, ForeignKey("tickets.id", ondelete="CASCADE"), nullable=False, index=True)
+    original_filename = Column(String(255), nullable=False)
+    stored_filename = Column(String(255), nullable=False, unique=True)
+    file_size = Column(Integer)
+    mime_type = Column(String(100))
+    uploaded_by = Column(Integer, ForeignKey("users.id", ondelete="SET NULL"), nullable=True)
+    created_at = Column(TIMESTAMP, server_default=func.now(), nullable=False)
+
+
+class TicketComment(Base):
+    __tablename__ = "ticket_comments"
+
+    id = Column(Integer, primary_key=True, index=True)
+    ticket_id = Column(Integer, ForeignKey("tickets.id", ondelete="CASCADE"), nullable=False, index=True)
+    body = Column(Text, nullable=False)  # HTML from Tiptap
+    created_by = Column(Integer, ForeignKey("users.id", ondelete="SET NULL"), nullable=True)
+    edited_at = Column(TIMESTAMP)
+    created_at = Column(TIMESTAMP, server_default=func.now(), nullable=False)
+    updated_at = Column(TIMESTAMP, server_default=func.now(), onupdate=func.now(), nullable=False)
+
+
+class TicketHistory(Base):
+    __tablename__ = "ticket_history"
+
+    id = Column(Integer, primary_key=True, index=True)
+    ticket_id = Column(Integer, ForeignKey("tickets.id", ondelete="CASCADE"), nullable=False, index=True)
+    changed_by = Column(Integer, ForeignKey("users.id", ondelete="SET NULL"), nullable=True)
+    field_name = Column(String(100), nullable=False)
+    old_value = Column(Text)
+    new_value = Column(Text)
+    created_at = Column(TIMESTAMP, server_default=func.now(), nullable=False)
+
+
+class TicketApproval(Base):
+    __tablename__ = "ticket_approvals"
+
+    id = Column(Integer, primary_key=True, index=True)
+    ticket_id = Column(Integer, ForeignKey("tickets.id", ondelete="CASCADE"), nullable=False, index=True)
+    requested_by = Column(Integer, ForeignKey("users.id", ondelete="SET NULL"), nullable=True)
+    reviewed_by = Column(Integer, ForeignKey("users.id", ondelete="SET NULL"), nullable=True)
+    status = Column(String(20), nullable=False, default="pending")
+    note = Column(Text)
+    created_at = Column(TIMESTAMP, server_default=func.now(), nullable=False)
+    reviewed_at = Column(TIMESTAMP)
+
+    __table_args__ = (
+        CheckConstraint("status IN ('pending', 'approved', 'rejected')", name="check_approval_status"),
+    )
+
+
+class AISettings(Base):
+    __tablename__ = "ai_settings"
+
+    id = Column(Integer, primary_key=True, index=True)
+    provider = Column(String(50), nullable=False, default="anthropic")
+    model = Column(String(100), nullable=False, default="claude-sonnet-4-6")
+    api_key_encrypted = Column(Text)
+    customer_id = Column(Integer, ForeignKey("customers.id", ondelete="CASCADE"), nullable=True, index=True)
+    updated_at = Column(TIMESTAMP, server_default=func.now(), onupdate=func.now())
+
+
 class AlertSettings(Base):
     __tablename__ = "alert_settings"
 
