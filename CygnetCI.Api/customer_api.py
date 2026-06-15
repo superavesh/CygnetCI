@@ -37,8 +37,10 @@ class CustomerUpdate(BaseModel):
 
 class CustomerResponse(CustomerBase):
     id: int
-    client_id: str | None = None
-    client_secret: str | None = None
+    # SECURITY: client_id / client_secret are intentionally NOT exposed here.
+    # The HMAC secret must never appear in list/get responses. `has_credentials`
+    # is a non-sensitive flag the UI uses to show whether credentials are configured.
+    has_credentials: bool = False
     credentials_enabled: bool = False
     ip_allowlist: list[str] | None = None
     ip_restriction_enabled: bool = False
@@ -47,6 +49,14 @@ class CustomerResponse(CustomerBase):
 
     class Config:
         from_attributes = True
+
+
+class CustomerCredentialsResponse(CustomerResponse):
+    """Returned ONLY by the generate-credentials endpoint — surfaces the client_id and
+    client_secret exactly once, at the moment of creation (AWS-style). Subsequent reads
+    use CustomerResponse and never include the secret again."""
+    client_id: str | None = None
+    client_secret: str | None = None
 
 class CustomerStatistics(BaseModel):
     customer_id: int
@@ -172,9 +182,11 @@ def deactivate_customer(customer_id: int, db: Session = Depends(get_db)):
     db.refresh(db_customer)
     return db_customer
 
-@router.post("/{customer_id}/generate-credentials", response_model=CustomerResponse)
+@router.post("/{customer_id}/generate-credentials", response_model=CustomerCredentialsResponse)
 def generate_credentials(customer_id: int, db: Session = Depends(get_db)):
-    """Generate new client_id and client_secret for a customer"""
+    """Generate new client_id and client_secret for a customer.
+    This is the ONLY endpoint that returns the secret — shown once so it can be copied
+    into the agent's appsettings.json. It is never returned again on subsequent reads."""
     db_customer = db.query(Customer).filter(Customer.id == customer_id).first()
     if not db_customer:
         raise HTTPException(status_code=404, detail="Customer not found")

@@ -111,6 +111,14 @@ public class CommandExecutionService : ICommandExecutionService
         }
     }
 
+    // SECURITY: service names are interpolated into systemctl arguments and used to build
+    // registry paths. Restrict them to a conservative character set to prevent argument
+    // injection (e.g. a name like "nginx --some-flag" or one containing path separators).
+    private static bool IsValidServiceName(string? name) =>
+        !string.IsNullOrEmpty(name)
+        && name.Length <= 256
+        && System.Text.RegularExpressions.Regex.IsMatch(name, @"^[A-Za-z0-9._@\-]+$");
+
     private async Task<(bool success, string result)> ExecuteServiceControlAsync(string commandData, CancellationToken cancellationToken)
     {
         try
@@ -124,6 +132,11 @@ public class CommandExecutionService : ICommandExecutionService
             if (serviceCommand == null || string.IsNullOrEmpty(serviceCommand.ServiceName))
             {
                 return (false, "Invalid command data: service name is required");
+            }
+
+            if (!IsValidServiceName(serviceCommand.ServiceName))
+            {
+                return (false, "Invalid service name");
             }
 
             _logger.LogInformation("Executing service control: {Action} {ServiceName}",
@@ -262,6 +275,8 @@ public class CommandExecutionService : ICommandExecutionService
 
             if (string.IsNullOrEmpty(serviceName))
                 return (false, "service_name is required");
+            if (!IsValidServiceName(serviceName))
+                return (false, "Invalid service name");
 
             var logsDir = FindServiceLogsDirectory(serviceName);
             if (logsDir == null)
@@ -307,6 +322,8 @@ public class CommandExecutionService : ICommandExecutionService
 
             if (string.IsNullOrEmpty(serviceName) || string.IsNullOrEmpty(fileName))
                 return (false, "service_name and file_name are required");
+            if (!IsValidServiceName(serviceName))
+                return (false, "Invalid service name");
 
             // Reject path traversal attempts
             if (fileName.Contains("..") || Path.IsPathRooted(fileName))

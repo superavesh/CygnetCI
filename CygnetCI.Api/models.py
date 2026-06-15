@@ -772,6 +772,12 @@ class Customer(Base):
     # Relationships to other entities (cascade delete customer data when customer is deleted)
     user_customers = relationship("UserCustomer", back_populates="customer", cascade="all, delete-orphan")
 
+    @property
+    def has_credentials(self) -> bool:
+        """Non-sensitive flag for API responses — true when HMAC credentials are configured.
+        Used instead of exposing client_id / client_secret in list/get responses."""
+        return bool(self.client_id and self.client_secret)
+
 
 class User(Base):
     __tablename__ = "users"

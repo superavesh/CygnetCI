@@ -93,7 +93,7 @@ SQL Script:
         try:
             # Use the official Anthropic SDK
             print(f"[Claude AI Debug] Sending request to Anthropic API...")
-            print(f"[Claude AI Debug] API Key (first 20 chars): {self.api_key[:20]}...")
+            # SECURITY: do not log any portion of the API key.
 
             message = self.client.messages.create(
                 model=self.model,
@@ -169,11 +169,8 @@ SQL Script:
         except Exception as e:
             print(f"[Claude AI Debug] Full error type: {type(e).__name__}")
             print(f"[Claude AI Debug] Full error message: {str(e)}")
-            # Print more details if it's an Anthropic API error
+            # Print HTTP status if available, but NOT the full error __dict__/response body,
+            # which can contain request headers including the API key.
             if hasattr(e, 'status_code'):
                 print(f"[Claude AI Debug] HTTP Status Code: {e.status_code}")
-            if hasattr(e, 'response'):
-                print(f"[Claude AI Debug] Response body: {e.response}")
-            if hasattr(e, '__dict__'):
-                print(f"[Claude AI Debug] Error attributes: {e.__dict__}")
             raise Exception(f"Error analyzing script with Claude AI: {str(e)}")

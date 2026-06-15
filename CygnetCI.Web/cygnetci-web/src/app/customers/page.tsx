@@ -15,8 +15,11 @@ interface Customer {
   address?: string;
   is_active: boolean;
   logo_url?: string;
+  // client_id / client_secret are only present in the response of generate-credentials
+  // (shown once). Normal list/get responses return `has_credentials` instead.
   client_id?: string;
   client_secret?: string;
+  has_credentials?: boolean;
   credentials_enabled: boolean;
   ip_allowlist?: string[];
   ip_restriction_enabled: boolean;
@@ -795,8 +798,13 @@ export default function CustomersPage() {
                   </div>
                 </div>
 
-                {selectedCustomer.client_id ? (
+                {selectedCustomer.client_secret ? (
+                  /* Just generated — the secret is in memory only this once. */
                   <>
+                    <div className="bg-amber-50 border border-amber-200 rounded-lg px-3 py-2 text-xs text-amber-700">
+                      Copy these now and paste them into the agent&apos;s appsettings.json. For security the
+                      secret is shown only once and is never returned again — if you lose it, regenerate.
+                    </div>
                     <div>
                       <label className="block text-xs font-medium text-gray-600 mb-1">Client ID (64 chars)</label>
                       <div className="flex items-center gap-2">
@@ -839,6 +847,38 @@ export default function CustomersPage() {
                           <Copy className="h-4 w-4" />
                         </button>
                       </div>
+                    </div>
+                    <div className="flex gap-2 pt-1">
+                      <button
+                        onClick={handleGenerateCredentials}
+                        disabled={credentialLoading}
+                        className="flex items-center gap-1.5 px-3 py-1.5 text-xs border border-gray-300 text-gray-700 hover:bg-gray-50 rounded-lg transition-colors disabled:opacity-50"
+                      >
+                        <RefreshCw className={`h-3 w-3 ${credentialLoading ? 'animate-spin' : ''}`} />
+                        Regenerate
+                      </button>
+                      <button
+                        onClick={handleToggleCredentials}
+                        disabled={credentialLoading}
+                        className={`flex items-center gap-1.5 px-3 py-1.5 text-xs rounded-lg transition-colors disabled:opacity-50 ${
+                          selectedCustomer.credentials_enabled
+                            ? 'border border-red-300 text-red-600 hover:bg-red-50'
+                            : 'border border-green-300 text-green-600 hover:bg-green-50'
+                        }`}
+                      >
+                        {selectedCustomer.credentials_enabled
+                          ? <><ShieldOff className="h-3 w-3" /> Disable</>
+                          : <><ShieldCheck className="h-3 w-3" /> Enable</>
+                        }
+                      </button>
+                    </div>
+                  </>
+                ) : selectedCustomer.has_credentials ? (
+                  /* Configured — secret is hidden for security and not retrievable. */
+                  <>
+                    <div className="flex items-center gap-2 text-xs text-gray-500 bg-gray-50 border border-gray-200 rounded-lg px-3 py-2">
+                      <ShieldCheck className="h-4 w-4 text-green-500 flex-shrink-0" />
+                      Credentials are configured. The secret is hidden for security — regenerate to issue a new one.
                     </div>
                     <div className="flex gap-2 pt-1">
                       <button

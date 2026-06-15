@@ -16,6 +16,8 @@ import ipaddress
 import shutil
 import bcrypt
 import uuid
+import secrets
+from collections import defaultdict
 
 # Import database, models, and config
 from database import get_db, engine
@@ -629,8 +631,9 @@ async def _agent_status_checker():
                     db.commit()
             finally:
                 db.close()
-        except Exception:
-            pass  # never crash the loop
+        except Exception as e:
+            # Never crash the loop, but don't swallow silently — surface the error in logs.
+            print(f"[agent_status_checker] error: {type(e).__name__}: {e}")
 
 @app.on_event("startup")
 async def startup_event():
@@ -670,16 +673,55 @@ def root():
 
 # ==================== AUTHENTICATION ====================
 
+# SECURITY: simple in-memory brute-force throttle for login.
+# Tracks recent failed attempts per (client-ip, username) and locks out after a threshold.
+_LOGIN_MAX_ATTEMPTS = 5
+_LOGIN_WINDOW_SECONDS = 300   # attempts are counted within a rolling 5-minute window
+_LOGIN_LOCKOUT_SECONDS = 300  # lockout duration once the threshold is exceeded
+_login_attempts: dict = defaultdict(list)  # key -> list[timestamp of failed attempts]
+_login_attempts_lock = threading.Lock()
+
+def _login_key(request: Request, username: str) -> str:
+    return f"{_get_real_ip(request)}|{(username or '').lower()}"
+
+def _login_is_locked(key: str) -> bool:
+    now = time.time()
+    with _login_attempts_lock:
+        attempts = [t for t in _login_attempts.get(key, []) if now - t < _LOGIN_LOCKOUT_SECONDS]
+        _login_attempts[key] = attempts
+        return len(attempts) >= _LOGIN_MAX_ATTEMPTS
+
+def _login_record_failure(key: str):
+    now = time.time()
+    with _login_attempts_lock:
+        attempts = [t for t in _login_attempts.get(key, []) if now - t < _LOGIN_WINDOW_SECONDS]
+        attempts.append(now)
+        _login_attempts[key] = attempts
+
+def _login_reset(key: str):
+    with _login_attempts_lock:
+        _login_attempts.pop(key, None)
+
+
 @app.post("/auth/login", response_model=LoginResponse, tags=["🔐 Authentication"])
-def login(credentials: LoginRequest, db: Session = Depends(get_db)):
+def login(credentials: LoginRequest, request: Request, db: Session = Depends(get_db)):
     """
     Authenticate user with username and password
     Returns access token and user information
     """
+    # SECURITY: throttle repeated failed attempts before doing any work
+    attempt_key = _login_key(request, credentials.username)
+    if _login_is_locked(attempt_key):
+        raise HTTPException(
+            status_code=429,
+            detail="Too many failed login attempts. Please try again in a few minutes."
+        )
+
     # Find user by username
     user = db.query(models.User).filter(models.User.username.ilike(credentials.username)).first()
 
     if not user:
+        _login_record_failure(attempt_key)
         raise HTTPException(status_code=401, detail="Invalid username or password")
 
     # Verify password - support both bcrypt and SHA256 for backward compatibility
@@ -698,18 +740,25 @@ def login(credentials: LoginRequest, db: Session = Depends(get_db)):
         password_valid = user.password_hash == hashed_password
 
     if not password_valid:
+        _login_record_failure(attempt_key)
         raise HTTPException(status_code=401, detail="Invalid username or password")
 
     # Check if user is active
     if not user.is_active:
         raise HTTPException(status_code=403, detail="User account is disabled")
 
+    # Successful login — clear the failed-attempt counter
+    _login_reset(attempt_key)
+
     # Update last login timestamp
     user.last_login = datetime.now()
     db.commit()
 
-    # Generate access token (simple token for now - should use JWT in production)
-    access_token = hashlib.sha256(f"{user.username}{datetime.now().isoformat()}".encode()).hexdigest()
+    # Generate access token.
+    # SECURITY: use a cryptographically-random token instead of a predictable
+    # sha256(username + timestamp). (Note: this token is not yet validated server-side;
+    # a proper JWT/session layer is a separate, planned change.)
+    access_token = secrets.token_urlsafe(48)
 
     # Return user data (without password)
     user_data = {
@@ -3105,34 +3154,54 @@ async def upload_file(
     if file_type not in ['script', 'artifact']:
         raise HTTPException(status_code=400, detail="file_type must be 'script' or 'artifact'")
 
-    # Validate file extension (optional - can be disabled in config)
-    # if not app_config.validate_file_extension(file.filename, file_type):
-    #     allowed_exts = app_config.get_allowed_script_extensions() if file_type == 'script' else app_config.get_allowed_artifact_extensions()
-    #     raise HTTPException(status_code=400, detail=f"File extension not allowed. Allowed extensions: {', '.join(allowed_exts)}")
+    # SECURITY: sanitize version and filename to prevent path traversal.
+    # `version` becomes a directory name and `file.filename` a leaf file name; neither may
+    # contain path separators, parent-directory references, or be absolute.
+    if not file.filename:
+        raise HTTPException(status_code=400, detail="Filename is required")
+    safe_filename = os.path.basename(file.filename.replace("\\", "/"))
+    if not safe_filename or safe_filename in (".", ".."):
+        raise HTTPException(status_code=400, detail="Invalid filename")
+    safe_version = (version or "").strip()
+    if (not safe_version or ".." in safe_version
+            or "/" in safe_version or "\\" in safe_version
+            or os.path.isabs(safe_version)):
+        raise HTTPException(status_code=400, detail="Invalid version")
 
     try:
         # Create folder structure using config helper
-        folder_path = app_config.get_file_path(file_type, version)
+        folder_path = app_config.get_file_path(file_type, safe_version)
         os.makedirs(folder_path, exist_ok=True)
 
-        # Save file
-        file_path = os.path.join(folder_path, file.filename)
+        # Save file (use sanitized leaf name)
+        file_path = os.path.join(folder_path, safe_filename)
 
-        # Write file in chunks to handle large files efficiently
+        # Defense in depth: ensure the resolved path stays inside the intended folder
+        if os.path.commonpath([os.path.abspath(folder_path),
+                                os.path.abspath(file_path)]) != os.path.abspath(folder_path):
+            raise HTTPException(status_code=400, detail="Invalid file path")
+
+        # Write file in chunks to handle large files efficiently.
+        # SECURITY: enforce the size limit DURING the stream so an oversized upload is
+        # aborted early instead of being written to disk in full first.
+        max_size = app_config.get_max_file_size_bytes()
         file_size = 0
         chunk_size = 1024 * 1024  # 1 MB chunks
+        too_large = False
         with open(file_path, "wb") as buffer:
             while True:
                 chunk = await file.read(chunk_size)
                 if not chunk:
                     break
-                buffer.write(chunk)
                 file_size += len(chunk)
+                if file_size > max_size:
+                    too_large = True
+                    break
+                buffer.write(chunk)
 
-        # Validate file size
-        max_size = app_config.get_max_file_size_bytes()
-        if file_size > max_size:
-            os.remove(file_path)  # Clean up the file
+        if too_large:
+            if os.path.exists(file_path):
+                os.remove(file_path)  # Clean up the partial file
             raise HTTPException(
                 status_code=400,
                 detail=f"File too large. Maximum size: {app_config.get_max_file_size_mb()} MB"
@@ -3147,8 +3216,8 @@ async def upload_file(
         existing_file = db.query(models.TransferFile)\
             .filter(
                 models.TransferFile.file_type == file_type,
-                models.TransferFile.file_name == file.filename,
-                models.TransferFile.version == version
+                models.TransferFile.file_name == safe_filename,
+                models.TransferFile.version == safe_version
             ).first()
 
         if existing_file:
@@ -3179,8 +3248,8 @@ async def upload_file(
         # Create new database record
         transfer_file = models.TransferFile(
             file_type=file_type,
-            file_name=file.filename,
-            version=version,
+            file_name=safe_filename,
+            version=safe_version,
             file_path=file_path,
             file_size_bytes=file_size,
             checksum=checksum,
@@ -5731,17 +5800,32 @@ def review_approval(approval_id: int, data: ApprovalReview, db: Session = Depend
 
 # ── AI Settings ───────────────────────────────────────────────────────────────
 
-from cryptography.fernet import Fernet
+from cryptography.fernet import Fernet, InvalidToken
 import base64
 
-_FERNET_KEY_SEED = b"CygnetCI-AI-Settings-Secret-Key!"  # 32 bytes
-_fernet = Fernet(base64.urlsafe_b64encode(_FERNET_KEY_SEED))
+# SECURITY: the encryption key is read from the AI_SETTINGS_KEY environment variable.
+# It must be a 32-byte value. The previous build used a hardcoded key; that key is kept
+# ONLY as a decryption fallback so existing rows stay readable after you set a real key.
+# Set AI_SETTINGS_KEY in the environment to a strong secret and re-save the AI API key to
+# migrate it; once migrated you can remove the legacy fallback.
+def _fernet_from_seed(seed: bytes) -> Fernet:
+    seed = seed[:32].ljust(32, b"0")  # normalize to exactly 32 bytes
+    return Fernet(base64.urlsafe_b64encode(seed))
+
+_LEGACY_FERNET = _fernet_from_seed(b"CygnetCI-AI-Settings-Secret-Key!")
+_env_key = os.environ.get("AI_SETTINGS_KEY")
+_fernet = _fernet_from_seed(_env_key.encode()) if _env_key else _LEGACY_FERNET
 
 def _encrypt(plain: str) -> str:
     return _fernet.encrypt(plain.encode()).decode()
 
 def _decrypt(token: str) -> str:
-    return _fernet.decrypt(token.encode()).decode()
+    try:
+        return _fernet.decrypt(token.encode()).decode()
+    except InvalidToken:
+        # Fall back to the legacy key so data encrypted before AI_SETTINGS_KEY was set
+        # still decrypts. (No-op if the env key is unset / already the legacy key.)
+        return _LEGACY_FERNET.decrypt(token.encode()).decode()
 
 class AISettingsBody(BaseModel):
     provider: str = "anthropic"

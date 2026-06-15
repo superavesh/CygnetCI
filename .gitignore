@@ -1,2 +1,44 @@
 nul
 NUL
+
+# ── Secrets / local config (NEVER commit) ───────────────────────────────
+.env
+.env.*
+!.env.example
+**/config.ini
+!**/config.ini.template
+*.local
+appsettings.*.local.json
+EmailEncryptionKey.txt
+
+# ── Python ──────────────────────────────────────────────────────────────
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+venv/
+env/
+# Vendored interpreter / packages shipped inside the API dist folder
+CygnetCI.Api/dist/python/
+
+# ── .NET build output ───────────────────────────────────────────────────
+[Bb]in/
+[Oo]bj/
+publish/
+*.user
+*.suo
+
+# ── Node / Next.js ──────────────────────────────────────────────────────
+node_modules/
+.next/
+out/
+npm-debug.log*
+
+# ── IDE / editor ────────────────────────────────────────────────────────
+.vs/
+.vscode/
+.idea/
+
+# ── Misc generated artifacts ────────────────────────────────────────────
+*.docx
+CygnetCI_Security_Review.docx
