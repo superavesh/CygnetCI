@@ -9,7 +9,7 @@ import {
   Terminal, BookOpen, Wrench, HelpCircle,
   Building2, GitBranch, Rocket, Server, Save, GripVertical,
   Paperclip, Upload, Download, FileText, Image, File,
-  Bot, Send, MoreHorizontal, Sparkles, CheckCircle, ExternalLink,
+  Send, MoreHorizontal, Sparkles, CheckCircle, ExternalLink,
   ArrowUpDown,
 } from 'lucide-react';
 import { CONFIG } from '@/lib/config';
@@ -359,30 +359,46 @@ export default function TicketsPage() {
       <div className="max-w-screen-2xl mx-auto px-6 py-5">
 
         {/* ── Header ── */}
-        <div className="flex items-center justify-between mb-4">
-          <div>
-            <h1 className="text-xl font-semibold text-gray-900">Tickets</h1>
-            <p className="text-xs text-gray-500 mt-0.5">Track and resolve issues across your infrastructure</p>
+        <div className="flex items-center justify-between mb-5">
+          <div className="flex items-center gap-3">
+            <div className="flex items-center justify-center h-9 w-9 rounded-lg bg-blue-600 text-white shadow-sm">
+              <Ticket className="h-5 w-5" />
+            </div>
+            <div>
+              <h1 className="text-xl font-semibold text-gray-900 leading-tight">Tickets</h1>
+              <p className="text-xs text-gray-500">Track and resolve issues across your infrastructure</p>
+            </div>
           </div>
           <div className="flex items-center gap-2">
-            <button onClick={fetchTickets} title="Refresh" className="p-1.5 rounded text-gray-500 hover:bg-gray-200 transition-colors">
+            <button onClick={fetchTickets} title="Refresh" className="p-2 rounded-lg text-gray-500 hover:bg-gray-100 transition-colors">
               <RefreshCw className="h-4 w-4" />
             </button>
-            <div className="flex items-center bg-white border border-gray-300 rounded overflow-hidden">
+            <div className="flex items-center bg-white border border-gray-300 rounded-lg overflow-hidden shadow-sm">
               <button onClick={() => setView('list')} className={`px-3 py-1.5 flex items-center gap-1.5 text-sm transition-colors ${view === 'list' ? 'bg-blue-600 text-white' : 'text-gray-600 hover:bg-gray-50'}`}>
                 <LayoutList className="h-4 w-4" /> List
               </button>
+              <span className="w-px self-stretch bg-gray-300" />
               <button onClick={() => setView('board')} className={`px-3 py-1.5 flex items-center gap-1.5 text-sm transition-colors ${view === 'board' ? 'bg-blue-600 text-white' : 'text-gray-600 hover:bg-gray-50'}`}>
                 <LayoutGrid className="h-4 w-4" /> Board
               </button>
             </div>
+
+            {/* Ask Cygie — branded AI assistant trigger */}
             <button
               onClick={() => setShowAI(s => !s)}
-              className={`flex items-center gap-1.5 px-3 py-1.5 rounded border text-sm font-medium transition-colors ${showAI ? 'bg-purple-100 text-purple-700 border-purple-300' : 'bg-white border-gray-300 text-gray-600 hover:bg-gray-50'}`}
+              className={`group flex items-center gap-2 pl-1.5 pr-3.5 py-1.5 rounded-full text-sm font-medium transition-all ${
+                showAI
+                  ? 'bg-gradient-to-r from-blue-50 via-violet-50 to-pink-50 text-violet-700 ring-1 ring-violet-200 shadow-sm'
+                  : 'bg-white border border-gray-300 text-gray-700 hover:border-violet-300 hover:shadow-sm'
+              }`}
             >
-              <Bot className="h-4 w-4" /> AI Assistant
+              <span className="flex items-center justify-center h-6 w-6 rounded-full bg-gradient-to-br from-blue-500 via-violet-500 to-pink-500 shadow-sm group-hover:scale-105 transition-transform">
+                <Sparkles className="h-3.5 w-3.5 text-white" />
+              </span>
+              Ask Cygie
             </button>
-            <button onClick={() => setShowCreate(true)} className="flex items-center gap-1.5 px-4 py-1.5 bg-blue-600 text-white rounded text-sm font-medium hover:bg-blue-700 transition-colors">
+
+            <button onClick={() => setShowCreate(true)} className="flex items-center gap-1.5 px-4 py-1.5 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700 transition-colors shadow-sm">
               <Plus className="h-4 w-4" /> Create
             </button>
           </div>
@@ -448,160 +464,178 @@ export default function TicketsPage() {
         />
       )}
 
-      {/* ── AI Assistant Panel ── */}
+      {/* ── Cygie AI Assistant Panel ── */}
       {showAI && (
         <>
-          {/* Backdrop — clicking outside closes the panel */}
-          <div className="fixed inset-0 z-30" onClick={() => setShowAI(false)} />
-        <div className="fixed inset-y-0 right-0 w-96 bg-white border-l border-gray-200 shadow-xl flex flex-col z-40">
-          {/* Header */}
-          <div className="flex items-center justify-between px-4 py-3 border-b border-gray-200 bg-gradient-to-r from-purple-50 to-indigo-50">
-            <div className="flex items-center gap-2">
-              <div className="w-7 h-7 rounded-full bg-purple-600 flex items-center justify-center">
-                <Sparkles className="h-4 w-4 text-white" />
-              </div>
-              <div>
-                <div className="text-sm font-semibold text-gray-800">AI Ticket Assistant</div>
-                <div className="text-xs text-gray-500">Search · Create · Update</div>
-              </div>
-            </div>
-            <div className="flex items-center gap-1">
-              <button onClick={() => setChatEntries([])} title="Clear conversation" className="p-1.5 text-gray-400 hover:text-gray-700 rounded">
-                <MoreHorizontal className="h-4 w-4" />
-              </button>
-              <button onClick={() => setShowAI(false)} className="p-1.5 text-gray-400 hover:text-gray-700 rounded">
-                <X className="h-4 w-4" />
-              </button>
-            </div>
-          </div>
+          {/* Backdrop — subtle dim, click to close */}
+          <div className="fixed inset-0 z-30 bg-gray-900/10 backdrop-blur-[1px]" onClick={() => setShowAI(false)} />
 
-          {/* Messages */}
-          <div className="flex-1 overflow-y-auto p-4 space-y-4">
-            {chatEntries.length === 0 && (
-              <div className="text-center mt-6">
-                <Bot className="h-10 w-10 text-purple-200 mx-auto mb-3" />
-                <p className="text-sm text-gray-500 mb-4">
-                  I can search, create, and update tickets. Try asking:
-                </p>
-                <div className="space-y-2">
-                  {[
-                    'Show all critical open bugs',
-                    'Create a bug ticket: Login page crashes on mobile',
-                    'Find unassigned tickets',
-                    'Update TKT-0001 status to in_progress',
-                    'Show me recent high priority issues',
-                  ].map(s => (
-                    <button
-                      key={s}
-                      onClick={() => sendAIMessage(s)}
-                      className="block w-full text-left text-xs px-3 py-2 rounded-lg border border-gray-200 hover:border-purple-300 hover:bg-purple-50 text-gray-600 hover:text-purple-700 transition-colors"
-                    >
-                      {s}
-                    </button>
-                  ))}
+          <div className="fixed right-4 top-4 bottom-4 w-[396px] bg-white rounded-2xl shadow-2xl ring-1 ring-black/5 flex flex-col z-40 overflow-hidden animate-slide-in">
+            {/* Branded header */}
+            <div className="relative px-4 py-3.5 bg-gradient-to-r from-blue-600 via-violet-600 to-fuchsia-600 text-white">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2.5">
+                  <div className="flex items-center justify-center h-9 w-9 rounded-full bg-white/20 backdrop-blur-sm ring-1 ring-white/30">
+                    <Sparkles className="h-5 w-5 text-white" />
+                  </div>
+                  <div>
+                    <div className="text-sm font-semibold tracking-tight">Cygie</div>
+                    <div className="text-[11px] text-white/80">AI assistant · Search · Create · Update</div>
+                  </div>
+                </div>
+                <div className="flex items-center gap-0.5">
+                  <button onClick={() => setChatEntries([])} title="Clear conversation" className="p-1.5 text-white/80 hover:text-white hover:bg-white/15 rounded-lg transition-colors">
+                    <MoreHorizontal className="h-4 w-4" />
+                  </button>
+                  <button onClick={() => setShowAI(false)} title="Close" className="p-1.5 text-white/80 hover:text-white hover:bg-white/15 rounded-lg transition-colors">
+                    <X className="h-4 w-4" />
+                  </button>
                 </div>
               </div>
-            )}
+            </div>
 
-            {chatEntries.map((entry, i) => (
-              <div key={i} className={`flex flex-col ${entry.role === 'user' ? 'items-end' : 'items-start'}`}>
-                {/* Bubble */}
-                <div className={`max-w-[85%] rounded-2xl px-3 py-2 text-sm ${
-                  entry.role === 'user'
-                    ? 'bg-purple-600 text-white rounded-br-sm'
-                    : 'bg-gray-100 text-gray-700 rounded-bl-sm'
-                }`}>
-                  {entry.loading ? (
-                    <div className="flex items-center gap-1.5">
-                      <span className="w-1.5 h-1.5 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '0ms' }} />
-                      <span className="w-1.5 h-1.5 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '150ms' }} />
-                      <span className="w-1.5 h-1.5 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '300ms' }} />
+            {/* Messages */}
+            <div className="flex-1 overflow-y-auto px-4 py-4 space-y-4 bg-gradient-to-b from-violet-50/40 to-white">
+              {chatEntries.length === 0 && (
+                <div className="mt-2">
+                  <div className="flex flex-col items-center text-center mb-5">
+                    <div className="flex items-center justify-center h-12 w-12 rounded-2xl bg-gradient-to-br from-blue-500 via-violet-500 to-fuchsia-500 shadow-lg mb-3">
+                      <Sparkles className="h-6 w-6 text-white" />
                     </div>
-                  ) : (
-                    <div className="whitespace-pre-wrap">{entry.content}</div>
+                    <p className="text-sm font-semibold text-gray-800">Hi, I&apos;m Cygie 👋</p>
+                    <p className="text-xs text-gray-500 mt-1 px-4">
+                      I can search, create, and update tickets for you. Pick a prompt or type your own.
+                    </p>
+                  </div>
+                  <div className="space-y-2">
+                    {[
+                      { icon: <Search className="h-3.5 w-3.5" />, text: 'Show all critical open bugs' },
+                      { icon: <Plus className="h-3.5 w-3.5" />, text: 'Create a bug: Login page crashes on mobile' },
+                      { icon: <Circle className="h-3.5 w-3.5" />, text: 'Find unassigned tickets' },
+                      { icon: <Edit2 className="h-3.5 w-3.5" />, text: 'Update TKT-0001 status to in_progress' },
+                      { icon: <AlertCircle className="h-3.5 w-3.5" />, text: 'Show me recent high priority issues' },
+                    ].map(s => (
+                      <button
+                        key={s.text}
+                        onClick={() => sendAIMessage(s.text)}
+                        className="group flex items-center gap-2.5 w-full text-left text-xs px-3 py-2.5 rounded-xl border border-gray-200 bg-white hover:border-violet-300 hover:bg-violet-50/60 hover:shadow-sm text-gray-600 hover:text-violet-700 transition-all"
+                      >
+                        <span className="flex items-center justify-center h-6 w-6 rounded-lg bg-violet-50 text-violet-500 group-hover:bg-violet-100 transition-colors flex-shrink-0">
+                          {s.icon}
+                        </span>
+                        {s.text}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {chatEntries.map((entry, i) => (
+                <div key={i} className={`flex gap-2 ${entry.role === 'user' ? 'justify-end' : 'justify-start'}`}>
+                  {entry.role === 'assistant' && (
+                    <div className="flex items-center justify-center h-7 w-7 rounded-full bg-gradient-to-br from-blue-500 via-violet-500 to-fuchsia-500 flex-shrink-0 mt-0.5">
+                      <Sparkles className="h-3.5 w-3.5 text-white" />
+                    </div>
                   )}
-                </div>
-
-                {/* Action cards — tickets found / created / updated */}
-                {(entry.actions || []).map((action, ai) => {
-                  const ticketList: TicketItem[] = action.type === 'found'
-                    ? (action.tickets || [])
-                    : action.ticket ? [action.ticket] : [];
-
-                  if (ticketList.length === 0) return null;
-
-                  return (
-                    <div key={ai} className="w-full mt-2 space-y-1.5">
-                      {action.type === 'created' && (
-                        <div className="flex items-center gap-1.5 text-xs text-green-700 font-medium mb-1">
-                          <CheckCircle className="h-3.5 w-3.5" /> Ticket created
+                  <div className={`flex flex-col ${entry.role === 'user' ? 'items-end' : 'items-start'} max-w-[82%]`}>
+                    {/* Bubble */}
+                    <div className={`rounded-2xl px-3.5 py-2 text-sm shadow-sm ${
+                      entry.role === 'user'
+                        ? 'bg-gradient-to-br from-blue-600 to-violet-600 text-white rounded-br-md'
+                        : 'bg-white border border-gray-200 text-gray-700 rounded-bl-md'
+                    }`}>
+                      {entry.loading ? (
+                        <div className="flex items-center gap-1.5 py-0.5">
+                          <span className="w-1.5 h-1.5 bg-violet-400 rounded-full animate-bounce" style={{ animationDelay: '0ms' }} />
+                          <span className="w-1.5 h-1.5 bg-violet-400 rounded-full animate-bounce" style={{ animationDelay: '150ms' }} />
+                          <span className="w-1.5 h-1.5 bg-violet-400 rounded-full animate-bounce" style={{ animationDelay: '300ms' }} />
                         </div>
+                      ) : (
+                        <div className="whitespace-pre-wrap leading-relaxed">{entry.content}</div>
                       )}
-                      {action.type === 'updated' && (
-                        <div className="flex items-center gap-1.5 text-xs text-blue-700 font-medium mb-1">
-                          <CheckCircle className="h-3.5 w-3.5" /> Ticket updated
-                        </div>
-                      )}
-                      {ticketList.map(t => (
-                        <button
-                          key={t.id}
-                          onClick={() => openTicket(t)}
-                          className="w-full text-left bg-white rounded-lg border border-gray-200 hover:border-purple-400 hover:shadow-sm p-2.5 transition-all group"
-                        >
-                          <div className="flex items-center gap-2 mb-1">
-                            <span className="font-mono text-xs text-blue-600 font-semibold">{t.ticket_number}</span>
-                            <span className={`text-xs px-1.5 py-0.5 rounded font-medium ${
-                              t.priority === 'critical' ? 'bg-red-100 text-red-700' :
-                              t.priority === 'high' ? 'bg-orange-100 text-orange-700' :
-                              t.priority === 'medium' ? 'bg-yellow-100 text-yellow-700' :
-                              'bg-gray-100 text-gray-600'
-                            }`}>{t.priority}</span>
-                            <span className={`text-xs px-1.5 py-0.5 rounded font-medium ${
-                              t.status === 'open' ? 'bg-blue-100 text-blue-700' :
-                              t.status === 'in_progress' ? 'bg-amber-100 text-amber-700' :
-                              t.status === 'resolved' ? 'bg-green-100 text-green-700' :
-                              'bg-gray-200 text-gray-600'
-                            }`}>{t.status.replace('_', ' ')}</span>
-                            <ExternalLink className="h-3 w-3 text-gray-300 group-hover:text-purple-400 ml-auto" />
-                          </div>
-                          <p className="text-xs text-gray-800 font-medium line-clamp-2">{t.title}</p>
-                          {t.assigned_to_name && (
-                            <p className="text-xs text-gray-400 mt-0.5">→ {t.assigned_to_name}</p>
-                          )}
-                        </button>
-                      ))}
                     </div>
-                  );
-                })}
-              </div>
-            ))}
-            <div ref={chatBottomRef} />
-          </div>
 
-          {/* Input */}
-          <div className="p-3 border-t border-gray-200 bg-gray-50">
-            <div className="flex gap-2">
-              <textarea
-                value={chatInput}
-                onChange={e => setChatInput(e.target.value)}
-                onKeyDown={e => {
-                  if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendAIMessage(); }
-                }}
-                placeholder="Search tickets, create or update…"
-                rows={2}
-                className="flex-1 text-sm border border-gray-200 rounded-xl px-3 py-2 text-gray-700 focus:border-purple-400 focus:outline-none resize-none bg-white"
-              />
-              <button
-                onClick={() => sendAIMessage()}
-                disabled={chatLoading || !chatInput.trim()}
-                className="self-end p-2.5 bg-purple-600 text-white rounded-xl hover:bg-purple-700 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
-              >
-                <Send className="h-4 w-4" />
-              </button>
+                    {/* Action cards — tickets found / created / updated */}
+                    {(entry.actions || []).map((action, ai) => {
+                      const ticketList: TicketItem[] = action.type === 'found'
+                        ? (action.tickets || [])
+                        : action.ticket ? [action.ticket] : [];
+
+                      if (ticketList.length === 0) return null;
+
+                      return (
+                        <div key={ai} className="w-full mt-2 space-y-1.5">
+                          {action.type === 'created' && (
+                            <div className="flex items-center gap-1.5 text-xs text-green-700 font-medium mb-1">
+                              <CheckCircle className="h-3.5 w-3.5" /> Ticket created
+                            </div>
+                          )}
+                          {action.type === 'updated' && (
+                            <div className="flex items-center gap-1.5 text-xs text-blue-700 font-medium mb-1">
+                              <CheckCircle className="h-3.5 w-3.5" /> Ticket updated
+                            </div>
+                          )}
+                          {ticketList.map(t => (
+                            <button
+                              key={t.id}
+                              onClick={() => openTicket(t)}
+                              className="w-full text-left bg-white rounded-xl border border-gray-200 hover:border-violet-400 hover:shadow-md p-3 transition-all group"
+                            >
+                              <div className="flex items-center gap-2 mb-1.5">
+                                <span className="font-mono text-xs text-blue-600 font-semibold">{t.ticket_number}</span>
+                                <span className={`text-[10px] px-1.5 py-0.5 rounded font-semibold uppercase tracking-wide ${
+                                  t.priority === 'critical' ? 'bg-red-100 text-red-700' :
+                                  t.priority === 'high' ? 'bg-orange-100 text-orange-700' :
+                                  t.priority === 'medium' ? 'bg-yellow-100 text-yellow-700' :
+                                  'bg-gray-100 text-gray-600'
+                                }`}>{t.priority}</span>
+                                <span className={`text-[10px] px-1.5 py-0.5 rounded font-semibold uppercase tracking-wide ${
+                                  t.status === 'open' ? 'bg-blue-100 text-blue-700' :
+                                  t.status === 'in_progress' ? 'bg-amber-100 text-amber-700' :
+                                  t.status === 'resolved' ? 'bg-green-100 text-green-700' :
+                                  'bg-gray-200 text-gray-600'
+                                }`}>{t.status.replace('_', ' ')}</span>
+                                <ExternalLink className="h-3 w-3 text-gray-300 group-hover:text-violet-500 ml-auto" />
+                              </div>
+                              <p className="text-xs text-gray-800 font-medium line-clamp-2">{t.title}</p>
+                              {t.assigned_to_name && (
+                                <p className="text-[11px] text-gray-400 mt-1">→ {t.assigned_to_name}</p>
+                              )}
+                            </button>
+                          ))}
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              ))}
+              <div ref={chatBottomRef} />
             </div>
-            <p className="text-xs text-gray-400 mt-1.5 text-center">Press Enter to send · Shift+Enter for new line</p>
+
+            {/* Input */}
+            <div className="p-3 border-t border-gray-100 bg-white">
+              <div className="flex items-end gap-2 rounded-2xl border border-gray-200 bg-gray-50 focus-within:border-violet-400 focus-within:bg-white focus-within:ring-2 focus-within:ring-violet-100 transition-all px-2 py-1.5">
+                <textarea
+                  value={chatInput}
+                  onChange={e => setChatInput(e.target.value)}
+                  onKeyDown={e => {
+                    if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendAIMessage(); }
+                  }}
+                  placeholder="Ask Cygie to search, create or update…"
+                  rows={1}
+                  className="flex-1 text-sm bg-transparent px-1.5 py-1 text-gray-700 focus:outline-none resize-none max-h-28"
+                />
+                <button
+                  onClick={() => sendAIMessage()}
+                  disabled={chatLoading || !chatInput.trim()}
+                  className="flex items-center justify-center h-8 w-8 rounded-full bg-gradient-to-br from-blue-600 via-violet-600 to-fuchsia-600 text-white hover:shadow-md disabled:opacity-30 disabled:cursor-not-allowed transition-all flex-shrink-0"
+                >
+                  <Send className="h-4 w-4" />
+                </button>
+              </div>
+              <p className="text-[11px] text-gray-400 mt-1.5 text-center">Cygie can make mistakes · verify important actions</p>
+            </div>
           </div>
-        </div>
         </>
       )}
     </div>
@@ -692,7 +726,7 @@ function ListView({
 
   if (tickets.length === 0) {
     return (
-      <div className="bg-white border border-gray-200 flex flex-col items-center justify-center py-24 text-center">
+      <div className="bg-white border border-gray-200 rounded-xl shadow-sm flex flex-col items-center justify-center py-24 text-center">
         <Ticket className="h-10 w-10 text-gray-200 mb-3" />
         <p className="text-gray-500 font-medium text-sm">No issues found</p>
         <p className="text-gray-400 text-xs mt-1 mb-4">Try a different filter or create a new ticket</p>
@@ -704,7 +738,7 @@ function ListView({
   }
 
   return (
-    <div className="bg-white border border-gray-200 overflow-hidden">
+    <div className="bg-white border border-gray-200 rounded-xl shadow-sm overflow-hidden">
       <table className="w-full border-collapse">
         <thead>
           <tr className="border-b border-gray-200 bg-gray-50/80">

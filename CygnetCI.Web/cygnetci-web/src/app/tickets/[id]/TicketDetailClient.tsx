@@ -9,7 +9,7 @@ import PlaceholderExt from '@tiptap/extension-placeholder';
 import { CONFIG } from '@/lib/config';
 import {
   ArrowLeft, MessageSquare, Clock, Paperclip, Plus, X, Check,
-  Edit2, Trash2, Download, Send, Bot, Bold, Italic, Code,
+  Edit2, Trash2, Download, Send, Sparkles, Bold, Italic, Code,
   List, ListOrdered, Heading2, Underline, Link as LinkIcon,
   Loader2, Upload, AlertCircle, CheckCircle,
   XCircle, User, MoreHorizontal, ChevronRight, ChevronDown,
@@ -286,6 +286,18 @@ export default function TicketDetailClient({ ticketId, onBack }: { ticketId: str
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
+  // Current logged-in user (from localStorage) — used to attribute comments, edits,
+  // approvals and field changes instead of sending a null author (which renders as "?").
+  const [currentUser, setCurrentUser] = useState<{ id: number; full_name?: string | null; username?: string } | null>(null);
+  useEffect(() => {
+    try {
+      const raw = localStorage.getItem('user');
+      if (raw) setCurrentUser(JSON.parse(raw));
+    } catch { /* ignore malformed user */ }
+  }, []);
+  const currentUserId = currentUser?.id ?? null;
+  const currentUserName = currentUser?.full_name || currentUser?.username || null;
+
   const [editingTitle, setEditingTitle] = useState(false);
   const [titleDraft, setTitleDraft] = useState('');
   const [editingDesc, setEditingDesc] = useState(false);
@@ -375,7 +387,7 @@ export default function TicketDetailClient({ ticketId, onBack }: { ticketId: str
     const res = await fetch(`${API()}/tickets/${id}/update`, {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ ...fields, changed_by: null }),
+      body: JSON.stringify({ ...fields, changed_by: currentUserId }),
     });
     if (res.ok) {
       const updated = await res.json();
@@ -411,7 +423,7 @@ export default function TicketDetailClient({ ticketId, onBack }: { ticketId: str
     await fetch(`${API()}/tickets/${id}/comments`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ body, created_by: null }),
+      body: JSON.stringify({ body, created_by: currentUserId }),
     });
     commentEditor.commands.clearContent();
     setCommentFocused(false);
@@ -433,7 +445,7 @@ export default function TicketDetailClient({ ticketId, onBack }: { ticketId: str
     await fetch(`${API()}/ticket-comments/${commentId}`, {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ body: editCommentEditor.getHTML(), updated_by: null }),
+      body: JSON.stringify({ body: editCommentEditor.getHTML(), updated_by: currentUserId }),
     });
     setEditingCommentId(null);
     const c = await fetch(`${API()}/tickets/${id}/comments`).then(r => r.json());
@@ -452,7 +464,7 @@ export default function TicketDetailClient({ ticketId, onBack }: { ticketId: str
     await fetch(`${API()}/tickets/${id}/approvals`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ requested_by: null }),
+      body: JSON.stringify({ requested_by: currentUserId }),
     });
     const [ap, h] = await Promise.all([
       fetch(`${API()}/tickets/${id}/approvals`).then(r => r.json()),
@@ -466,7 +478,7 @@ export default function TicketDetailClient({ ticketId, onBack }: { ticketId: str
     await fetch(`${API()}/ticket-approvals/${approvalId}`, {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ status, note: approvalNote || null, reviewed_by: null }),
+      body: JSON.stringify({ status, note: approvalNote || null, reviewed_by: currentUserId }),
     });
     setApprovalNote('');
     const [ap, h] = await Promise.all([
@@ -605,12 +617,16 @@ export default function TicketDetailClient({ ticketId, onBack }: { ticketId: str
         <div className="flex-1" />
         <button
           onClick={() => setShowAI(s => !s)}
-          className={`flex items-center gap-1.5 px-3 py-1.5 rounded text-sm font-medium transition-colors ${
-            showAI ? 'bg-purple-100 text-purple-700' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+          className={`group flex items-center gap-2 pl-1.5 pr-3.5 py-1.5 rounded-full text-sm font-medium transition-all ${
+            showAI
+              ? 'bg-gradient-to-r from-blue-50 via-violet-50 to-pink-50 text-violet-700 ring-1 ring-violet-200 shadow-sm'
+              : 'bg-white border border-gray-300 text-gray-700 hover:border-violet-300 hover:shadow-sm'
           }`}
         >
-          <Bot size={14} />
-          AI Assistant
+          <span className="flex items-center justify-center h-6 w-6 rounded-full bg-gradient-to-br from-blue-500 via-violet-500 to-pink-500 shadow-sm group-hover:scale-105 transition-transform">
+            <Sparkles size={14} className="text-white" />
+          </span>
+          Ask Cygie
         </button>
       </div>
 
@@ -748,8 +764,8 @@ export default function TicketDetailClient({ ticketId, onBack }: { ticketId: str
               <div>
                 {/* Jira-style comment input */}
                 <div className="flex gap-3 items-start mb-6">
-                  <div className="w-8 h-8 rounded-full bg-gradient-to-br from-blue-400 to-purple-500 flex items-center justify-center text-white text-xs font-bold flex-shrink-0">
-                    ?
+                  <div className="w-8 h-8 rounded-full bg-gradient-to-br from-blue-400 to-purple-500 flex items-center justify-center text-white text-xs font-bold flex-shrink-0 uppercase">
+                    {av(currentUserName)}
                   </div>
                   <div className="flex-1">
                     {commentFocused ? (
@@ -1102,71 +1118,92 @@ export default function TicketDetailClient({ ticketId, onBack }: { ticketId: str
         </div>
       </div>
 
-      {/* ── AI Chat Panel ─────────────────────────────────────────────────────── */}
+      {/* ── Cygie AI Chat Panel ───────────────────────────────────────────────── */}
       {showAI && (
         <>
           {/* Backdrop — clicking outside the panel closes it */}
-          <div className="fixed inset-0 z-30" onClick={() => setShowAI(false)} />
-        <div className="fixed inset-y-0 right-0 w-96 bg-white border-l border-gray-200 shadow-xl flex flex-col z-40">
-          <div className="flex items-center justify-between px-4 py-3 border-b border-gray-200 bg-purple-50">
-            <div className="flex items-center gap-2">
-              <Bot size={16} className="text-purple-600" />
-              <span className="font-semibold text-gray-800 text-sm">AI Assistant</span>
-            </div>
-            <div className="flex items-center gap-1">
-              <button onClick={() => setChatMsgs([])} className="text-gray-400 hover:text-gray-700 p-1.5 rounded" title="Clear">
-                <MoreHorizontal size={15} />
-              </button>
-              <button onClick={() => setShowAI(false)} className="text-gray-400 hover:text-gray-700 p-1.5 rounded">
-                <X size={15} />
-              </button>
-            </div>
-          </div>
+          <div className="fixed inset-0 z-30 bg-gray-900/10 backdrop-blur-[1px]" onClick={() => setShowAI(false)} />
 
-          <div className="flex-1 overflow-y-auto p-4 space-y-3">
-            {chatMsgs.length === 0 && (
-              <div className="text-center text-gray-400 text-sm mt-8">
-                <Bot size={28} className="mx-auto mb-2 text-purple-200" />
-                <p className="text-sm text-gray-500">Ask anything about this ticket.</p>
-                <div className="mt-4 space-y-1.5">
-                  {['Summarize this ticket', 'What might be the root cause?', 'Suggest resolution steps'].map(s => (
-                    <button key={s} onClick={() => setChatInput(s)}
-                      className="block w-full text-xs text-left px-3 py-1.5 rounded border border-gray-200 hover:border-purple-300 hover:text-purple-700 text-gray-600 transition-colors">
-                      {s}
-                    </button>
-                  ))}
+          <div className="fixed right-4 top-4 bottom-4 w-[396px] bg-white rounded-2xl shadow-2xl ring-1 ring-black/5 flex flex-col z-40 overflow-hidden animate-slide-in">
+            {/* Branded header */}
+            <div className="px-4 py-3.5 bg-gradient-to-r from-blue-600 via-violet-600 to-fuchsia-600 text-white flex items-center justify-between">
+              <div className="flex items-center gap-2.5">
+                <div className="flex items-center justify-center h-9 w-9 rounded-full bg-white/20 backdrop-blur-sm ring-1 ring-white/30">
+                  <Sparkles size={18} className="text-white" />
+                </div>
+                <div>
+                  <div className="text-sm font-semibold tracking-tight">Cygie</div>
+                  <div className="text-[11px] text-white/80">Ask about this ticket</div>
                 </div>
               </div>
-            )}
-            {chatMsgs.map((m, i) => (
-              <div key={i} className={`flex ${m.role === 'user' ? 'justify-end' : 'justify-start'}`}>
-                <div className={`max-w-[82%] rounded-2xl px-3 py-2 text-sm ${m.role === 'user' ? 'bg-purple-600 text-white rounded-br-sm' : 'bg-gray-100 text-gray-700 rounded-bl-sm'}`}>
-                  {m.role === 'assistant' && !m.content && chatLoading
-                    ? <Loader2 size={14} className="animate-spin text-gray-400" />
-                    : <div className="whitespace-pre-wrap">{m.content}</div>}
-                </div>
+              <div className="flex items-center gap-0.5">
+                <button onClick={() => setChatMsgs([])} className="text-white/80 hover:text-white hover:bg-white/15 p-1.5 rounded-lg transition-colors" title="Clear">
+                  <MoreHorizontal size={15} />
+                </button>
+                <button onClick={() => setShowAI(false)} className="text-white/80 hover:text-white hover:bg-white/15 p-1.5 rounded-lg transition-colors">
+                  <X size={15} />
+                </button>
               </div>
-            ))}
-            <div ref={chatBottomRef} />
-          </div>
+            </div>
 
-          <div className="p-3 border-t border-gray-200">
-            <div className="flex gap-2">
-              <input
-                type="text"
-                value={chatInput}
-                onChange={e => setChatInput(e.target.value)}
-                onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendAIMessage(); } }}
-                placeholder="Ask about this ticket…"
-                className="flex-1 text-sm border border-gray-200 rounded-xl px-3 py-2 text-gray-700 focus:border-purple-400 focus:outline-none"
-              />
-              <button onClick={sendAIMessage} disabled={chatLoading || !chatInput.trim()}
-                className="p-2.5 bg-purple-600 text-white rounded-xl hover:bg-purple-700 disabled:opacity-40 disabled:cursor-not-allowed transition-colors">
-                <Send size={14} />
-              </button>
+            <div className="flex-1 overflow-y-auto px-4 py-4 space-y-4 bg-gradient-to-b from-violet-50/40 to-white">
+              {chatMsgs.length === 0 && (
+                <div className="mt-2">
+                  <div className="flex flex-col items-center text-center mb-5">
+                    <div className="flex items-center justify-center h-12 w-12 rounded-2xl bg-gradient-to-br from-blue-500 via-violet-500 to-fuchsia-500 shadow-lg mb-3">
+                      <Sparkles size={24} className="text-white" />
+                    </div>
+                    <p className="text-sm font-semibold text-gray-800">Hi, I&apos;m Cygie 👋</p>
+                    <p className="text-xs text-gray-500 mt-1 px-4">Ask me anything about this ticket.</p>
+                  </div>
+                  <div className="space-y-2">
+                    {['Summarize this ticket', 'What might be the root cause?', 'Suggest resolution steps'].map(s => (
+                      <button key={s} onClick={() => setChatInput(s)}
+                        className="group flex items-center gap-2.5 w-full text-left text-xs px-3 py-2.5 rounded-xl border border-gray-200 bg-white hover:border-violet-300 hover:bg-violet-50/60 hover:shadow-sm text-gray-600 hover:text-violet-700 transition-all">
+                        <span className="flex items-center justify-center h-6 w-6 rounded-lg bg-violet-50 text-violet-500 group-hover:bg-violet-100 transition-colors flex-shrink-0">
+                          <Sparkles size={13} />
+                        </span>
+                        {s}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
+              {chatMsgs.map((m, i) => (
+                <div key={i} className={`flex gap-2 ${m.role === 'user' ? 'justify-end' : 'justify-start'}`}>
+                  {m.role === 'assistant' && (
+                    <div className="flex items-center justify-center h-7 w-7 rounded-full bg-gradient-to-br from-blue-500 via-violet-500 to-fuchsia-500 flex-shrink-0 mt-0.5">
+                      <Sparkles size={14} className="text-white" />
+                    </div>
+                  )}
+                  <div className={`max-w-[82%] rounded-2xl px-3.5 py-2 text-sm shadow-sm ${m.role === 'user' ? 'bg-gradient-to-br from-blue-600 to-violet-600 text-white rounded-br-md' : 'bg-white border border-gray-200 text-gray-700 rounded-bl-md'}`}>
+                    {m.role === 'assistant' && !m.content && chatLoading
+                      ? <Loader2 size={14} className="animate-spin text-violet-400" />
+                      : <div className="whitespace-pre-wrap leading-relaxed">{m.content}</div>}
+                  </div>
+                </div>
+              ))}
+              <div ref={chatBottomRef} />
+            </div>
+
+            <div className="p-3 border-t border-gray-100 bg-white">
+              <div className="flex items-center gap-2 rounded-2xl border border-gray-200 bg-gray-50 focus-within:border-violet-400 focus-within:bg-white focus-within:ring-2 focus-within:ring-violet-100 transition-all px-2 py-1.5">
+                <input
+                  type="text"
+                  value={chatInput}
+                  onChange={e => setChatInput(e.target.value)}
+                  onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendAIMessage(); } }}
+                  placeholder="Ask Cygie about this ticket…"
+                  className="flex-1 text-sm bg-transparent px-1.5 py-1 text-gray-700 focus:outline-none"
+                />
+                <button onClick={sendAIMessage} disabled={chatLoading || !chatInput.trim()}
+                  className="flex items-center justify-center h-8 w-8 rounded-full bg-gradient-to-br from-blue-600 via-violet-600 to-fuchsia-600 text-white hover:shadow-md disabled:opacity-30 disabled:cursor-not-allowed transition-all flex-shrink-0">
+                  <Send size={14} />
+                </button>
+              </div>
+              <p className="text-[11px] text-gray-400 mt-1.5 text-center">Cygie can make mistakes · verify important actions</p>
             </div>
           </div>
-        </div>
         </>
       )}
     </div>
