@@ -1,16 +1,32 @@
 'use client';
 
-import React, { useState, useEffect, useCallback } from 'react';
-import { useRouter } from 'next/navigation';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
+import TicketDetailClient from './[id]/TicketDetailClient';
 import {
   Ticket, Plus, Search, LayoutList, LayoutGrid,
-  ChevronDown, X, Edit2, Trash2,
+  ChevronDown, ChevronUp, X, Edit2, Trash2,
   AlertCircle, CheckCircle2, Circle, Loader2, RefreshCw,
   Terminal, BookOpen, Wrench, HelpCircle,
   Building2, GitBranch, Rocket, Server, Save, GripVertical,
-  Paperclip, Upload, Download, FileText, Image, File
+  Paperclip, Upload, Download, FileText, Image, File,
+  Bot, Send, MoreHorizontal, Sparkles, CheckCircle, ExternalLink,
+  ArrowUpDown,
 } from 'lucide-react';
 import { CONFIG } from '@/lib/config';
+
+// ─── AI Chat types ────────────────────────────────────────────────────────────
+
+interface AIAction {
+  type: 'created' | 'updated' | 'found';
+  ticket?: TicketItem;
+  tickets?: TicketItem[];
+}
+interface AIChatEntry {
+  role: 'user' | 'assistant';
+  content: string;
+  actions?: AIAction[];
+  loading?: boolean;
+}
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -84,6 +100,21 @@ const TYPE_META: Record<string, { label: string; color: string; icon: React.Reac
   question:    { label: 'Question',    color: 'bg-teal-50 text-teal-600 border-teal-200',   icon: <HelpCircle className="h-3 w-3" /> },
 };
 
+// Jira-style status display
+const JIRA_STATUS: Record<string, { label: string; cls: string }> = {
+  open:        { label: 'OPEN',        cls: 'bg-blue-100 text-blue-700' },
+  in_progress: { label: 'IN PROGRESS', cls: 'bg-amber-100 text-amber-700' },
+  resolved:    { label: 'RESOLVED',    cls: 'bg-green-600 text-white' },
+  closed:      { label: 'CLOSED',      cls: 'bg-gray-600 text-white' },
+};
+
+const PRIORITY_JIRA: Record<string, { label: string; dot: string; text: string }> = {
+  critical: { label: 'Critical', dot: 'bg-red-500',    text: 'text-red-600' },
+  high:     { label: 'High',     dot: 'bg-orange-400', text: 'text-orange-500' },
+  medium:   { label: 'Medium',   dot: 'bg-yellow-400', text: 'text-yellow-600' },
+  low:      { label: 'Low',      dot: 'bg-gray-300',   text: 'text-gray-400' },
+};
+
 const BOARD_COLUMNS = ['open', 'in_progress', 'resolved', 'closed'] as const;
 const BOARD_HEADER: Record<string, string> = {
   open: 'bg-blue-500', in_progress: 'bg-yellow-500', resolved: 'bg-green-500', closed: 'bg-gray-500'
@@ -132,10 +163,29 @@ function TypeBadge({ type }: { type: string }) {
   );
 }
 
+// Jira-style small colored square type icon
+function TypeIcon({ type }: { type: string }) {
+  const m: Record<string, { bg: string; icon: React.ReactNode }> = {
+    bug:         { bg: 'bg-red-500',    icon: <AlertCircle  className="h-2.5 w-2.5 text-white" /> },
+    task:        { bg: 'bg-blue-500',   icon: <CheckCircle2 className="h-2.5 w-2.5 text-white" /> },
+    improvement: { bg: 'bg-purple-500', icon: <Wrench       className="h-2.5 w-2.5 text-white" /> },
+    question:    { bg: 'bg-teal-500',   icon: <HelpCircle   className="h-2.5 w-2.5 text-white" /> },
+  };
+  const { bg, icon } = m[type] ?? m.task;
+  return (
+    <span
+      className={`inline-flex items-center justify-center w-[18px] h-[18px] rounded-sm ${bg} flex-shrink-0`}
+      title={TYPE_META[type]?.label ?? type}
+    >
+      {icon}
+    </span>
+  );
+}
+
 // ─── Main Page ────────────────────────────────────────────────────────────────
 
 export default function TicketsPage() {
-  const router = useRouter();
+  const [currentTicketId, setCurrentTicketId] = useState<number | null>(null);
   const [tickets, setTickets] = useState<TicketItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [view, setView] = useState<'list' | 'board'>('list');
@@ -149,6 +199,87 @@ export default function TicketsPage() {
 
   // modals
   const [showCreate, setShowCreate] = useState(false);
+
+  // AI chat
+  const [showAI, setShowAI] = useState(false);
+  const [chatEntries, setChatEntries] = useState<AIChatEntry[]>([]);
+  const [chatInput, setChatInput] = useState('');
+  const [chatLoading, setChatLoading] = useState(false);
+  const chatBottomRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => { chatBottomRef.current?.scrollIntoView({ behavior: 'smooth' }); }, [chatEntries]);
+
+  const sendAIMessage = async (text?: string) => {
+    const msg = (text ?? chatInput).trim();
+    if (!msg || chatLoading) return;
+    setChatInput('');
+
+    const userEntry: AIChatEntry = { role: 'user', content: msg };
+    const loadingEntry: AIChatEntry = { role: 'assistant', content: '', loading: true };
+    setChatEntries(prev => [...prev, userEntry, loadingEntry]);
+    setChatLoading(true);
+
+    // Build history for context (exclude loading placeholders)
+    const history = [...chatEntries.filter(e => !e.loading), userEntry].map(e => ({
+      role: e.role,
+      content: e.content,
+    }));
+
+    try {
+      const res = await fetch(`${CONFIG.api.baseUrl}/tickets/ai-assist`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ messages: history, customer_id: null }),
+      });
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({ detail: 'AI error' }));
+        setChatEntries(prev => prev.slice(0, -1).concat({
+          role: 'assistant',
+          content: `Error: ${err.detail || 'Unknown error'}`,
+        }));
+        return;
+      }
+      const data = await res.json();
+      setChatEntries(prev => prev.slice(0, -1).concat({
+        role: 'assistant',
+        content: data.reply || '',
+        actions: data.actions || [],
+      }));
+      // Refresh list if AI created or updated a ticket
+      if ((data.actions || []).some((a: AIAction) => a.type === 'created' || a.type === 'updated')) {
+        fetchTickets();
+      }
+    } catch (e: unknown) {
+      setChatEntries(prev => prev.slice(0, -1).concat({
+        role: 'assistant',
+        content: `Error: ${e instanceof Error ? e.message : 'Request failed'}`,
+      }));
+    } finally {
+      setChatLoading(false);
+    }
+  };
+
+  // Open / close ticket detail — use URL manipulation so URL stays in sync
+  const openTicket = (t: TicketItem) => {
+    setCurrentTicketId(t.id);
+    window.history.pushState({ ticketId: t.id }, '', `/tickets/${t.id}`);
+  };
+
+  const closeTicket = () => {
+    setCurrentTicketId(null);
+    window.history.pushState({}, '', '/tickets');
+    fetchTickets();
+  };
+
+  // Sync state when browser back/forward buttons are used
+  useEffect(() => {
+    const onPop = () => {
+      const match = window.location.pathname.match(/\/tickets\/(\d+)/);
+      setCurrentTicketId(match ? parseInt(match[1]) : null);
+    };
+    window.addEventListener('popstate', onPop);
+    return () => window.removeEventListener('popstate', onPop);
+  }, []);
 
   // option lists
   const [users, setUsers] = useState<UserOption[]>([]);
@@ -218,70 +349,82 @@ export default function TicketsPage() {
     return true;
   });
 
+  // Show ticket detail full-screen when one is selected
+  if (currentTicketId !== null) {
+    return <TicketDetailClient ticketId={String(currentTicketId)} onBack={closeTicket} />;
+  }
+
   return (
     <div className="flex-1 overflow-auto bg-gray-50 min-h-screen">
-      <div className="max-w-screen-2xl mx-auto px-6 py-6">
+      <div className="max-w-screen-2xl mx-auto px-6 py-5">
 
         {/* ── Header ── */}
-        <div className="flex items-center justify-between mb-6">
+        <div className="flex items-center justify-between mb-4">
           <div>
-            <h1 className="text-2xl font-bold text-gray-900 flex items-center gap-2">
-              <Ticket className="h-7 w-7 text-blue-600" /> Tickets
-            </h1>
-            <p className="text-sm text-gray-500 mt-0.5">Create, assign and track issue resolution</p>
+            <h1 className="text-xl font-semibold text-gray-900">Tickets</h1>
+            <p className="text-xs text-gray-500 mt-0.5">Track and resolve issues across your infrastructure</p>
           </div>
           <div className="flex items-center gap-2">
-            <button onClick={fetchTickets} title="Refresh" className="p-2 rounded-lg bg-white border border-gray-200 hover:bg-gray-50 transition-colors text-gray-600 hover:text-gray-900">
+            <button onClick={fetchTickets} title="Refresh" className="p-1.5 rounded text-gray-500 hover:bg-gray-200 transition-colors">
               <RefreshCw className="h-4 w-4" />
             </button>
-            {/* view toggle */}
-            <div className="flex items-center bg-white border border-gray-200 rounded-lg overflow-hidden">
-              <button onClick={() => setView('list')} className={`px-3 py-2 flex items-center gap-1.5 text-sm transition-colors ${view === 'list' ? 'bg-blue-600 text-white' : 'text-gray-600 hover:bg-gray-50'}`}>
+            <div className="flex items-center bg-white border border-gray-300 rounded overflow-hidden">
+              <button onClick={() => setView('list')} className={`px-3 py-1.5 flex items-center gap-1.5 text-sm transition-colors ${view === 'list' ? 'bg-blue-600 text-white' : 'text-gray-600 hover:bg-gray-50'}`}>
                 <LayoutList className="h-4 w-4" /> List
               </button>
-              <button onClick={() => setView('board')} className={`px-3 py-2 flex items-center gap-1.5 text-sm transition-colors ${view === 'board' ? 'bg-blue-600 text-white' : 'text-gray-600 hover:bg-gray-50'}`}>
+              <button onClick={() => setView('board')} className={`px-3 py-1.5 flex items-center gap-1.5 text-sm transition-colors ${view === 'board' ? 'bg-blue-600 text-white' : 'text-gray-600 hover:bg-gray-50'}`}>
                 <LayoutGrid className="h-4 w-4" /> Board
               </button>
             </div>
-            <button onClick={() => setShowCreate(true)} className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-blue-500 to-purple-600 text-white rounded-lg text-sm font-medium hover:from-blue-600 hover:to-purple-700 transition-all shadow-sm">
-              <Plus className="h-4 w-4" /> New Ticket
+            <button
+              onClick={() => setShowAI(s => !s)}
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded border text-sm font-medium transition-colors ${showAI ? 'bg-purple-100 text-purple-700 border-purple-300' : 'bg-white border-gray-300 text-gray-600 hover:bg-gray-50'}`}
+            >
+              <Bot className="h-4 w-4" /> AI Assistant
+            </button>
+            <button onClick={() => setShowCreate(true)} className="flex items-center gap-1.5 px-4 py-1.5 bg-blue-600 text-white rounded text-sm font-medium hover:bg-blue-700 transition-colors">
+              <Plus className="h-4 w-4" /> Create
             </button>
           </div>
         </div>
 
-        {/* ── Filters ── */}
-        <div className="bg-white rounded-xl border border-gray-200 px-4 py-3 mb-4 flex flex-wrap items-center gap-3">
-          <div className="relative flex-1 min-w-48">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+        {/* ── Filter toolbar (Jira-style) ── */}
+        <div className="flex flex-wrap items-center gap-2 mb-3">
+          <div className="relative">
+            <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-gray-400" />
             <input
               value={search} onChange={e => setSearch(e.target.value)}
-              placeholder="Search tickets…"
-              className="w-full pl-9 pr-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-700"
+              placeholder="Search list"
+              className="pl-8 pr-3 py-1.5 border border-gray-300 rounded text-sm focus:outline-none focus:ring-1 focus:ring-blue-500 text-gray-700 bg-white w-48"
             />
           </div>
-          <Select value={filterStatus} onChange={setFilterStatus} placeholder="All Statuses">
+          <select value={filterStatus} onChange={e => setFilterStatus(e.target.value)}
+            className="py-1.5 px-2.5 border border-gray-300 rounded text-xs bg-white text-gray-600 focus:outline-none focus:ring-1 focus:ring-blue-500 cursor-pointer">
             <option value="">All Statuses</option>
             {Object.entries(STATUS_META).map(([v, m]) => <option key={v} value={v}>{m.label}</option>)}
-          </Select>
-          <Select value={filterPriority} onChange={setFilterPriority} placeholder="All Priorities">
+          </select>
+          <select value={filterPriority} onChange={e => setFilterPriority(e.target.value)}
+            className="py-1.5 px-2.5 border border-gray-300 rounded text-xs bg-white text-gray-600 focus:outline-none focus:ring-1 focus:ring-blue-500 cursor-pointer">
             <option value="">All Priorities</option>
             {Object.entries(PRIORITY_META).map(([v, m]) => <option key={v} value={v}>{m.label}</option>)}
-          </Select>
-          <Select value={filterType} onChange={setFilterType} placeholder="All Types">
+          </select>
+          <select value={filterType} onChange={e => setFilterType(e.target.value)}
+            className="py-1.5 px-2.5 border border-gray-300 rounded text-xs bg-white text-gray-600 focus:outline-none focus:ring-1 focus:ring-blue-500 cursor-pointer">
             <option value="">All Types</option>
             {Object.entries(TYPE_META).map(([v, m]) => <option key={v} value={v}>{m.label}</option>)}
-          </Select>
-          <Select value={filterAssignee} onChange={setFilterAssignee} placeholder="All Assignees">
+          </select>
+          <select value={filterAssignee} onChange={e => setFilterAssignee(e.target.value)}
+            className="py-1.5 px-2.5 border border-gray-300 rounded text-xs bg-white text-gray-600 focus:outline-none focus:ring-1 focus:ring-blue-500 cursor-pointer">
             <option value="">All Assignees</option>
             {users.map(u => <option key={u.id} value={u.id}>{u.full_name || u.username}</option>)}
-          </Select>
+          </select>
           {(filterStatus || filterPriority || filterType || filterAssignee || search) && (
             <button onClick={() => { setSearch(''); setFilterStatus(''); setFilterPriority(''); setFilterType(''); setFilterAssignee(''); }}
-              className="text-xs text-gray-500 hover:text-red-600 flex items-center gap-1">
-              <X className="h-3 w-3" /> Clear
+              className="flex items-center gap-1 text-xs text-blue-600 hover:text-blue-700 font-medium">
+              <X className="h-3 w-3" /> Clear filters
             </button>
           )}
-          <span className="ml-auto text-xs text-gray-400">{filtered.length} ticket{filtered.length !== 1 ? 's' : ''}</span>
+          <span className="ml-auto text-xs text-gray-400">{filtered.length} issue{filtered.length !== 1 ? 's' : ''}</span>
         </div>
 
         {/* ── Content ── */}
@@ -290,9 +433,9 @@ export default function TicketsPage() {
             <Loader2 className="h-8 w-8 animate-spin text-blue-500" />
           </div>
         ) : view === 'list' ? (
-          <ListView tickets={filtered} onOpen={(t) => router.push(`/tickets/${t.id}`)} onDelete={handleDelete} />
+          <ListView tickets={filtered} onOpen={openTicket} onDelete={handleDelete} onCreateNew={() => setShowCreate(true)} />
         ) : (
-          <BoardView tickets={filtered} onOpen={(t) => router.push(`/tickets/${t.id}`)} onStatusChange={handleStatusChange} />
+          <BoardView tickets={filtered} onOpen={openTicket} onStatusChange={handleStatusChange} />
         )}
       </div>
 
@@ -303,6 +446,163 @@ export default function TicketsPage() {
           onClose={() => setShowCreate(false)}
           onCreated={() => { setShowCreate(false); fetchTickets(); }}
         />
+      )}
+
+      {/* ── AI Assistant Panel ── */}
+      {showAI && (
+        <>
+          {/* Backdrop — clicking outside closes the panel */}
+          <div className="fixed inset-0 z-30" onClick={() => setShowAI(false)} />
+        <div className="fixed inset-y-0 right-0 w-96 bg-white border-l border-gray-200 shadow-xl flex flex-col z-40">
+          {/* Header */}
+          <div className="flex items-center justify-between px-4 py-3 border-b border-gray-200 bg-gradient-to-r from-purple-50 to-indigo-50">
+            <div className="flex items-center gap-2">
+              <div className="w-7 h-7 rounded-full bg-purple-600 flex items-center justify-center">
+                <Sparkles className="h-4 w-4 text-white" />
+              </div>
+              <div>
+                <div className="text-sm font-semibold text-gray-800">AI Ticket Assistant</div>
+                <div className="text-xs text-gray-500">Search · Create · Update</div>
+              </div>
+            </div>
+            <div className="flex items-center gap-1">
+              <button onClick={() => setChatEntries([])} title="Clear conversation" className="p-1.5 text-gray-400 hover:text-gray-700 rounded">
+                <MoreHorizontal className="h-4 w-4" />
+              </button>
+              <button onClick={() => setShowAI(false)} className="p-1.5 text-gray-400 hover:text-gray-700 rounded">
+                <X className="h-4 w-4" />
+              </button>
+            </div>
+          </div>
+
+          {/* Messages */}
+          <div className="flex-1 overflow-y-auto p-4 space-y-4">
+            {chatEntries.length === 0 && (
+              <div className="text-center mt-6">
+                <Bot className="h-10 w-10 text-purple-200 mx-auto mb-3" />
+                <p className="text-sm text-gray-500 mb-4">
+                  I can search, create, and update tickets. Try asking:
+                </p>
+                <div className="space-y-2">
+                  {[
+                    'Show all critical open bugs',
+                    'Create a bug ticket: Login page crashes on mobile',
+                    'Find unassigned tickets',
+                    'Update TKT-0001 status to in_progress',
+                    'Show me recent high priority issues',
+                  ].map(s => (
+                    <button
+                      key={s}
+                      onClick={() => sendAIMessage(s)}
+                      className="block w-full text-left text-xs px-3 py-2 rounded-lg border border-gray-200 hover:border-purple-300 hover:bg-purple-50 text-gray-600 hover:text-purple-700 transition-colors"
+                    >
+                      {s}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {chatEntries.map((entry, i) => (
+              <div key={i} className={`flex flex-col ${entry.role === 'user' ? 'items-end' : 'items-start'}`}>
+                {/* Bubble */}
+                <div className={`max-w-[85%] rounded-2xl px-3 py-2 text-sm ${
+                  entry.role === 'user'
+                    ? 'bg-purple-600 text-white rounded-br-sm'
+                    : 'bg-gray-100 text-gray-700 rounded-bl-sm'
+                }`}>
+                  {entry.loading ? (
+                    <div className="flex items-center gap-1.5">
+                      <span className="w-1.5 h-1.5 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '0ms' }} />
+                      <span className="w-1.5 h-1.5 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '150ms' }} />
+                      <span className="w-1.5 h-1.5 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '300ms' }} />
+                    </div>
+                  ) : (
+                    <div className="whitespace-pre-wrap">{entry.content}</div>
+                  )}
+                </div>
+
+                {/* Action cards — tickets found / created / updated */}
+                {(entry.actions || []).map((action, ai) => {
+                  const ticketList: TicketItem[] = action.type === 'found'
+                    ? (action.tickets || [])
+                    : action.ticket ? [action.ticket] : [];
+
+                  if (ticketList.length === 0) return null;
+
+                  return (
+                    <div key={ai} className="w-full mt-2 space-y-1.5">
+                      {action.type === 'created' && (
+                        <div className="flex items-center gap-1.5 text-xs text-green-700 font-medium mb-1">
+                          <CheckCircle className="h-3.5 w-3.5" /> Ticket created
+                        </div>
+                      )}
+                      {action.type === 'updated' && (
+                        <div className="flex items-center gap-1.5 text-xs text-blue-700 font-medium mb-1">
+                          <CheckCircle className="h-3.5 w-3.5" /> Ticket updated
+                        </div>
+                      )}
+                      {ticketList.map(t => (
+                        <button
+                          key={t.id}
+                          onClick={() => openTicket(t)}
+                          className="w-full text-left bg-white rounded-lg border border-gray-200 hover:border-purple-400 hover:shadow-sm p-2.5 transition-all group"
+                        >
+                          <div className="flex items-center gap-2 mb-1">
+                            <span className="font-mono text-xs text-blue-600 font-semibold">{t.ticket_number}</span>
+                            <span className={`text-xs px-1.5 py-0.5 rounded font-medium ${
+                              t.priority === 'critical' ? 'bg-red-100 text-red-700' :
+                              t.priority === 'high' ? 'bg-orange-100 text-orange-700' :
+                              t.priority === 'medium' ? 'bg-yellow-100 text-yellow-700' :
+                              'bg-gray-100 text-gray-600'
+                            }`}>{t.priority}</span>
+                            <span className={`text-xs px-1.5 py-0.5 rounded font-medium ${
+                              t.status === 'open' ? 'bg-blue-100 text-blue-700' :
+                              t.status === 'in_progress' ? 'bg-amber-100 text-amber-700' :
+                              t.status === 'resolved' ? 'bg-green-100 text-green-700' :
+                              'bg-gray-200 text-gray-600'
+                            }`}>{t.status.replace('_', ' ')}</span>
+                            <ExternalLink className="h-3 w-3 text-gray-300 group-hover:text-purple-400 ml-auto" />
+                          </div>
+                          <p className="text-xs text-gray-800 font-medium line-clamp-2">{t.title}</p>
+                          {t.assigned_to_name && (
+                            <p className="text-xs text-gray-400 mt-0.5">→ {t.assigned_to_name}</p>
+                          )}
+                        </button>
+                      ))}
+                    </div>
+                  );
+                })}
+              </div>
+            ))}
+            <div ref={chatBottomRef} />
+          </div>
+
+          {/* Input */}
+          <div className="p-3 border-t border-gray-200 bg-gray-50">
+            <div className="flex gap-2">
+              <textarea
+                value={chatInput}
+                onChange={e => setChatInput(e.target.value)}
+                onKeyDown={e => {
+                  if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendAIMessage(); }
+                }}
+                placeholder="Search tickets, create or update…"
+                rows={2}
+                className="flex-1 text-sm border border-gray-200 rounded-xl px-3 py-2 text-gray-700 focus:border-purple-400 focus:outline-none resize-none bg-white"
+              />
+              <button
+                onClick={() => sendAIMessage()}
+                disabled={chatLoading || !chatInput.trim()}
+                className="self-end p-2.5 bg-purple-600 text-white rounded-xl hover:bg-purple-700 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+              >
+                <Send className="h-4 w-4" />
+              </button>
+            </div>
+            <p className="text-xs text-gray-400 mt-1.5 text-center">Press Enter to send · Shift+Enter for new line</p>
+          </div>
+        </div>
+        </>
       )}
     </div>
   );
@@ -324,71 +624,206 @@ function Select({ value, onChange, placeholder, children }: {
   );
 }
 
-// ─── List View ────────────────────────────────────────────────────────────────
+// ─── List View (Jira-style) ───────────────────────────────────────────────────
 
-function ListView({ tickets, onOpen, onDelete }: {
+type SortCol = 'key' | 'title' | 'status' | 'priority' | 'assignee' | 'customer' | 'created';
+
+function ListView({
+  tickets,
+  onOpen,
+  onDelete,
+  onCreateNew,
+}: {
   tickets: TicketItem[];
   onOpen: (t: TicketItem) => void;
   onDelete: (id: number) => void;
+  onCreateNew: () => void;
 }) {
+  const [selected, setSelected] = useState<Set<number>>(new Set());
+  const [sortCol, setSortCol] = useState<SortCol>('created');
+  const [sortDir, setSortDir] = useState<'asc' | 'desc'>('desc');
+
+  const toggleSort = (col: SortCol) => {
+    if (sortCol === col) setSortDir(d => (d === 'asc' ? 'desc' : 'asc'));
+    else { setSortCol(col); setSortDir('asc'); }
+  };
+
+  const PRIORITY_ORDER: Record<string, number> = { critical: 0, high: 1, medium: 2, low: 3 };
+
+  const sorted = [...tickets].sort((a, b) => {
+    const dir = sortDir === 'asc' ? 1 : -1;
+    if (sortCol === 'priority') {
+      return dir * ((PRIORITY_ORDER[a.priority] ?? 2) - (PRIORITY_ORDER[b.priority] ?? 2));
+    }
+    const map: Record<SortCol, [string, string]> = {
+      key:      [a.ticket_number, b.ticket_number],
+      title:    [a.title.toLowerCase(), b.title.toLowerCase()],
+      status:   [a.status, b.status],
+      assignee: [a.assigned_to_name ?? '', b.assigned_to_name ?? ''],
+      customer: [a.customer_name ?? '', b.customer_name ?? ''],
+      created:  [a.created_at, b.created_at],
+      priority: ['', ''],
+    };
+    const [av, bv] = map[sortCol];
+    return dir * av.localeCompare(bv);
+  });
+
+  const allSelected = sorted.length > 0 && sorted.every(t => selected.has(t.id));
+  const toggleAll = () => setSelected(allSelected ? new Set() : new Set(sorted.map(t => t.id)));
+
+  function SortTh({ col, label, className }: { col: SortCol; label: string; className?: string }) {
+    const active = sortCol === col;
+    return (
+      <th
+        className={`px-3 py-2 text-left text-[11px] font-semibold text-gray-500 tracking-wide cursor-pointer select-none hover:bg-gray-100 whitespace-nowrap ${className ?? ''}`}
+        onClick={() => toggleSort(col)}
+      >
+        <div className="flex items-center gap-1">
+          {label}
+          {active
+            ? sortDir === 'asc'
+              ? <ChevronUp className="h-3 w-3 text-blue-500" />
+              : <ChevronDown className="h-3 w-3 text-blue-500" />
+            : <ArrowUpDown className="h-3 w-3 text-gray-300" />}
+        </div>
+      </th>
+    );
+  }
+
   if (tickets.length === 0) {
     return (
-      <div className="bg-white rounded-xl border border-gray-200 flex flex-col items-center justify-center py-20 text-center">
-        <Ticket className="h-12 w-12 text-gray-300 mb-3" />
-        <p className="text-gray-500 font-medium">No tickets found</p>
-        <p className="text-gray-400 text-sm mt-1">Create a ticket to get started</p>
+      <div className="bg-white border border-gray-200 flex flex-col items-center justify-center py-24 text-center">
+        <Ticket className="h-10 w-10 text-gray-200 mb-3" />
+        <p className="text-gray-500 font-medium text-sm">No issues found</p>
+        <p className="text-gray-400 text-xs mt-1 mb-4">Try a different filter or create a new ticket</p>
+        <button onClick={onCreateNew} className="flex items-center gap-1.5 text-sm text-blue-600 hover:text-blue-700 font-medium">
+          <Plus className="h-4 w-4" /> Create issue
+        </button>
       </div>
     );
   }
 
   return (
-    <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
-      <table className="w-full text-sm">
+    <div className="bg-white border border-gray-200 overflow-hidden">
+      <table className="w-full border-collapse">
         <thead>
-          <tr className="border-b border-gray-100 bg-gray-50 text-xs text-gray-500 uppercase tracking-wider">
-            <th className="px-4 py-3 text-left w-28">Ticket</th>
-            <th className="px-4 py-3 text-left">Title</th>
-            <th className="px-4 py-3 text-left w-28">Type</th>
-            <th className="px-4 py-3 text-left w-28">Priority</th>
-            <th className="px-4 py-3 text-left w-32">Status</th>
-            <th className="px-4 py-3 text-left w-36">Assignee</th>
-            <th className="px-4 py-3 text-left w-36">Customer</th>
-            <th className="px-4 py-3 text-left w-28">Created</th>
-            <th className="px-4 py-3 w-16"></th>
+          <tr className="border-b border-gray-200 bg-gray-50/80">
+            {/* Checkbox */}
+            <th className="w-10 px-3 py-2">
+              <input
+                type="checkbox"
+                checked={allSelected}
+                onChange={toggleAll}
+                className="rounded border-gray-300 text-blue-600 cursor-pointer w-3.5 h-3.5"
+              />
+            </th>
+            {/* Type icon column — no header label */}
+            <th className="w-7 px-1 py-2" />
+            <SortTh col="key"      label="Key"      className="w-28" />
+            <SortTh col="title"    label="Summary" />
+            <SortTh col="status"   label="Status"   className="w-36" />
+            <SortTh col="priority" label="Priority" className="w-28" />
+            <SortTh col="assignee" label="Assignee" className="w-40" />
+            <SortTh col="customer" label="Customer" className="w-32" />
+            <SortTh col="created"  label="Created"  className="w-24" />
+            <th className="w-10" />
           </tr>
         </thead>
-        <tbody className="divide-y divide-gray-50">
-          {tickets.map(t => (
-            <tr key={t.id} onClick={() => onOpen(t)} className="hover:bg-blue-50 cursor-pointer transition-colors group">
-              <td className="px-4 py-3 font-mono text-xs text-blue-600 font-semibold">{t.ticket_number}</td>
-              <td className="px-4 py-3">
-                <p className="font-medium text-gray-900 truncate max-w-xs">{t.title}</p>
-                {t.description && <p className="text-xs text-gray-400 truncate max-w-xs mt-0.5">{t.description}</p>}
-              </td>
-              <td className="px-4 py-3"><TypeBadge type={t.type} /></td>
-              <td className="px-4 py-3"><PriorityBadge priority={t.priority} /></td>
-              <td className="px-4 py-3"><StatusBadge status={t.status} /></td>
-              <td className="px-4 py-3">
-                {t.assigned_to_name ? (
-                  <div className="flex items-center gap-2">
-                    <span className="h-6 w-6 rounded-full bg-gradient-to-br from-blue-500 to-purple-500 flex items-center justify-center text-white text-xs font-bold flex-shrink-0">
-                      {avatar(t.assigned_to_name)}
-                    </span>
-                    <span className="text-gray-700 truncate">{t.assigned_to_name}</span>
+        <tbody>
+          {sorted.map(t => {
+            const jStatus   = JIRA_STATUS[t.status]     ?? JIRA_STATUS.open;
+            const jPriority = PRIORITY_JIRA[t.priority] ?? PRIORITY_JIRA.medium;
+            const isSelected = selected.has(t.id);
+            return (
+              <tr
+                key={t.id}
+                onClick={() => onOpen(t)}
+                className={`border-b border-gray-100 cursor-pointer group transition-colors ${
+                  isSelected ? 'bg-blue-50' : 'hover:bg-blue-50/40'
+                }`}
+              >
+                {/* Checkbox */}
+                <td className="w-10 px-3 py-2" onClick={e => e.stopPropagation()}>
+                  <input
+                    type="checkbox"
+                    checked={isSelected}
+                    onChange={() => setSelected(s => {
+                      const n = new Set(s);
+                      n.has(t.id) ? n.delete(t.id) : n.add(t.id);
+                      return n;
+                    })}
+                    className="rounded border-gray-300 text-blue-600 cursor-pointer w-3.5 h-3.5"
+                  />
+                </td>
+                {/* Type icon */}
+                <td className="w-7 px-1 py-2">
+                  <TypeIcon type={t.type} />
+                </td>
+                {/* Key */}
+                <td className="px-3 py-2 whitespace-nowrap">
+                  <span className="text-xs font-semibold text-blue-600 hover:underline">{t.ticket_number}</span>
+                </td>
+                {/* Summary */}
+                <td className="px-3 py-2 max-w-0">
+                  <p className="text-sm text-gray-900 truncate">{t.title}</p>
+                </td>
+                {/* Status */}
+                <td className="px-3 py-2 whitespace-nowrap">
+                  <span className={`inline-block text-[10px] font-bold tracking-wide px-2 py-0.5 rounded ${jStatus.cls}`}>
+                    {jStatus.label}
+                  </span>
+                </td>
+                {/* Priority */}
+                <td className="px-3 py-2 whitespace-nowrap">
+                  <div className="flex items-center gap-1.5">
+                    <span className={`h-2 w-2 rounded-full flex-shrink-0 ${jPriority.dot}`} />
+                    <span className={`text-xs ${jPriority.text}`}>{jPriority.label}</span>
                   </div>
-                ) : <span className="text-gray-300">—</span>}
-              </td>
-              <td className="px-4 py-3 text-gray-500 truncate">{t.customer_name ?? '—'}</td>
-              <td className="px-4 py-3 text-gray-400 whitespace-nowrap">{relativeTime(t.created_at)}</td>
-              <td className="px-4 py-3" onClick={e => e.stopPropagation()}>
-                <button onClick={() => onDelete(t.id)} className="p-1 rounded text-gray-300 hover:text-red-500 hover:bg-red-50 opacity-0 group-hover:opacity-100 transition-all">
-                  <Trash2 className="h-4 w-4" />
-                </button>
-              </td>
-            </tr>
-          ))}
+                </td>
+                {/* Assignee */}
+                <td className="px-3 py-2">
+                  {t.assigned_to_name ? (
+                    <div className="flex items-center gap-1.5">
+                      <span className="h-5 w-5 rounded-full bg-gradient-to-br from-blue-400 to-purple-500 flex items-center justify-center text-white text-[9px] font-bold flex-shrink-0">
+                        {avatar(t.assigned_to_name)}
+                      </span>
+                      <span className="text-xs text-gray-700 truncate max-w-[100px]">{t.assigned_to_name}</span>
+                    </div>
+                  ) : (
+                    <span className="text-xs text-gray-300">Unassigned</span>
+                  )}
+                </td>
+                {/* Customer */}
+                <td className="px-3 py-2">
+                  <span className="text-xs text-gray-500 truncate max-w-[100px] block">{t.customer_name ?? '—'}</span>
+                </td>
+                {/* Created */}
+                <td className="px-3 py-2 whitespace-nowrap">
+                  <span className="text-xs text-gray-400">{relativeTime(t.created_at)}</span>
+                </td>
+                {/* Delete */}
+                <td className="px-2 py-2" onClick={e => e.stopPropagation()}>
+                  <button
+                    onClick={() => onDelete(t.id)}
+                    className="p-1 rounded text-gray-300 hover:text-red-500 hover:bg-red-50 opacity-0 group-hover:opacity-100 transition-all"
+                  >
+                    <Trash2 className="h-3.5 w-3.5" />
+                  </button>
+                </td>
+              </tr>
+            );
+          })}
         </tbody>
       </table>
+      {/* Jira-style "+ Create" footer */}
+      <div className="px-4 py-2.5 border-t border-gray-100">
+        <button
+          onClick={onCreateNew}
+          className="flex items-center gap-1.5 text-sm text-gray-500 hover:text-blue-600 transition-colors"
+        >
+          <Plus className="h-4 w-4" /> Create
+        </button>
+      </div>
     </div>
   );
 }

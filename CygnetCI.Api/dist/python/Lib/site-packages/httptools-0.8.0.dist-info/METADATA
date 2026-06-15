@@ -1,6 +1,6 @@
 Metadata-Version: 2.4
 Name: httptools
-Version: 0.7.1
+Version: 0.8.0
 Summary: A collection of framework independent HTTP protocol utils.
 Author-email: Yury Selivanov <yury@magic.io>
 License-Expression: MIT
@@ -17,7 +17,8 @@ Classifier: Development Status :: 5 - Production/Stable
 Requires-Python: >=3.9
 Description-Content-Type: text/markdown
 License-File: LICENSE
-Provides-Extra: test
+License-File: vendor/http-parser/LICENSE-MIT
+License-File: vendor/llhttp/LICENSE
 Dynamic: license-file
 Dynamic: platform
 

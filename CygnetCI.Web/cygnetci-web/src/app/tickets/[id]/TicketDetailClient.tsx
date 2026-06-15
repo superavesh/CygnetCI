@@ -1,7 +1,6 @@
 'use client';
 
 import { useState, useEffect, useRef, useCallback } from 'react';
-import { useRouter } from 'next/navigation';
 import { useEditor, EditorContent } from '@tiptap/react';
 import StarterKit from '@tiptap/starter-kit';
 import UnderlineExt from '@tiptap/extension-underline';
@@ -13,7 +12,8 @@ import {
   Edit2, Trash2, Download, Send, Bot, Bold, Italic, Code,
   List, ListOrdered, Heading2, Underline, Link as LinkIcon,
   Loader2, Upload, AlertCircle, CheckCircle,
-  XCircle, User, MoreHorizontal,
+  XCircle, User, MoreHorizontal, ChevronRight, ChevronDown,
+  Building2, GitBranch, Rocket, Server, FileText, Image as ImageIcon,
 } from 'lucide-react';
 
 // ─── types ───────────────────────────────────────────────────────────────────
@@ -83,24 +83,66 @@ const fmtSize = (bytes: number | null) => {
   return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
 };
 
-const STATUS_STYLES: Record<string, string> = {
-  open: 'bg-blue-100 text-blue-800',
-  in_progress: 'bg-amber-100 text-amber-800',
-  resolved: 'bg-green-100 text-green-800',
-  closed: 'bg-gray-200 text-gray-600',
+function av(name: string | null) {
+  if (!name) return '?';
+  return name.split(' ').map(w => w[0]).join('').toUpperCase().slice(0, 2);
+}
+
+const TYPE_ICON_BG: Record<string, string> = {
+  bug: 'bg-red-500', task: 'bg-blue-500', improvement: 'bg-purple-500', question: 'bg-teal-500',
 };
-const PRIORITY_STYLES: Record<string, string> = {
-  critical: 'bg-red-100 text-red-700',
-  high: 'bg-orange-100 text-orange-700',
-  medium: 'bg-yellow-100 text-yellow-700',
-  low: 'bg-gray-100 text-gray-600',
-};
-const TYPE_STYLES: Record<string, string> = {
-  bug: 'bg-red-50 text-red-600',
-  task: 'bg-blue-50 text-blue-600',
-  improvement: 'bg-purple-50 text-purple-600',
-  question: 'bg-green-50 text-green-600',
-};
+
+// ─── Status button with dropdown ─────────────────────────────────────────────
+
+function StatusButton({ status, onChange }: { status: string; onChange: (s: string) => void }) {
+  const [open, setOpen] = useState(false);
+  const ref = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const handle = (e: MouseEvent) => {
+      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
+    };
+    document.addEventListener('mousedown', handle);
+    return () => document.removeEventListener('mousedown', handle);
+  }, []);
+
+  const styles: Record<string, string> = {
+    open: 'bg-blue-100 text-blue-700 border-blue-300 hover:bg-blue-200',
+    in_progress: 'bg-amber-100 text-amber-700 border-amber-300 hover:bg-amber-200',
+    resolved: 'bg-green-600 text-white border-green-700 hover:bg-green-700',
+    closed: 'bg-gray-600 text-white border-gray-700 hover:bg-gray-700',
+  };
+  const labels: Record<string, string> = {
+    open: 'OPEN', in_progress: 'IN PROGRESS', resolved: 'RESOLVED', closed: 'CLOSED',
+  };
+
+  return (
+    <div className="relative" ref={ref}>
+      <button
+        onClick={() => setOpen(o => !o)}
+        className={`flex items-center gap-1.5 px-3 py-1.5 rounded text-[11px] font-bold tracking-wide border transition-colors ${styles[status] ?? styles.open}`}
+      >
+        {labels[status] ?? status.toUpperCase()}
+        <ChevronDown size={11} />
+      </button>
+      {open && (
+        <div className="absolute top-full left-0 mt-1 bg-white border border-gray-200 rounded-lg shadow-lg z-30 min-w-[150px]">
+          {Object.entries(labels).map(([v, l]) => (
+            <button
+              key={v}
+              onClick={() => { onChange(v); setOpen(false); }}
+              className={`w-full text-left px-3 py-2 text-sm transition-colors first:rounded-t-lg last:rounded-b-lg ${
+                v === status ? 'text-blue-600 font-semibold bg-blue-50' : 'text-gray-700 hover:bg-gray-50'
+              }`}
+            >
+              {l}
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
 
 // ─── Tiptap Toolbar ──────────────────────────────────────────────────────────
 
@@ -117,88 +159,114 @@ function Toolbar({ editor }: { editor: ReturnType<typeof useEditor> }) {
     </button>
   );
   return (
-    <div className="flex flex-wrap gap-0.5 px-2 py-1 border-b border-gray-200 bg-gray-50 rounded-t-md">
-      {btn(editor.isActive('bold'), () => editor.chain().focus().toggleBold().run(), <Bold size={14} />, 'Bold')}
-      {btn(editor.isActive('italic'), () => editor.chain().focus().toggleItalic().run(), <Italic size={14} />, 'Italic')}
-      {btn(editor.isActive('underline'), () => editor.chain().focus().toggleUnderline().run(), <Underline size={14} />, 'Underline')}
-      {btn(editor.isActive('code'), () => editor.chain().focus().toggleCode().run(), <Code size={14} />, 'Code')}
-      <span className="w-px h-5 bg-gray-300 mx-1 self-center" />
-      {btn(editor.isActive('heading', { level: 2 }), () => editor.chain().focus().toggleHeading({ level: 2 }).run(), <Heading2 size={14} />, 'Heading 2')}
-      {btn(editor.isActive('bulletList'), () => editor.chain().focus().toggleBulletList().run(), <List size={14} />, 'Bullet list')}
-      {btn(editor.isActive('orderedList'), () => editor.chain().focus().toggleOrderedList().run(), <ListOrdered size={14} />, 'Ordered list')}
-      <span className="w-px h-5 bg-gray-300 mx-1 self-center" />
-      {btn(editor.isActive('codeBlock'), () => editor.chain().focus().toggleCodeBlock().run(), <Code size={14} />, 'Code block')}
+    <div className="flex flex-wrap gap-0.5 px-2 py-1 border-b border-gray-200 bg-gray-50">
+      {btn(editor.isActive('bold'), () => editor.chain().focus().toggleBold().run(), <Bold size={13} />, 'Bold')}
+      {btn(editor.isActive('italic'), () => editor.chain().focus().toggleItalic().run(), <Italic size={13} />, 'Italic')}
+      {btn(editor.isActive('underline'), () => editor.chain().focus().toggleUnderline().run(), <Underline size={13} />, 'Underline')}
+      {btn(editor.isActive('code'), () => editor.chain().focus().toggleCode().run(), <Code size={13} />, 'Code')}
+      <span className="w-px h-4 bg-gray-300 mx-1 self-center" />
+      {btn(editor.isActive('heading', { level: 2 }), () => editor.chain().focus().toggleHeading({ level: 2 }).run(), <Heading2 size={13} />, 'H2')}
+      {btn(editor.isActive('bulletList'), () => editor.chain().focus().toggleBulletList().run(), <List size={13} />, 'Bullet list')}
+      {btn(editor.isActive('orderedList'), () => editor.chain().focus().toggleOrderedList().run(), <ListOrdered size={13} />, 'Ordered list')}
+      <span className="w-px h-4 bg-gray-300 mx-1 self-center" />
+      {btn(editor.isActive('codeBlock'), () => editor.chain().focus().toggleCodeBlock().run(), <Code size={13} />, 'Code block')}
       {btn(editor.isActive('link'), () => {
         const url = window.prompt('URL', editor.getAttributes('link').href ?? '');
         if (url === null) return;
         if (url === '') { editor.chain().focus().unsetLink().run(); return; }
         editor.chain().focus().setLink({ href: url }).run();
-      }, <LinkIcon size={14} />, 'Link')}
+      }, <LinkIcon size={13} />, 'Link')}
     </div>
   );
 }
 
-// ─── Sidebar Field ───────────────────────────────────────────────────────────
+// ─── Sidebar collapsible section ─────────────────────────────────────────────
+
+function SidebarSection({ title, children, defaultOpen = true }: {
+  title: string;
+  children: React.ReactNode;
+  defaultOpen?: boolean;
+}) {
+  const [open, setOpen] = useState(defaultOpen);
+  return (
+    <div className="border-b border-gray-100 last:border-0">
+      <button
+        onClick={() => setOpen(o => !o)}
+        className="flex items-center gap-1.5 w-full text-left py-3 px-1 group"
+      >
+        <ChevronRight
+          size={14}
+          className={`text-gray-400 transition-transform flex-shrink-0 ${open ? 'rotate-90' : ''}`}
+        />
+        <span className="text-sm font-semibold text-gray-700">{title}</span>
+      </button>
+      {open && <div className="pb-3 px-1">{children}</div>}
+    </div>
+  );
+}
+
+// ─── Sidebar field (Jira-style label + value) ─────────────────────────────────
 
 function SidebarField({
-  label, value, options, onSave, renderValue,
+  label, value, options, onSave, renderValue, extraNode,
 }: {
   label: string;
   value: string | null;
   options?: { value: string; label: string }[];
   onSave?: (val: string | null) => void;
   renderValue?: (val: string | null) => React.ReactNode;
+  extraNode?: React.ReactNode;
 }) {
   const [editing, setEditing] = useState(false);
   const [draft, setDraft] = useState(value ?? '');
 
   useEffect(() => { setDraft(value ?? ''); }, [value]);
 
-  if (!onSave) {
-    return (
-      <div className="mb-3">
-        <div className="text-xs font-medium text-gray-500 uppercase tracking-wide mb-1">{label}</div>
-        <div className="text-sm text-gray-700">{renderValue ? renderValue(value) : (value || <span className="text-gray-400">—</span>)}</div>
-      </div>
-    );
-  }
-
-  if (editing) {
-    return (
-      <div className="mb-3">
-        <div className="text-xs font-medium text-gray-500 uppercase tracking-wide mb-1">{label}</div>
-        {options ? (
-          <select
-            autoFocus
-            value={draft}
-            onChange={e => setDraft(e.target.value)}
-            onBlur={() => { onSave(draft || null); setEditing(false); }}
-            className="w-full text-sm border border-blue-400 rounded px-2 py-1 text-gray-700 bg-white focus:outline-none"
-          >
-            <option value="">— none —</option>
-            {options.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
-          </select>
-        ) : (
-          <input
-            autoFocus
-            type="text"
-            value={draft}
-            onChange={e => setDraft(e.target.value)}
-            onBlur={() => { onSave(draft || null); setEditing(false); }}
-            onKeyDown={e => { if (e.key === 'Enter') { onSave(draft || null); setEditing(false); } if (e.key === 'Escape') setEditing(false); }}
-            className="w-full text-sm border border-blue-400 rounded px-2 py-1 text-gray-700 bg-white focus:outline-none"
-          />
-        )}
-      </div>
-    );
-  }
+  const displayValue = renderValue ? renderValue(value) : (
+    value
+      ? <span className="text-sm text-gray-800">{value}</span>
+      : <span className="text-sm text-gray-400">None</span>
+  );
 
   return (
-    <div className="mb-3 group cursor-pointer" onClick={() => setEditing(true)}>
-      <div className="text-xs font-medium text-gray-500 uppercase tracking-wide mb-1">{label}</div>
-      <div className="text-sm text-gray-700 flex items-center gap-1 hover:text-blue-600 transition-colors">
-        {renderValue ? renderValue(value) : (value || <span className="text-gray-400">— click to edit —</span>)}
-        <Edit2 size={10} className="opacity-0 group-hover:opacity-50 text-gray-400 flex-shrink-0" />
+    <div className="flex gap-2 py-2 items-start min-h-[36px]">
+      <div className="w-28 flex-shrink-0 text-xs text-gray-500 pt-0.5 leading-4">{label}</div>
+      <div className="flex-1 min-w-0">
+        {onSave && editing ? (
+          options ? (
+            <select
+              autoFocus
+              value={draft}
+              onChange={e => setDraft(e.target.value)}
+              onBlur={() => { onSave(draft || null); setEditing(false); }}
+              className="w-full text-sm border border-blue-400 rounded px-2 py-0.5 text-gray-800 bg-white focus:outline-none focus:ring-1 focus:ring-blue-400"
+            >
+              <option value="">— none —</option>
+              {options.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
+            </select>
+          ) : (
+            <input
+              autoFocus
+              type="text"
+              value={draft}
+              onChange={e => setDraft(e.target.value)}
+              onBlur={() => { onSave(draft || null); setEditing(false); }}
+              onKeyDown={e => {
+                if (e.key === 'Enter') { onSave(draft || null); setEditing(false); }
+                if (e.key === 'Escape') setEditing(false);
+              }}
+              className="w-full text-sm border border-blue-400 rounded px-2 py-0.5 text-gray-800 bg-white focus:outline-none focus:ring-1 focus:ring-blue-400"
+            />
+          )
+        ) : (
+          <div
+            onClick={onSave ? () => setEditing(true) : undefined}
+            className={`text-sm leading-5 ${onSave ? 'cursor-pointer hover:bg-blue-50 rounded px-1 -mx-1 py-0.5 transition-colors' : ''}`}
+          >
+            {displayValue}
+            {extraNode}
+          </div>
+        )}
       </div>
     </div>
   );
@@ -206,8 +274,7 @@ function SidebarField({
 
 // ─── Main Client Component ───────────────────────────────────────────────────
 
-export default function TicketDetailClient({ ticketId }: { ticketId: string }) {
-  const router = useRouter();
+export default function TicketDetailClient({ ticketId, onBack }: { ticketId: string; onBack?: () => void }) {
   const id = parseInt(ticketId, 10);
 
   const [ticket, setTicket] = useState<Ticket | null>(null);
@@ -223,7 +290,8 @@ export default function TicketDetailClient({ ticketId }: { ticketId: string }) {
   const [titleDraft, setTitleDraft] = useState('');
   const [editingDesc, setEditingDesc] = useState(false);
   const [editingCommentId, setEditingCommentId] = useState<number | null>(null);
-  const [activeTab, setActiveTab] = useState<'comments' | 'history'>('comments');
+  const [commentFocused, setCommentFocused] = useState(false);
+  const [activeTab, setActiveTab] = useState<'comments' | 'history' | 'approvals'>('comments');
 
   // AI chat
   const [showAI, setShowAI] = useState(false);
@@ -246,7 +314,7 @@ export default function TicketDetailClient({ ticketId }: { ticketId: string }) {
       PlaceholderExt.configure({ placeholder: 'Add a description…' }),
     ],
     content: '',
-    editorProps: { attributes: { class: 'px-3 py-2 text-gray-700' } },
+    editorProps: { attributes: { class: 'px-3 py-2 text-gray-700 min-h-[80px]' } },
   });
 
   const commentEditor = useEditor({
@@ -263,7 +331,7 @@ export default function TicketDetailClient({ ticketId }: { ticketId: string }) {
   const editCommentEditor = useEditor({
     extensions: [StarterKit, UnderlineExt, LinkExt.configure({ openOnClick: false })],
     content: '',
-    editorProps: { attributes: { class: 'px-3 py-2 text-gray-700' } },
+    editorProps: { attributes: { class: 'px-3 py-2 text-gray-700 min-h-[60px]' } },
   });
 
   // ── Data loading ───────────────────────────────────────────────────────────
@@ -346,6 +414,7 @@ export default function TicketDetailClient({ ticketId }: { ticketId: string }) {
       body: JSON.stringify({ body, created_by: null }),
     });
     commentEditor.commands.clearContent();
+    setCommentFocused(false);
     const [c, h] = await Promise.all([
       fetch(`${API()}/tickets/${id}/comments`).then(r => r.json()),
       fetch(`${API()}/tickets/${id}/history`).then(r => r.json()),
@@ -493,10 +562,10 @@ export default function TicketDetailClient({ ticketId }: { ticketId: string }) {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="flex items-center gap-3 text-gray-500">
-          <Loader2 className="h-6 w-6 animate-spin" />
-          <span>Loading ticket…</span>
+      <div className="min-h-screen bg-white flex items-center justify-center">
+        <div className="flex items-center gap-3 text-gray-400">
+          <Loader2 className="h-5 w-5 animate-spin" />
+          <span className="text-sm">Loading…</span>
         </div>
       </div>
     );
@@ -504,11 +573,11 @@ export default function TicketDetailClient({ ticketId }: { ticketId: string }) {
 
   if (error || !ticket) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+      <div className="min-h-screen bg-white flex items-center justify-center">
         <div className="text-center">
           <AlertCircle className="h-10 w-10 text-red-400 mx-auto mb-3" />
           <p className="text-gray-700 font-medium">{error || 'Ticket not found'}</p>
-          <button onClick={() => router.push('/tickets')} className="mt-4 text-sm text-blue-600 hover:underline">
+          <button onClick={() => onBack ? onBack() : window.history.back()} className="mt-4 text-sm text-blue-600 hover:underline">
             ← Back to tickets
           </button>
         </div>
@@ -517,44 +586,49 @@ export default function TicketDetailClient({ ticketId }: { ticketId: string }) {
   }
 
   const pendingApproval = approvals.find(a => a.status === 'pending');
+  const typeIconBg = TYPE_ICON_BG[ticket.type] ?? 'bg-blue-500';
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      {/* Top bar */}
-      <div className="bg-white border-b border-gray-200 px-6 py-3 flex items-center gap-3 sticky top-0 z-20">
+    <div className="min-h-screen bg-white">
+
+      {/* ── Sticky breadcrumb bar ── */}
+      <div className="bg-white border-b border-gray-200 px-6 py-2.5 sticky top-0 z-20 flex items-center gap-2">
         <button
-          onClick={() => router.push('/tickets')}
-          className="text-gray-500 hover:text-gray-800 flex items-center gap-1.5 text-sm transition-colors"
+          onClick={() => onBack ? onBack() : window.history.back()}
+          className="text-sm text-gray-500 hover:text-blue-600 flex items-center gap-1 transition-colors"
         >
-          <ArrowLeft size={16} />
-          <span>Tickets</span>
+          <ArrowLeft size={14} />
+          Tickets
         </button>
-        <span className="text-gray-300">/</span>
-        <span className="text-sm font-mono text-gray-500">{ticket.ticket_number}</span>
+        <ChevronRight size={13} className="text-gray-300" />
+        <span className="text-sm text-gray-400 font-mono">{ticket.ticket_number}</span>
         <div className="flex-1" />
         <button
           onClick={() => setShowAI(s => !s)}
-          className={`flex items-center gap-2 px-3 py-1.5 rounded-md text-sm font-medium transition-colors ${
+          className={`flex items-center gap-1.5 px-3 py-1.5 rounded text-sm font-medium transition-colors ${
             showAI ? 'bg-purple-100 text-purple-700' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
           }`}
         >
-          <Bot size={15} />
+          <Bot size={14} />
           AI Assistant
         </button>
       </div>
 
-      <div className="max-w-7xl mx-auto px-6 py-6 flex gap-6">
-        {/* ── Left main content ─────────────────────────────────────────────── */}
+      <div className="max-w-screen-xl mx-auto px-6 pt-6 pb-12 flex gap-8 items-start">
+
+        {/* ── Left: main content ──────────────────────────────────────────────── */}
         <div className="flex-1 min-w-0">
 
+          {/* Type badge + ticket number */}
+          <div className="flex items-center gap-2 mb-3">
+            <span className={`inline-flex items-center justify-center w-5 h-5 rounded-sm ${typeIconBg} flex-shrink-0`}>
+              <span className="text-white text-[9px] font-bold uppercase">{ticket.type.charAt(0)}</span>
+            </span>
+            <span className="text-sm text-gray-400 font-mono">{ticket.ticket_number}</span>
+          </div>
+
           {/* Title */}
-          <div className="mb-4">
-            <div className="flex items-center gap-2 mb-2">
-              <span className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-medium ${TYPE_STYLES[ticket.type] || 'bg-gray-100 text-gray-600'}`}>
-                {ticket.type}
-              </span>
-              <span className="text-xs text-gray-400 font-mono">{ticket.ticket_number}</span>
-            </div>
+          <div className="mb-6">
             {editingTitle ? (
               <div className="flex items-start gap-2">
                 <input
@@ -562,135 +636,207 @@ export default function TicketDetailClient({ ticketId }: { ticketId: string }) {
                   type="text"
                   value={titleDraft}
                   onChange={e => setTitleDraft(e.target.value)}
-                  onKeyDown={e => { if (e.key === 'Enter') saveTitle(); if (e.key === 'Escape') { setEditingTitle(false); setTitleDraft(ticket.title); } }}
-                  className="flex-1 text-2xl font-bold text-gray-900 border-b-2 border-blue-400 bg-transparent focus:outline-none"
+                  onKeyDown={e => {
+                    if (e.key === 'Enter') saveTitle();
+                    if (e.key === 'Escape') { setEditingTitle(false); setTitleDraft(ticket.title); }
+                  }}
+                  className="flex-1 text-2xl font-bold text-gray-900 border-b-2 border-blue-400 bg-transparent focus:outline-none py-0.5"
                 />
-                <button onClick={saveTitle} className="text-green-600 hover:text-green-700 mt-1"><Check size={18} /></button>
-                <button onClick={() => { setEditingTitle(false); setTitleDraft(ticket.title); }} className="text-gray-400 hover:text-gray-600 mt-1"><X size={18} /></button>
+                <button onClick={saveTitle} className="text-green-600 hover:text-green-700 mt-1.5"><Check size={18} /></button>
+                <button onClick={() => { setEditingTitle(false); setTitleDraft(ticket.title); }} className="text-gray-400 hover:text-gray-600 mt-1.5"><X size={18} /></button>
               </div>
             ) : (
               <h1
-                className="text-2xl font-bold text-gray-900 cursor-pointer hover:text-blue-700 transition-colors group flex items-start gap-2"
+                className="text-2xl font-bold text-gray-900 cursor-pointer hover:text-gray-700 transition-colors leading-tight"
                 onClick={() => setEditingTitle(true)}
               >
                 {ticket.title}
-                <Edit2 size={14} className="opacity-0 group-hover:opacity-40 mt-2 flex-shrink-0" />
               </h1>
             )}
           </div>
 
           {/* Description */}
-          <div className="mb-6 bg-white rounded-lg border border-gray-200">
-            <div className="flex items-center justify-between px-4 py-2 border-b border-gray-100">
-              <h3 className="text-sm font-semibold text-gray-700">Description</h3>
-              {!editingDesc && (
-                <button onClick={() => setEditingDesc(true)} className="text-xs text-blue-600 hover:text-blue-800 flex items-center gap-1">
-                  <Edit2 size={12} /> Edit
-                </button>
-              )}
-            </div>
+          <div className="mb-8">
+            <h3 className="text-sm font-semibold text-gray-700 mb-2">Description</h3>
             {editingDesc ? (
-              <div>
+              <div className="border border-gray-300 rounded-md overflow-hidden focus-within:border-blue-400 focus-within:ring-1 focus-within:ring-blue-200">
                 <Toolbar editor={descEditor} />
                 <EditorContent editor={descEditor} />
-                <div className="flex gap-2 px-3 py-2 border-t border-gray-100">
+                <div className="flex gap-2 px-3 py-2 border-t border-gray-100 bg-gray-50">
                   <button onClick={saveDescription} className="px-3 py-1.5 bg-blue-600 text-white rounded text-sm font-medium hover:bg-blue-700">Save</button>
-                  <button onClick={cancelDescription} className="px-3 py-1.5 border border-gray-300 rounded text-sm text-gray-600 hover:bg-gray-50">Cancel</button>
+                  <button onClick={cancelDescription} className="px-3 py-1.5 rounded text-sm text-gray-600 hover:bg-gray-100">Cancel</button>
                 </div>
               </div>
             ) : (
               <div
-                className="tiptap-content px-4 py-3 text-gray-700 text-sm min-h-[60px] cursor-pointer hover:bg-gray-50 transition-colors"
+                className="tiptap-content text-sm text-gray-700 min-h-[40px] cursor-text hover:bg-gray-50 rounded px-2 py-1.5 -mx-2 transition-colors"
                 onClick={() => setEditingDesc(true)}
-                dangerouslySetInnerHTML={{ __html: sanitize(ticket.description || '<p class="text-gray-400">Click to add a description…</p>') }}
+                dangerouslySetInnerHTML={{
+                  __html: sanitize(ticket.description || '<p style="color:#9ca3af">Click to add a description…</p>'),
+                }}
               />
             )}
           </div>
 
+          {/* Attachments (inline, Jira-style) */}
+          {attachments.length > 0 && (
+            <div className="mb-8">
+              <div className="flex items-center gap-2 mb-2">
+                <Paperclip size={14} className="text-gray-400" />
+                <h3 className="text-sm font-semibold text-gray-700">Attachments</h3>
+                <span className="text-xs text-gray-400">{attachments.length}</span>
+              </div>
+              <div className="grid grid-cols-2 gap-2">
+                {attachments.map(a => {
+                  const isImg = a.mime_type?.startsWith('image/');
+                  return (
+                    <div key={a.id} className="flex items-center gap-2.5 p-2.5 border border-gray-200 rounded-lg bg-gray-50 group hover:border-gray-300 transition-colors">
+                      {isImg
+                        ? <ImageIcon size={16} className="text-blue-400 flex-shrink-0" />
+                        : <FileText size={16} className="text-gray-400 flex-shrink-0" />}
+                      <div className="flex-1 min-w-0">
+                        <p className="text-xs text-gray-700 font-medium truncate">{a.original_filename}</p>
+                        <p className="text-xs text-gray-400">{fmtSize(a.file_size)}</p>
+                      </div>
+                      <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                        <a href={`${API()}/ticket-attachments/${a.id}/download`} target="_blank" rel="noreferrer"
+                          className="p-1 text-gray-400 hover:text-blue-600 rounded transition-colors">
+                          <Download size={12} />
+                        </a>
+                        <button onClick={() => deleteAttachment(a.id)}
+                          className="p-1 text-gray-400 hover:text-red-500 rounded transition-colors">
+                          <Trash2 size={12} />
+                        </button>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+
           {/* Activity */}
-          <div className="bg-white rounded-lg border border-gray-200">
-            <div className="flex border-b border-gray-200">
-              {(['comments', 'history'] as const).map(tab => (
+          <div>
+            <h3 className="text-sm font-semibold text-gray-700 mb-3">Activity</h3>
+
+            {/* Tabs */}
+            <div className="flex items-center border-b border-gray-200 mb-5 -mx-0.5">
+              {([
+                { key: 'comments', label: 'Comments', count: comments.length },
+                { key: 'history',  label: 'History',  count: history.length },
+                { key: 'approvals', label: 'Approvals', count: approvals.length },
+              ] as const).map(({ key, label, count }) => (
                 <button
-                  key={tab}
-                  onClick={() => setActiveTab(tab)}
-                  className={`flex items-center gap-2 px-4 py-3 text-sm font-medium border-b-2 transition-colors ${
-                    activeTab === tab ? 'border-blue-600 text-blue-700' : 'border-transparent text-gray-500 hover:text-gray-700'
+                  key={key}
+                  onClick={() => setActiveTab(key)}
+                  className={`px-4 py-2.5 text-sm font-medium border-b-2 transition-colors -mb-px ${
+                    activeTab === key
+                      ? 'border-blue-600 text-blue-700'
+                      : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
                   }`}
                 >
-                  {tab === 'comments' ? <MessageSquare size={14} /> : <Clock size={14} />}
-                  {tab.charAt(0).toUpperCase() + tab.slice(1)}
-                  <span className="ml-1 text-xs bg-gray-100 text-gray-500 rounded-full px-1.5 py-0.5">
-                    {tab === 'comments' ? comments.length : history.length}
-                  </span>
+                  {label}
+                  {count > 0 && (
+                    <span className={`ml-1.5 text-xs ${activeTab === key ? 'text-blue-500' : 'text-gray-400'}`}>{count}</span>
+                  )}
                 </button>
               ))}
             </div>
 
+            {/* Comments tab */}
             {activeTab === 'comments' && (
-              <div className="p-4">
-                {comments.length === 0 && <p className="text-sm text-gray-400 italic mb-4">No comments yet.</p>}
-                {comments.map(c => (
-                  <div key={c.id} className="mb-4 group">
-                    <div className="flex items-center gap-2 mb-1">
-                      <div className="w-7 h-7 rounded-full bg-blue-100 text-blue-700 text-xs font-bold flex items-center justify-center uppercase">
-                        {(c.created_by_name || '?').charAt(0)}
-                      </div>
-                      <span className="text-sm font-medium text-gray-700">{c.created_by_name || 'Unknown'}</span>
-                      <span className="text-xs text-gray-400">{fmt(c.created_at)}</span>
-                      {c.edited_at && <span className="text-xs text-gray-400 italic">(edited)</span>}
-                      <div className="flex-1" />
-                      <div className="opacity-0 group-hover:opacity-100 flex gap-1">
-                        <button onClick={() => startEditComment(c)} className="p-1 text-gray-400 hover:text-blue-600"><Edit2 size={13} /></button>
-                        <button onClick={() => deleteComment(c.id)} className="p-1 text-gray-400 hover:text-red-600"><Trash2 size={13} /></button>
-                      </div>
-                    </div>
-                    {editingCommentId === c.id ? (
-                      <div className="ml-9 border border-gray-200 rounded-md overflow-hidden">
-                        <Toolbar editor={editCommentEditor} />
-                        <EditorContent editor={editCommentEditor} />
-                        <div className="flex gap-2 px-3 py-2 border-t border-gray-100">
-                          <button onClick={() => saveEditComment(c.id)} className="px-3 py-1 bg-blue-600 text-white rounded text-sm hover:bg-blue-700">Save</button>
-                          <button onClick={() => setEditingCommentId(null)} className="px-3 py-1 border border-gray-300 rounded text-sm text-gray-600 hover:bg-gray-50">Cancel</button>
+              <div>
+                {/* Jira-style comment input */}
+                <div className="flex gap-3 items-start mb-6">
+                  <div className="w-8 h-8 rounded-full bg-gradient-to-br from-blue-400 to-purple-500 flex items-center justify-center text-white text-xs font-bold flex-shrink-0">
+                    ?
+                  </div>
+                  <div className="flex-1">
+                    {commentFocused ? (
+                      <div className="border border-gray-300 rounded-md overflow-hidden focus-within:border-blue-400 focus-within:ring-1 focus-within:ring-blue-200">
+                        <Toolbar editor={commentEditor} />
+                        <EditorContent editor={commentEditor} />
+                        <div className="flex gap-2 px-3 py-2 bg-gray-50 border-t border-gray-100">
+                          <button onClick={submitComment} className="px-3 py-1.5 bg-blue-600 text-white rounded text-sm font-medium hover:bg-blue-700 flex items-center gap-1.5">
+                            <Send size={12} /> Save
+                          </button>
+                          <button onClick={() => { commentEditor?.commands.clearContent(); setCommentFocused(false); }}
+                            className="px-3 py-1.5 text-sm text-gray-600 hover:bg-gray-100 rounded transition-colors">
+                            Cancel
+                          </button>
                         </div>
                       </div>
                     ) : (
                       <div
-                        className="ml-9 tiptap-content text-sm text-gray-700 bg-gray-50 rounded-md px-3 py-2"
-                        dangerouslySetInnerHTML={{ __html: sanitize(c.body) }}
-                      />
+                        onClick={() => setCommentFocused(true)}
+                        className="px-3 py-2.5 border border-gray-200 rounded-md text-sm text-gray-400 cursor-text hover:bg-gray-50 hover:border-gray-300 transition-colors bg-white select-none"
+                      >
+                        Add a comment…
+                      </div>
                     )}
                   </div>
-                ))}
-                <div className="mt-4">
-                  <div className="text-sm font-medium text-gray-600 mb-2">Add comment</div>
-                  <div className="border border-gray-200 rounded-md overflow-hidden">
-                    <Toolbar editor={commentEditor} />
-                    <EditorContent editor={commentEditor} />
-                  </div>
-                  <div className="mt-2 flex gap-2">
-                    <button onClick={submitComment} className="px-3 py-1.5 bg-blue-600 text-white rounded-md text-sm font-medium hover:bg-blue-700 flex items-center gap-1.5">
-                      <Send size={13} /> Save
-                    </button>
-                    <button onClick={() => commentEditor?.commands.clearContent()} className="px-3 py-1.5 border border-gray-300 rounded-md text-sm text-gray-600 hover:bg-gray-50">
-                      Cancel
-                    </button>
-                  </div>
+                </div>
+
+                {/* Comments list */}
+                {comments.length === 0 && !commentFocused && (
+                  <p className="text-sm text-gray-400 italic pl-11">No comments yet. Be the first to comment.</p>
+                )}
+                <div className="space-y-5">
+                  {comments.map(c => (
+                    <div key={c.id} className="flex gap-3 group">
+                      <div className="w-8 h-8 rounded-full bg-gradient-to-br from-gray-300 to-gray-400 flex items-center justify-center text-white text-xs font-bold flex-shrink-0 uppercase">
+                        {av(c.created_by_name)}
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2 mb-1">
+                          <span className="text-sm font-semibold text-gray-800">{c.created_by_name || 'Unknown'}</span>
+                          <span className="text-xs text-gray-400">{fmt(c.created_at)}</span>
+                          {c.edited_at && <span className="text-xs text-gray-400 italic">· edited</span>}
+                          <div className="flex-1" />
+                          <div className="opacity-0 group-hover:opacity-100 flex gap-0.5 transition-opacity">
+                            <button onClick={() => startEditComment(c)} className="p-1 text-gray-400 hover:text-blue-600 rounded hover:bg-blue-50 transition-colors">
+                              <Edit2 size={13} />
+                            </button>
+                            <button onClick={() => deleteComment(c.id)} className="p-1 text-gray-400 hover:text-red-500 rounded hover:bg-red-50 transition-colors">
+                              <Trash2 size={13} />
+                            </button>
+                          </div>
+                        </div>
+                        {editingCommentId === c.id ? (
+                          <div className="border border-gray-300 rounded-md overflow-hidden focus-within:border-blue-400">
+                            <Toolbar editor={editCommentEditor} />
+                            <EditorContent editor={editCommentEditor} />
+                            <div className="flex gap-2 px-3 py-2 bg-gray-50 border-t border-gray-100">
+                              <button onClick={() => saveEditComment(c.id)} className="px-3 py-1 bg-blue-600 text-white rounded text-sm font-medium hover:bg-blue-700">Save</button>
+                              <button onClick={() => setEditingCommentId(null)} className="px-3 py-1 text-sm text-gray-600 hover:bg-gray-100 rounded">Cancel</button>
+                            </div>
+                          </div>
+                        ) : (
+                          <div
+                            className="tiptap-content text-sm text-gray-700 bg-gray-50 rounded-lg px-3 py-2.5 hover:bg-gray-100 transition-colors cursor-pointer"
+                            onClick={() => startEditComment(c)}
+                            dangerouslySetInnerHTML={{ __html: sanitize(c.body) }}
+                          />
+                        )}
+                      </div>
+                    </div>
+                  ))}
                 </div>
               </div>
             )}
 
+            {/* History tab */}
             {activeTab === 'history' && (
-              <div className="p-4">
+              <div className="space-y-3">
                 {history.length === 0 && <p className="text-sm text-gray-400 italic">No history yet.</p>}
                 {history.map(h => (
-                  <div key={h.id} className="flex gap-3 mb-3 text-sm">
-                    <div className="w-7 h-7 rounded-full bg-gray-100 text-gray-500 text-xs font-bold flex items-center justify-center uppercase flex-shrink-0">
-                      {(h.changed_by_name || '?').charAt(0)}
+                  <div key={h.id} className="flex gap-3">
+                    <div className="w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center text-gray-500 text-xs font-bold flex-shrink-0 uppercase">
+                      {av(h.changed_by_name)}
                     </div>
-                    <div className="min-w-0 flex-1">
-                      <div className="flex items-center gap-2 flex-wrap">
-                        <span className="font-medium text-gray-700">{h.changed_by_name || 'System'}</span>
+                    <div className="flex-1 min-w-0 py-1">
+                      <div className="flex items-center gap-2 flex-wrap text-sm">
+                        <span className="font-semibold text-gray-800">{h.changed_by_name || 'System'}</span>
                         <span className="text-gray-500">
                           {h.field_name === 'comment' ? 'added a comment' :
                            h.field_name === 'approval' ? `set approval to ${h.new_value}` :
@@ -699,7 +845,7 @@ export default function TicketDetailClient({ ticketId }: { ticketId: string }) {
                         <span className="text-xs text-gray-400">{fmt(h.created_at)}</span>
                       </div>
                       {h.field_name !== 'comment' && h.field_name !== 'approval' && (h.old_value || h.new_value) && (
-                        <div className="mt-1 flex items-center gap-2 text-xs flex-wrap">
+                        <div className="mt-1 flex items-center gap-2 text-xs">
                           {h.old_value && <span className="bg-red-50 text-red-600 px-2 py-0.5 rounded line-through">{h.old_value}</span>}
                           {h.old_value && h.new_value && <span className="text-gray-400">→</span>}
                           {h.new_value && <span className="bg-green-50 text-green-700 px-2 py-0.5 rounded">{h.new_value}</span>}
@@ -710,167 +856,282 @@ export default function TicketDetailClient({ ticketId }: { ticketId: string }) {
                 ))}
               </div>
             )}
-          </div>
-        </div>
 
-        {/* ── Right sidebar ───────────────────────────────────────────────────── */}
-        <div className="w-72 flex-shrink-0 space-y-4">
-
-          <div className="bg-white rounded-lg border border-gray-200 p-4">
-            <h4 className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-3">Details</h4>
-            <SidebarField label="Status" value={ticket.status}
-              options={[{ value: 'open', label: 'Open' }, { value: 'in_progress', label: 'In Progress' }, { value: 'resolved', label: 'Resolved' }, { value: 'closed', label: 'Closed' }]}
-              onSave={v => v && patchTicket({ status: v })}
-              renderValue={v => <span className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-medium ${STATUS_STYLES[v ?? ''] || 'bg-gray-100 text-gray-600'}`}>{v?.replace('_', ' ') || '—'}</span>}
-            />
-            <SidebarField label="Priority" value={ticket.priority}
-              options={[{ value: 'critical', label: 'Critical' }, { value: 'high', label: 'High' }, { value: 'medium', label: 'Medium' }, { value: 'low', label: 'Low' }]}
-              onSave={v => v && patchTicket({ priority: v })}
-              renderValue={v => <span className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-medium ${PRIORITY_STYLES[v ?? ''] || 'bg-gray-100 text-gray-600'}`}>{v || '—'}</span>}
-            />
-            <SidebarField label="Type" value={ticket.type}
-              options={[{ value: 'bug', label: 'Bug' }, { value: 'task', label: 'Task' }, { value: 'improvement', label: 'Improvement' }, { value: 'question', label: 'Question' }]}
-              onSave={v => v && patchTicket({ type: v })}
-              renderValue={v => <span className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-medium ${TYPE_STYLES[v ?? ''] || 'bg-gray-100 text-gray-600'}`}>{v || '—'}</span>}
-            />
-            <SidebarField label="Assignee" value={ticket.assigned_to_id ? String(ticket.assigned_to_id) : null}
-              options={userOptions}
-              onSave={v => patchTicket({ assigned_to: v ? parseInt(v) : null })}
-              renderValue={() => <span className="flex items-center gap-1.5"><User size={13} className="text-gray-400" />{ticket.assigned_to_name || <span className="text-gray-400">Unassigned</span>}</span>}
-            />
-            <SidebarField label="Reporter" value={ticket.created_by_name}
-              renderValue={v => <span className="flex items-center gap-1.5"><User size={13} className="text-gray-400" />{v || <span className="text-gray-400">Unknown</span>}</span>}
-            />
-            <div className="mt-2 pt-2 border-t border-gray-100">
-              <div className="text-xs text-gray-400">Created {fmt(ticket.created_at)}</div>
-              <div className="text-xs text-gray-400">Updated {fmt(ticket.updated_at)}</div>
-            </div>
-          </div>
-
-          <div className="bg-white rounded-lg border border-gray-200 p-4">
-            <h4 className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-3">Links</h4>
-            <SidebarField label="Customer" value={ticket.customer_name} />
-            <SidebarField label="Pipeline" value={ticket.pipeline_name} />
-            <SidebarField label="Release" value={ticket.release_name} />
-            <SidebarField label="Agent" value={ticket.agent_name} />
-          </div>
-
-          <div className="bg-white rounded-lg border border-gray-200 p-4">
-            <h4 className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-3">Resolution</h4>
-            <SidebarField label="Root Cause" value={ticket.root_cause} onSave={v => patchTicket({ root_cause: v })} />
-            <SidebarField label="Commands" value={ticket.resolution_commands} onSave={v => patchTicket({ resolution_commands: v })} />
-            {ticket.resolved_at && (
-              <div className="text-xs text-green-600 flex items-center gap-1 mt-1">
-                <CheckCircle size={12} /> Resolved {fmt(ticket.resolved_at)}
+            {/* Approvals tab */}
+            {activeTab === 'approvals' && (
+              <div>
+                {!pendingApproval && (
+                  <button
+                    onClick={requestApproval}
+                    className="mb-4 flex items-center gap-1.5 px-3 py-1.5 text-sm text-blue-600 border border-blue-200 rounded hover:bg-blue-50 transition-colors font-medium"
+                  >
+                    <Plus size={14} /> Request Approval
+                  </button>
+                )}
+                {approvals.length === 0 && (
+                  <p className="text-sm text-gray-400 italic">No approvals requested yet.</p>
+                )}
+                <div className="space-y-3">
+                  {approvals.map(a => (
+                    <div key={a.id} className="border border-gray-200 rounded-lg p-4">
+                      <div className="flex items-center gap-2 mb-2">
+                        <span className={`inline-flex items-center gap-1 text-xs font-semibold px-2 py-0.5 rounded ${
+                          a.status === 'approved' ? 'bg-green-100 text-green-700' :
+                          a.status === 'rejected' ? 'bg-red-100 text-red-700' : 'bg-amber-100 text-amber-700'
+                        }`}>
+                          {a.status === 'approved' && <CheckCircle size={10} />}
+                          {a.status === 'rejected' && <XCircle size={10} />}
+                          {a.status === 'pending' && <Clock size={10} />}
+                          {a.status.charAt(0).toUpperCase() + a.status.slice(1)}
+                        </span>
+                        <span className="text-xs text-gray-500">requested by {a.requested_by_name || 'Unknown'}</span>
+                        <span className="text-xs text-gray-400">· {fmt(a.created_at)}</span>
+                      </div>
+                      {a.note && <p className="text-sm text-gray-600 italic mb-2">{a.note}</p>}
+                      {a.status === 'pending' && (
+                        <div className="mt-3 space-y-2">
+                          <input
+                            type="text"
+                            placeholder="Optional review note…"
+                            value={approvalNote}
+                            onChange={e => setApprovalNote(e.target.value)}
+                            className="w-full text-sm border border-gray-200 rounded px-3 py-1.5 text-gray-700 focus:outline-none focus:border-blue-400"
+                          />
+                          <div className="flex gap-2">
+                            <button onClick={() => reviewApproval(a.id, 'approved')}
+                              className="flex-1 py-1.5 bg-green-600 text-white text-sm rounded hover:bg-green-700 transition-colors flex items-center justify-center gap-1.5 font-medium">
+                              <CheckCircle size={13} /> Approve
+                            </button>
+                            <button onClick={() => reviewApproval(a.id, 'rejected')}
+                              className="flex-1 py-1.5 bg-red-600 text-white text-sm rounded hover:bg-red-700 transition-colors flex items-center justify-center gap-1.5 font-medium">
+                              <XCircle size={13} /> Reject
+                            </button>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                </div>
               </div>
             )}
           </div>
+        </div>
 
-          {/* Approvals */}
-          <div className="bg-white rounded-lg border border-gray-200 p-4">
-            <div className="flex items-center justify-between mb-3">
-              <h4 className="text-xs font-semibold text-gray-400 uppercase tracking-wider">Approvals</h4>
-              {!pendingApproval && (
-                <button onClick={requestApproval} className="text-xs text-blue-600 hover:text-blue-800 flex items-center gap-1">
-                  <Plus size={12} /> Request
-                </button>
-              )}
-            </div>
-            {approvals.length === 0 && <p className="text-xs text-gray-400 italic">No approvals requested.</p>}
-            {approvals.map(a => (
-              <div key={a.id} className="mb-3 last:mb-0 p-2 rounded-md bg-gray-50">
-                <div className="flex items-center gap-2 mb-1">
-                  <span className={`inline-flex items-center gap-1 text-xs font-medium px-1.5 py-0.5 rounded ${
-                    a.status === 'approved' ? 'bg-green-100 text-green-700' :
-                    a.status === 'rejected' ? 'bg-red-100 text-red-700' : 'bg-yellow-100 text-yellow-700'
-                  }`}>
-                    {a.status === 'approved' && <CheckCircle size={10} />}
-                    {a.status === 'rejected' && <XCircle size={10} />}
-                    {a.status === 'pending' && <Clock size={10} />}
-                    {a.status}
-                  </span>
-                  <span className="text-xs text-gray-500">{fmt(a.created_at)}</span>
-                </div>
-                <div className="text-xs text-gray-500">by {a.requested_by_name || 'Unknown'}</div>
-                {a.note && <div className="text-xs text-gray-600 mt-1 italic">{a.note}</div>}
-                {a.status === 'pending' && (
-                  <div className="mt-2">
-                    <input
-                      type="text"
-                      placeholder="Optional note…"
-                      value={approvalNote}
-                      onChange={e => setApprovalNote(e.target.value)}
-                      className="w-full text-xs border border-gray-200 rounded px-2 py-1 mb-1.5 text-gray-700"
-                    />
-                    <div className="flex gap-1.5">
-                      <button onClick={() => reviewApproval(a.id, 'approved')} className="flex-1 py-1 bg-green-600 text-white text-xs rounded hover:bg-green-700 flex items-center justify-center gap-1">
-                        <CheckCircle size={11} /> Approve
-                      </button>
-                      <button onClick={() => reviewApproval(a.id, 'rejected')} className="flex-1 py-1 bg-red-600 text-white text-xs rounded hover:bg-red-700 flex items-center justify-center gap-1">
-                        <XCircle size={11} /> Reject
-                      </button>
-                    </div>
-                  </div>
-                )}
-              </div>
-            ))}
-          </div>
+        {/* ── Right sidebar ──────────────────────────────────────────────────── */}
+        <div className="w-64 flex-shrink-0">
 
-          {/* Attachments */}
-          <div className="bg-white rounded-lg border border-gray-200 p-4">
-            <div className="flex items-center justify-between mb-3">
-              <h4 className="text-xs font-semibold text-gray-400 uppercase tracking-wider">Attachments ({attachments.length})</h4>
-              <button onClick={() => attachInputRef.current?.click()} className="text-xs text-blue-600 hover:text-blue-800 flex items-center gap-1">
-                {uploading ? <Loader2 size={12} className="animate-spin" /> : <Upload size={12} />} Upload
-              </button>
-            </div>
-            <input ref={attachInputRef} type="file" className="hidden"
-              onChange={e => { const f = e.target.files?.[0]; if (f) uploadAttachment(f); e.target.value = ''; }}
+          {/* Action row: status button + approval */}
+          <div className="flex flex-wrap gap-2 mb-4">
+            <StatusButton
+              status={ticket.status}
+              onChange={s => patchTicket({ status: s })}
             />
-            {attachments.length === 0 && <p className="text-xs text-gray-400 italic">No attachments.</p>}
-            {attachments.map(a => (
-              <div key={a.id} className="flex items-center gap-2 py-1.5 border-b border-gray-50 last:border-0 group">
-                <Paperclip size={12} className="text-gray-400 flex-shrink-0" />
-                <div className="flex-1 min-w-0">
-                  <div className="text-xs text-gray-700 truncate">{a.original_filename}</div>
-                  {a.file_size && <div className="text-xs text-gray-400">{fmtSize(a.file_size)}</div>}
-                </div>
-                <a href={`${API()}/ticket-attachments/${a.id}/download`} target="_blank" rel="noreferrer" className="p-1 text-gray-400 hover:text-blue-600 flex-shrink-0">
-                  <Download size={12} />
-                </a>
-                <button onClick={() => deleteAttachment(a.id)} className="p-1 text-gray-400 hover:text-red-600 opacity-0 group-hover:opacity-100 flex-shrink-0">
-                  <Trash2 size={12} />
-                </button>
-              </div>
-            ))}
+            {pendingApproval && (
+              <span className="flex items-center gap-1.5 px-3 py-1.5 rounded text-[11px] font-bold tracking-wide bg-amber-100 text-amber-700 border border-amber-300">
+                <Clock size={11} /> PENDING APPROVAL
+              </span>
+            )}
           </div>
+
+          {/* Upload button */}
+          <div className="mb-4">
+            <button
+              onClick={() => attachInputRef.current?.click()}
+              className="flex items-center gap-1.5 text-xs text-gray-500 hover:text-blue-600 transition-colors border border-gray-200 rounded px-2.5 py-1.5 hover:border-blue-300 bg-white"
+            >
+              {uploading ? <Loader2 size={12} className="animate-spin" /> : <Paperclip size={12} />}
+              Attach file
+            </button>
+            <input ref={attachInputRef} type="file" className="hidden"
+              onChange={e => { const f = e.target.files?.[0]; if (f) uploadAttachment(f); e.target.value = ''; }} />
+          </div>
+
+          {/* Details section */}
+          <SidebarSection title="Details">
+            <SidebarField
+              label="Assignee"
+              value={ticket.assigned_to_id ? String(ticket.assigned_to_id) : null}
+              options={userOptions}
+              onSave={v => patchTicket({ assigned_to: v ? parseInt(v) : null })}
+              renderValue={() => ticket.assigned_to_name ? (
+                <div className="flex items-center gap-2">
+                  <span className="h-6 w-6 rounded-full bg-gradient-to-br from-blue-400 to-purple-500 flex items-center justify-center text-white text-[10px] font-bold flex-shrink-0">
+                    {av(ticket.assigned_to_name)}
+                  </span>
+                  <span className="text-sm text-gray-800">{ticket.assigned_to_name}</span>
+                </div>
+              ) : <span className="text-sm text-gray-400">None</span>}
+            />
+            <SidebarField
+              label="Reporter"
+              value={ticket.created_by_name}
+              renderValue={v => v ? (
+                <div className="flex items-center gap-2">
+                  <span className="h-6 w-6 rounded-full bg-gradient-to-br from-gray-300 to-gray-400 flex items-center justify-center text-white text-[10px] font-bold flex-shrink-0">
+                    {av(v)}
+                  </span>
+                  <span className="text-sm text-gray-800">{v}</span>
+                </div>
+              ) : <span className="text-sm text-gray-400">Unknown</span>}
+            />
+            <SidebarField
+              label="Priority"
+              value={ticket.priority}
+              options={[
+                { value: 'critical', label: 'Critical' },
+                { value: 'high', label: 'High' },
+                { value: 'medium', label: 'Medium' },
+                { value: 'low', label: 'Low' },
+              ]}
+              onSave={v => v && patchTicket({ priority: v })}
+              renderValue={v => {
+                const dotColor: Record<string, string> = {
+                  critical: 'bg-red-500', high: 'bg-orange-400', medium: 'bg-yellow-400', low: 'bg-gray-300',
+                };
+                const textColor: Record<string, string> = {
+                  critical: 'text-red-600', high: 'text-orange-500', medium: 'text-yellow-600', low: 'text-gray-500',
+                };
+                return v ? (
+                  <div className="flex items-center gap-1.5">
+                    <span className={`h-2 w-2 rounded-full ${dotColor[v] ?? 'bg-gray-300'}`} />
+                    <span className={`text-sm ${textColor[v] ?? 'text-gray-600'}`}>{v.charAt(0).toUpperCase() + v.slice(1)}</span>
+                  </div>
+                ) : <span className="text-sm text-gray-400">None</span>;
+              }}
+            />
+            <SidebarField
+              label="Type"
+              value={ticket.type}
+              options={[
+                { value: 'bug', label: 'Bug' },
+                { value: 'task', label: 'Task' },
+                { value: 'improvement', label: 'Improvement' },
+                { value: 'question', label: 'Question' },
+              ]}
+              onSave={v => v && patchTicket({ type: v })}
+              renderValue={v => {
+                const bg = TYPE_ICON_BG[v ?? ''] ?? 'bg-blue-500';
+                return v ? (
+                  <div className="flex items-center gap-2">
+                    <span className={`inline-flex items-center justify-center w-4 h-4 rounded-sm ${bg}`}>
+                      <span className="text-white text-[8px] font-bold uppercase">{v.charAt(0)}</span>
+                    </span>
+                    <span className="text-sm text-gray-800 capitalize">{v}</span>
+                  </div>
+                ) : <span className="text-sm text-gray-400">None</span>;
+              }}
+            />
+            <div className="flex gap-2 py-2 items-start">
+              <div className="w-28 flex-shrink-0 text-xs text-gray-500 pt-0.5">Created</div>
+              <div className="flex-1 text-sm text-gray-600">{fmt(ticket.created_at)}</div>
+            </div>
+            <div className="flex gap-2 py-2 items-start">
+              <div className="w-28 flex-shrink-0 text-xs text-gray-500 pt-0.5">Updated</div>
+              <div className="flex-1 text-sm text-gray-600">{fmt(ticket.updated_at)}</div>
+            </div>
+          </SidebarSection>
+
+          {/* Links section */}
+          <SidebarSection title="Links" defaultOpen={true}>
+            <SidebarField
+              label={<span className="flex items-center gap-1"><Building2 size={11} />Customer</span> as unknown as string}
+              value={ticket.customer_name}
+              renderValue={v => <span className="text-sm text-gray-700">{v || <span className="text-gray-400">None</span>}</span>}
+            />
+            <SidebarField
+              label={<span className="flex items-center gap-1"><GitBranch size={11} />Pipeline</span> as unknown as string}
+              value={ticket.pipeline_name}
+              renderValue={v => <span className="text-sm text-gray-700">{v || <span className="text-gray-400">None</span>}</span>}
+            />
+            <SidebarField
+              label={<span className="flex items-center gap-1"><Rocket size={11} />Release</span> as unknown as string}
+              value={ticket.release_name}
+              renderValue={v => <span className="text-sm text-gray-700">{v || <span className="text-gray-400">None</span>}</span>}
+            />
+            <SidebarField
+              label={<span className="flex items-center gap-1"><Server size={11} />Agent</span> as unknown as string}
+              value={ticket.agent_name}
+              renderValue={v => <span className="text-sm text-gray-700">{v || <span className="text-gray-400">None</span>}</span>}
+            />
+          </SidebarSection>
+
+          {/* Resolution section */}
+          <SidebarSection title="Resolution" defaultOpen={false}>
+            <SidebarField
+              label="Root Cause"
+              value={ticket.root_cause}
+              onSave={v => patchTicket({ root_cause: v })}
+            />
+            <SidebarField
+              label="Commands"
+              value={ticket.resolution_commands}
+              onSave={v => patchTicket({ resolution_commands: v })}
+            />
+            {ticket.resolved_at && (
+              <div className="flex items-center gap-1.5 text-xs text-green-600 mt-1.5 py-1">
+                <CheckCircle size={12} /> Resolved {fmt(ticket.resolved_at)}
+              </div>
+            )}
+            {ticket.resolved_by_name && (
+              <div className="flex gap-2 py-2 items-start">
+                <div className="w-28 flex-shrink-0 text-xs text-gray-500 pt-0.5">Resolved by</div>
+                <div className="flex-1 text-sm text-gray-700">{ticket.resolved_by_name}</div>
+              </div>
+            )}
+          </SidebarSection>
+
+          {/* Attachments section */}
+          {attachments.length > 0 && (
+            <SidebarSection title={`Attachments (${attachments.length})`} defaultOpen={false}>
+              <div className="space-y-1">
+                {attachments.map(a => (
+                  <div key={a.id} className="flex items-center gap-2 py-1 group">
+                    <Paperclip size={12} className="text-gray-400 flex-shrink-0" />
+                    <div className="flex-1 min-w-0">
+                      <p className="text-xs text-gray-700 truncate">{a.original_filename}</p>
+                    </div>
+                    <a href={`${API()}/ticket-attachments/${a.id}/download`} target="_blank" rel="noreferrer"
+                      className="p-1 text-gray-400 hover:text-blue-600 opacity-0 group-hover:opacity-100 transition-all">
+                      <Download size={11} />
+                    </a>
+                  </div>
+                ))}
+              </div>
+            </SidebarSection>
+          )}
         </div>
       </div>
 
-      {/* ── AI Chat Panel ──────────────────────────────────────────────────────── */}
+      {/* ── AI Chat Panel ─────────────────────────────────────────────────────── */}
       {showAI && (
-        <div className="fixed inset-y-0 right-0 w-96 bg-white border-l border-gray-200 shadow-xl flex flex-col z-30">
+        <>
+          {/* Backdrop — clicking outside the panel closes it */}
+          <div className="fixed inset-0 z-30" onClick={() => setShowAI(false)} />
+        <div className="fixed inset-y-0 right-0 w-96 bg-white border-l border-gray-200 shadow-xl flex flex-col z-40">
           <div className="flex items-center justify-between px-4 py-3 border-b border-gray-200 bg-purple-50">
             <div className="flex items-center gap-2">
-              <Bot size={18} className="text-purple-600" />
+              <Bot size={16} className="text-purple-600" />
               <span className="font-semibold text-gray-800 text-sm">AI Assistant</span>
             </div>
-            <div className="flex items-center gap-2">
-              <button onClick={() => setChatMsgs([])} className="text-xs text-gray-500 hover:text-gray-700" title="Clear chat">
+            <div className="flex items-center gap-1">
+              <button onClick={() => setChatMsgs([])} className="text-gray-400 hover:text-gray-700 p-1.5 rounded" title="Clear">
                 <MoreHorizontal size={15} />
               </button>
-              <button onClick={() => setShowAI(false)} className="text-gray-400 hover:text-gray-700"><X size={18} /></button>
+              <button onClick={() => setShowAI(false)} className="text-gray-400 hover:text-gray-700 p-1.5 rounded">
+                <X size={15} />
+              </button>
             </div>
           </div>
 
           <div className="flex-1 overflow-y-auto p-4 space-y-3">
             {chatMsgs.length === 0 && (
               <div className="text-center text-gray-400 text-sm mt-8">
-                <Bot size={32} className="mx-auto mb-2 text-purple-200" />
-                <p>Ask anything about this ticket or related issues.</p>
+                <Bot size={28} className="mx-auto mb-2 text-purple-200" />
+                <p className="text-sm text-gray-500">Ask anything about this ticket.</p>
                 <div className="mt-4 space-y-1.5">
                   {['Summarize this ticket', 'What might be the root cause?', 'Suggest resolution steps'].map(s => (
-                    <button key={s} onClick={() => setChatInput(s)} className="block w-full text-xs text-left px-3 py-1.5 rounded border border-gray-200 hover:border-purple-300 hover:text-purple-700 text-gray-600 transition-colors">
+                    <button key={s} onClick={() => setChatInput(s)}
+                      className="block w-full text-xs text-left px-3 py-1.5 rounded border border-gray-200 hover:border-purple-300 hover:text-purple-700 text-gray-600 transition-colors">
                       {s}
                     </button>
                   ))}
@@ -879,11 +1140,10 @@ export default function TicketDetailClient({ ticketId }: { ticketId: string }) {
             )}
             {chatMsgs.map((m, i) => (
               <div key={i} className={`flex ${m.role === 'user' ? 'justify-end' : 'justify-start'}`}>
-                <div className={`max-w-[80%] rounded-lg px-3 py-2 text-sm ${m.role === 'user' ? 'bg-purple-600 text-white' : 'bg-gray-100 text-gray-700'}`}>
+                <div className={`max-w-[82%] rounded-2xl px-3 py-2 text-sm ${m.role === 'user' ? 'bg-purple-600 text-white rounded-br-sm' : 'bg-gray-100 text-gray-700 rounded-bl-sm'}`}>
                   {m.role === 'assistant' && !m.content && chatLoading
                     ? <Loader2 size={14} className="animate-spin text-gray-400" />
-                    : <div className="whitespace-pre-wrap">{m.content}</div>
-                  }
+                    : <div className="whitespace-pre-wrap">{m.content}</div>}
                 </div>
               </div>
             ))}
@@ -898,14 +1158,16 @@ export default function TicketDetailClient({ ticketId }: { ticketId: string }) {
                 onChange={e => setChatInput(e.target.value)}
                 onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendAIMessage(); } }}
                 placeholder="Ask about this ticket…"
-                className="flex-1 text-sm border border-gray-200 rounded-lg px-3 py-2 text-gray-700 focus:border-purple-400 focus:outline-none"
+                className="flex-1 text-sm border border-gray-200 rounded-xl px-3 py-2 text-gray-700 focus:border-purple-400 focus:outline-none"
               />
-              <button onClick={sendAIMessage} disabled={chatLoading || !chatInput.trim()} className="p-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 disabled:opacity-50 disabled:cursor-not-allowed">
-                <Send size={15} />
+              <button onClick={sendAIMessage} disabled={chatLoading || !chatInput.trim()}
+                className="p-2.5 bg-purple-600 text-white rounded-xl hover:bg-purple-700 disabled:opacity-40 disabled:cursor-not-allowed transition-colors">
+                <Send size={14} />
               </button>
             </div>
           </div>
         </div>
+        </>
       )}
     </div>
   );

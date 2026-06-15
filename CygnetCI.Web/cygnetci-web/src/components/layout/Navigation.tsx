@@ -61,7 +61,19 @@ export const Navigation: React.FC = () => {
             <Link
               key={item.id}
               href={item.href}
-              onClick={() => setIsCollapsed(true)}
+              onClick={(e) => {
+                setIsCollapsed(true);
+                // When URL was changed via pushState (e.g. /tickets/70) but Next.js router
+                // still thinks we're at /tickets, a Link click is a no-op. Force a real
+                // navigation so the page reloads correctly.
+                if (
+                  window.location.pathname !== item.href &&
+                  window.location.pathname.startsWith(item.href + '/')
+                ) {
+                  e.preventDefault();
+                  window.location.href = item.href;
+                }
+              }}
               className={`flex items-center ${isCollapsed ? 'justify-center' : 'space-x-3'} px-4 py-3 mx-2 rounded-xl font-medium text-sm transition-all relative group ${
                 isActive
                   ? 'bg-gradient-to-r from-blue-500 to-purple-600 text-white shadow-md'

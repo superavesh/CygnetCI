@@ -5537,6 +5537,7 @@ def create_comment(ticket_id: int, data: CommentCreate, db: Session = Depends(ge
         raise HTTPException(status_code=404, detail="Ticket not found")
     c = models.TicketComment(ticket_id=ticket_id, body=data.body, created_by=data.created_by)
     db.add(c)
+    # history
     db.add(models.TicketHistory(
         ticket_id=ticket_id, changed_by=data.created_by,
         field_name="comment", old_value=None, new_value="added comment"
@@ -5704,7 +5705,7 @@ def request_approval(ticket_id: int, data: ApprovalRequest, db: Session = Depend
     return format_approval(a, db)
 
 class ApprovalReview(BaseModel):
-    status: str
+    status: str  # approved | rejected
     note: Optional[str] = None
     reviewed_by: Optional[int] = None
 
@@ -5752,9 +5753,10 @@ class AISettingsBody(BaseModel):
 def get_ai_settings(customer_id: Optional[int] = None, db: Session = Depends(get_db)):
     q = db.query(models.AISettings)
     if customer_id:
-        s = q.filter(models.AISettings.customer_id == customer_id).first()
+        q = q.filter(models.AISettings.customer_id == customer_id)
     else:
-        s = q.filter(models.AISettings.customer_id == None).first()
+        q = q.filter(models.AISettings.customer_id == None)
+    s = q.first()
     if not s:
         return {"provider": "anthropic", "model": "claude-sonnet-4-6", "has_api_key": False, "customer_id": customer_id}
     return {
@@ -5770,9 +5772,10 @@ def get_ai_settings(customer_id: Optional[int] = None, db: Session = Depends(get
 def upsert_ai_settings(data: AISettingsBody, db: Session = Depends(get_db)):
     q = db.query(models.AISettings)
     if data.customer_id:
-        s = q.filter(models.AISettings.customer_id == data.customer_id).first()
+        q = q.filter(models.AISettings.customer_id == data.customer_id)
     else:
-        s = q.filter(models.AISettings.customer_id == None).first()
+        q = q.filter(models.AISettings.customer_id == None)
+    s = q.first()
     if not s:
         s = models.AISettings(customer_id=data.customer_id)
         db.add(s)
@@ -5808,6 +5811,7 @@ class AIChatRequest(BaseModel):
 @app.post("/tickets/ai-chat", tags=["🎫 Ticketing"])
 async def ai_chat(request: AIChatRequest, db: Session = Depends(get_db)):
     """Stream AI responses for ticket assistant chat"""
+    # Load settings
     q = db.query(models.AISettings)
     if request.customer_id:
         s = q.filter(models.AISettings.customer_id == request.customer_id).first()
@@ -5820,6 +5824,7 @@ async def ai_chat(request: AIChatRequest, db: Session = Depends(get_db)):
     api_key = _decrypt(s.api_key_encrypted)
     model = s.model or "claude-sonnet-4-6"
 
+    # Build system prompt with ticket context
     system_parts = [
         "You are a helpful assistant for CygnetCI, a CI/CD platform. "
         "You help users understand tickets, resolve issues, and navigate the system. "
@@ -5876,6 +5881,237 @@ async def ai_chat(request: AIChatRequest, db: Session = Depends(get_db)):
             yield f"data: {_json.dumps({'error': str(e)})}\n\n"
 
     return StreamingResponse(stream_response(), media_type="text/event-stream")
+
+
+# ── AI Assist (list page — full tool use) ─────────────────────────────────────
+
+_TICKET_TOOLS = [
+    {
+        "name": "search_tickets",
+        "description": "Search and list tickets. Returns up to 10 matching tickets.",
+        "input_schema": {
+            "type": "object",
+            "properties": {
+                "status":   {"type": "string", "enum": ["open", "in_progress", "resolved", "closed"]},
+                "priority": {"type": "string", "enum": ["critical", "high", "medium", "low"]},
+                "type":     {"type": "string", "enum": ["bug", "task", "improvement", "question"]},
+                "search":   {"type": "string", "description": "Text search across title, description, ticket number"},
+                "customer_id": {"type": "integer"},
+            },
+        },
+    },
+    {
+        "name": "get_ticket",
+        "description": "Get full details of one ticket by its numeric ID or ticket number (e.g. TKT-0042).",
+        "input_schema": {
+            "type": "object",
+            "properties": {
+                "ticket_id":     {"type": "integer"},
+                "ticket_number": {"type": "string"},
+            },
+        },
+    },
+    {
+        "name": "create_ticket",
+        "description": "Create a new ticket. title is required; all other fields are optional.",
+        "input_schema": {
+            "type": "object",
+            "required": ["title"],
+            "properties": {
+                "title":       {"type": "string"},
+                "description": {"type": "string"},
+                "priority":    {"type": "string", "enum": ["critical", "high", "medium", "low"], "default": "medium"},
+                "type":        {"type": "string", "enum": ["bug", "task", "improvement", "question"], "default": "task"},
+                "customer_id": {"type": "integer"},
+                "assigned_to_id": {"type": "integer"},
+                "pipeline_id": {"type": "integer"},
+                "release_id":  {"type": "integer"},
+            },
+        },
+    },
+    {
+        "name": "update_ticket",
+        "description": "Update one or more fields on an existing ticket. ticket_id is required.",
+        "input_schema": {
+            "type": "object",
+            "required": ["ticket_id"],
+            "properties": {
+                "ticket_id":   {"type": "integer"},
+                "title":       {"type": "string"},
+                "description": {"type": "string"},
+                "status":      {"type": "string", "enum": ["open", "in_progress", "resolved", "closed"]},
+                "priority":    {"type": "string", "enum": ["critical", "high", "medium", "low"]},
+                "type":        {"type": "string", "enum": ["bug", "task", "improvement", "question"]},
+                "assigned_to_id": {"type": "integer"},
+                "root_cause":  {"type": "string"},
+                "resolution_commands": {"type": "string"},
+            },
+        },
+    },
+]
+
+def _execute_ticket_tool(name: str, inp: dict, db: Session) -> str:
+    try:
+        if name == "search_tickets":
+            q = db.query(models.Ticket)
+            if s := inp.get("status"):   q = q.filter(models.Ticket.status == s)
+            if p := inp.get("priority"): q = q.filter(models.Ticket.priority == p)
+            if tp := inp.get("type"):    q = q.filter(models.Ticket.type == tp)
+            if cid := inp.get("customer_id"): q = q.filter(models.Ticket.customer_id == cid)
+            if srch := inp.get("search"):
+                q = q.filter(
+                    models.Ticket.title.ilike(f"%{srch}%") |
+                    models.Ticket.description.ilike(f"%{srch}%") |
+                    models.Ticket.ticket_number.ilike(f"%{srch}%")
+                )
+            rows = q.order_by(models.Ticket.created_at.desc()).limit(10).all()
+            return _json.dumps({"tickets": [format_ticket(r, db) for r in rows], "count": len(rows)})
+
+        if name == "get_ticket":
+            if tid := inp.get("ticket_id"):
+                t = db.query(models.Ticket).filter(models.Ticket.id == tid).first()
+            elif tnum := inp.get("ticket_number"):
+                t = db.query(models.Ticket).filter(models.Ticket.ticket_number == tnum).first()
+            else:
+                return _json.dumps({"error": "ticket_id or ticket_number required"})
+            return _json.dumps(format_ticket(t, db)) if t else _json.dumps({"error": "not found"})
+
+        if name == "create_ticket":
+            last = db.query(models.Ticket).order_by(models.Ticket.id.desc()).first()
+            try:
+                next_num = int(last.ticket_number.split("-")[1]) + 1 if last and last.ticket_number else 1
+            except Exception:
+                next_num = 1
+            t = models.Ticket(
+                ticket_number=f"TKT-{next_num:04d}",
+                title=inp["title"],
+                description=inp.get("description"),
+                priority=inp.get("priority", "medium"),
+                type=inp.get("type", "task"),
+                status="open",
+                assigned_to=inp.get("assigned_to_id"),
+                customer_id=inp.get("customer_id"),
+                pipeline_id=inp.get("pipeline_id"),
+                release_id=inp.get("release_id"),
+            )
+            db.add(t)
+            db.commit()
+            db.refresh(t)
+            return _json.dumps({"created": True, "ticket": format_ticket(t, db)})
+
+        if name == "update_ticket":
+            t = db.query(models.Ticket).filter(models.Ticket.id == inp["ticket_id"]).first()
+            if not t:
+                return _json.dumps({"error": "ticket not found"})
+            for fld in ["title", "description", "status", "priority", "type", "root_cause", "resolution_commands"]:
+                if (v := inp.get(fld)) is not None:
+                    setattr(t, fld, v)
+            if "assigned_to_id" in inp:
+                t.assigned_to = inp["assigned_to_id"]
+            if inp.get("status") in ("resolved", "closed") and not t.resolved_at:
+                t.resolved_at = datetime.now()
+            if inp.get("status") in ("open", "in_progress"):
+                t.resolved_at = None
+            db.commit()
+            db.refresh(t)
+            return _json.dumps({"updated": True, "ticket": format_ticket(t, db)})
+
+        return _json.dumps({"error": f"unknown tool: {name}"})
+    except Exception as e:
+        return _json.dumps({"error": str(e)})
+
+@app.post("/tickets/ai-assist", tags=["🎫 Ticketing"])
+async def ai_assist(request: AIChatRequest, db: Session = Depends(get_db)):
+    """Agentic ticket assistant — searches, creates and updates tickets via tool use."""
+    import httpx as _httpx
+
+    q = db.query(models.AISettings)
+    s = (q.filter(models.AISettings.customer_id == request.customer_id).first()
+         if request.customer_id
+         else q.filter(models.AISettings.customer_id == None).first())
+
+    if not s or not s.api_key_encrypted:
+        raise HTTPException(status_code=400, detail="AI not configured. Please add an API key in AI Settings.")
+
+    api_key = _decrypt(s.api_key_encrypted)
+    model = s.model or "claude-sonnet-4-6"
+
+    system_prompt = (
+        "You are an AI ticket assistant for CygnetCI, a CI/CD platform. "
+        "You can search for existing tickets, create new tickets, and update tickets. "
+        "Always confirm what you did. When the user asks to create a ticket, use the tool immediately "
+        "with the info provided (title is the only required field). "
+        "Types: bug, task, improvement, question. Priorities: critical, high, medium, low. "
+        "Statuses: open, in_progress, resolved, closed. "
+        "Be concise and action-oriented."
+    )
+
+    messages = [{"role": m.role, "content": m.content} for m in request.messages]
+    actions: list = []
+    headers = {
+        "x-api-key": api_key,
+        "anthropic-version": "2023-06-01",
+        "content-type": "application/json",
+    }
+
+    async with _httpx.AsyncClient(timeout=60) as client:
+        for _ in range(6):  # max 6 rounds (tool call → result → response)
+            resp = await client.post(
+                "https://api.anthropic.com/v1/messages",
+                headers=headers,
+                json={
+                    "model": model,
+                    "max_tokens": 1024,
+                    "system": system_prompt,
+                    "tools": _TICKET_TOOLS,
+                    "messages": messages,
+                },
+            )
+            if not resp.is_success:
+                raise HTTPException(status_code=502, detail=f"AI API error: {resp.text[:300]}")
+
+            data = resp.json()
+            stop = data.get("stop_reason")
+
+            if stop == "end_turn":
+                reply = "".join(
+                    blk.get("text", "") for blk in data.get("content", []) if blk.get("type") == "text"
+                )
+                return {"reply": reply, "actions": actions}
+
+            if stop == "tool_use":
+                messages.append({"role": "assistant", "content": data["content"]})
+                tool_results = []
+                for blk in data["content"]:
+                    if blk.get("type") != "tool_use":
+                        continue
+                    result_str = _execute_ticket_tool(blk["name"], blk.get("input", {}), db)
+                    result_data = _json.loads(result_str)
+
+                    if blk["name"] == "create_ticket" and result_data.get("created"):
+                        actions.append({"type": "created", "ticket": result_data["ticket"]})
+                    elif blk["name"] == "update_ticket" and result_data.get("updated"):
+                        actions.append({"type": "updated", "ticket": result_data["ticket"]})
+                    elif blk["name"] == "search_tickets":
+                        actions.append({"type": "found", "tickets": result_data.get("tickets", [])})
+                    elif blk["name"] == "get_ticket" and result_data.get("id"):
+                        actions.append({"type": "found", "tickets": [result_data]})
+
+                    tool_results.append({
+                        "type": "tool_result",
+                        "tool_use_id": blk["id"],
+                        "content": result_str,
+                    })
+                messages.append({"role": "user", "content": tool_results})
+                continue
+
+            # Unexpected stop reason — return whatever text we have
+            reply = "".join(
+                blk.get("text", "") for blk in data.get("content", []) if blk.get("type") == "text"
+            )
+            return {"reply": reply or "Done.", "actions": actions}
+
+    return {"reply": "Completed.", "actions": actions}
 
 
 # ==============================================

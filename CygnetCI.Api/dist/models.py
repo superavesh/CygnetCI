@@ -980,7 +980,7 @@ class TicketComment(Base):
 
     id = Column(Integer, primary_key=True, index=True)
     ticket_id = Column(Integer, ForeignKey("tickets.id", ondelete="CASCADE"), nullable=False, index=True)
-    body = Column(Text, nullable=False)
+    body = Column(Text, nullable=False)  # HTML from Tiptap
     created_by = Column(Integer, ForeignKey("users.id", ondelete="SET NULL"), nullable=True)
     edited_at = Column(TIMESTAMP)
     created_at = Column(TIMESTAMP, server_default=func.now(), nullable=False)
