@@ -1,0 +1,8 @@
+# Context for Dockerfile.prebuilt — we DO want ./out, but nothing heavy else.
+node_modules/
+.next/
+.git/
+src/
+public/
+*.log
+.env*

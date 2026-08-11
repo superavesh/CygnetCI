@@ -1,0 +1,20 @@
+# Build an API image from a PRE-BUILT Linux bundle (./dist-linux), created by
+# build_linux_bundle.sh — the Linux analog of Dockerfile.windows.
+#
+# The base image's libc MUST match the bundle:
+#   - gnu  bundle  -> debian:12-slim / ubuntu (glibc)   [this file]
+#   - musl bundle  -> alpine
+#
+# Build:  docker build -f Dockerfile.prebuilt-linux -t REGISTRY/cygnetci-api:latest .
+#
+# NOTE: For a normal Docker deployment you usually DON'T need this — the plain
+# ./Dockerfile (pip install in python:3.11-slim) already yields a self-contained
+# image. Use this only to reuse an externally-built bundle.
+FROM debian:12-slim
+RUN apt-get update && apt-get install -y --no-install-recommends ca-certificates curl \
+    && rm -rf /var/lib/apt/lists/*
+WORKDIR /app
+COPY dist-linux/ ./
+# config.ini is provided at runtime via a mounted Secret at /app/config.ini.
+EXPOSE 8000
+CMD ["python/bin/python", "-m", "uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000"]

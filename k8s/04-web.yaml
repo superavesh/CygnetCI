@@ -1,0 +1,64 @@
+# CygnetCI Next.js frontend (static export served by nginx).
+# The API URL is injected at runtime via system.config.js (ConfigMap) — no rebuild
+# needed to repoint the API.
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: cygnetci-web-config
+  namespace: cygnetci
+data:
+  system.config.js: |
+    window.CYGNETCI_CONFIG = {
+      api: {
+        baseUrl: 'https://api.cygnetci.example.com'   // <-- public URL of the API
+      },
+      app: {
+        name: 'CygnetCI',
+        version: '1.0.0',
+        pollingInterval: 30000
+      }
+    };
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: cygnetci-web
+  namespace: cygnetci
+spec:
+  replicas: 2
+  selector:
+    matchLabels: { app: cygnetci-web }
+  template:
+    metadata:
+      labels: { app: cygnetci-web }
+    spec:
+      containers:
+        - name: web
+          image: REGISTRY/cygnetci-web:latest   # <-- your image
+          ports:
+            - containerPort: 80
+          volumeMounts:
+            - name: web-config
+              mountPath: /usr/share/nginx/html/system.config.js
+              subPath: system.config.js
+              readOnly: true
+          readinessProbe:
+            httpGet: { path: /, port: 80 }
+            initialDelaySeconds: 5
+            periodSeconds: 10
+      volumes:
+        - name: web-config
+          configMap:
+            name: cygnetci-web-config
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: cygnetci-web
+  namespace: cygnetci
+spec:
+  selector: { app: cygnetci-web }
+  ports:
+    - port: 80
+      targetPort: 80

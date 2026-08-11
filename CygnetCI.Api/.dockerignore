@@ -1,0 +1,11 @@
+__pycache__/
+*.pyc
+dist/
+logs/
+*.log
+config.ini
+.env
+uploads/
+static/
+.venv/
+venv/

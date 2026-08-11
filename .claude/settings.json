@@ -8,7 +8,19 @@
       "Read(//d/Avesh/CygnetCI/SourceCode/**)",
       "Bash(python3 -)",
       "Read(//c/Users/amkhatri/Downloads/**)",
-      "PowerShell($lines = \\(Get-Content \"C:\\\\Users\\\\amkhatri\\\\Downloads\\\\python_22016_202651452747.log\" | Measure-Object -Line\\).Lines; Write-Host \"Total lines: $lines\")"
+      "PowerShell($lines = \\(Get-Content \"C:\\\\Users\\\\amkhatri\\\\Downloads\\\\python_22016_202651452747.log\" | Measure-Object -Line\\).Lines; Write-Host \"Total lines: $lines\")",
+      "Bash(cd \"d:/Avesh/CygnetCI/SourceCode/CygnetCI\" && echo \"===DEPS===\" && sed -n '/\"dependencies\"/,/}/p' CygnetCI.Web/cygnetci-web/package.json && echo \"===AGENTWORKER HEAD===\" && sed -n '1,70p' CygnetCI.Agent/AgentWorker.cs)",
+      "Bash(node_modules/.bin/tsc --noEmit)",
+      "Bash(echo \"TSC EXIT: $?\")",
+      "Bash(python -m py_compile seed_fresh_db.py)",
+      "Bash(python -c \"import models; e=models.Environment; print\\('Environment cols:', [c.name for c in e.__table__.columns]\\)\")",
+      "Bash(python -c ' *)",
+      "Bash(awk '{print $NF}')",
+      "Bash(cd \"d:/Avesh/CygnetCI/SourceCode/CygnetCI/CygnetCI.Web/cygnetci-web\" && echo \"=== out/ present? ===\"; ls out/ 2>/dev/null | head -20 || echo \"no out/ yet\"; echo \"=== is it static \\(index.html\\) or standalone \\(server.js\\)? ===\"; find out .next/standalone -maxdepth 2 \\\\\\( -name \"index.html\" -o -name \"server.js\" \\\\\\) 2>/dev/null | head; echo \"=== start_api.bat ===\"; cat ../../CygnetCI.Api/dist/start_api.bat)",
+      "Read(//d/Avesh/CygnetCI/CygnetCI.Api/dist/**)"
+    ],
+    "additionalDirectories": [
+      "d:\\Avesh\\CygnetCI\\SourceCode\\CygnetCI\\CygnetCI.Web\\cygnetci-web"
     ]
   }
 }

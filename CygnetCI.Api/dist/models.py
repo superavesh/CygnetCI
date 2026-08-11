@@ -772,6 +772,12 @@ class Customer(Base):
     # Relationships to other entities (cascade delete customer data when customer is deleted)
     user_customers = relationship("UserCustomer", back_populates="customer", cascade="all, delete-orphan")
 
+    @property
+    def has_credentials(self) -> bool:
+        """Non-sensitive flag for API responses — true when HMAC credentials are configured.
+        Used instead of exposing client_id / client_secret in list/get responses."""
+        return bool(self.client_id and self.client_secret)
+
 
 class User(Base):
     __tablename__ = "users"
@@ -790,6 +796,7 @@ class User(Base):
 
     # Relationships
     user_customers = relationship("UserCustomer", back_populates="user", cascade="all, delete-orphan")
+    user_roles = relationship("UserRole", back_populates="user", cascade="all, delete-orphan")
 
 
 class UserCustomer(Base):
@@ -826,6 +833,23 @@ class Role(Base):
     is_system = Column(Boolean, default=False, nullable=False)
     created_at = Column(TIMESTAMP, server_default=func.now(), nullable=False)
     updated_at = Column(TIMESTAMP, server_default=func.now(), onupdate=func.now(), nullable=False)
+
+
+class UserRole(Base):
+    """
+    Many-to-many relationship between users and roles.
+    A single user can be assigned multiple roles.
+    """
+    __tablename__ = "user_roles"
+
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True)
+    role_id = Column(Integer, ForeignKey("roles.id", ondelete="CASCADE"), nullable=False, index=True)
+    assigned_at = Column(TIMESTAMP, server_default=func.now(), nullable=False)
+
+    # Relationships
+    user = relationship("User", back_populates="user_roles")
+    role = relationship("Role")
 
 
 class AuditLog(Base):

@@ -1,0 +1,131 @@
+# CygnetCI FastAPI backend.
+# config.ini is delivered as a Secret (it contains the DB password).
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: cygnetci-api-config
+  namespace: cygnetci
+type: Opaque
+stringData:
+  # Mounted at /app/config.ini. Keep DB creds in sync with cygnetci-db secret.
+  # NOTE: configparser treats '%' specially -> double any literal '%' as '%%'.
+  config.ini: |
+    [database]
+    host = cygnetci-postgres
+    port = 5432
+    database = CygnetCI
+    username = cygnetci
+    password = Cygnet_K8s_2026
+
+    [paths]
+    nfs_shared_root = /data/nfsshared
+    scripts_folder = scripts
+    artifacts_folder = artifacts
+    rollback_scripts_folder = rollback
+
+    [server]
+    host = 0.0.0.0
+    port = 8000
+    reload = false
+    debug = false
+
+    [cors]
+    allowed_origins = https://cygnetci.example.com
+    allow_credentials = true
+
+    [file_transfer]
+    max_file_size_mb = 5000
+    allowed_script_extensions = .sh,.ps1,.py,.bat,.cmd
+    allowed_artifact_extensions = .zip,.tar,.gz,.jar,.war,.exe,.msi
+    calculate_checksum = true
+
+    [claude_ai]
+    api_url = https://api.anthropic.com/v1/messages
+    api_key = YOUR_ANTHROPIC_API_KEY
+    model = claude-3-5-sonnet-20241022
+    max_tokens = 4096
+    temperature = 0
+---
+# Shared storage for scripts / artifacts / rollback / uploads.
+# ReadWriteOnce works with a single API replica. To run multiple API replicas,
+# use a ReadWriteMany class (NFS / EFS / Azure Files / CephFS).
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: cygnetci-shared
+  namespace: cygnetci
+spec:
+  accessModes: ["ReadWriteOnce"]
+  # storageClassName: standard
+  resources:
+    requests:
+      storage: 10Gi
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: cygnetci-api
+  namespace: cygnetci
+spec:
+  replicas: 1
+  selector:
+    matchLabels: { app: cygnetci-api }
+  template:
+    metadata:
+      labels: { app: cygnetci-api }
+    spec:
+      containers:
+        - name: api
+          image: REGISTRY/cygnetci-api:latest   # <-- your image
+          ports:
+            - containerPort: 8000
+          env:
+            - name: EMAIL_ENCRYPTION_KEY
+              valueFrom:
+                secretKeyRef: { name: cygnetci-api-secrets, key: EMAIL_ENCRYPTION_KEY }
+          volumeMounts:
+            - name: config
+              mountPath: /app/config.ini
+              subPath: config.ini
+              readOnly: true
+            - name: shared
+              mountPath: /data/nfsshared
+          readinessProbe:
+            httpGet: { path: /monitoring/api/ping, port: 8000 }
+            initialDelaySeconds: 15
+            periodSeconds: 10
+          livenessProbe:
+            httpGet: { path: /monitoring/api/ping, port: 8000 }
+            initialDelaySeconds: 30
+            periodSeconds: 20
+      volumes:
+        - name: config
+          secret:
+            secretName: cygnetci-api-config
+        - name: shared
+          persistentVolumeClaim:
+            claimName: cygnetci-shared
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: cygnetci-api-secrets
+  namespace: cygnetci
+type: Opaque
+stringData:
+  # 32-byte key for email credential encryption. Generate a strong random value.
+  EMAIL_ENCRYPTION_KEY: change-me-to-a-32-byte-random-string
+  # Initial admin password used by the seed Job (03-seed-job.yaml).
+  ADMIN_PASSWORD: change-me-strong-admin-pass
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: cygnetci-api
+  namespace: cygnetci
+spec:
+  selector: { app: cygnetci-api }
+  ports:
+    - port: 8000
+      targetPort: 8000

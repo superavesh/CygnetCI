@@ -1,0 +1,33 @@
+# One-time Job to seed a FRESH database (roles, default customer, environments, admin user).
+# Idempotent — safe to re-run. Delete and re-apply to run again.
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: cygnetci-seed
+  namespace: cygnetci
+spec:
+  backoffLimit: 3
+  template:
+    spec:
+      restartPolicy: OnFailure
+      containers:
+        - name: seed
+          image: REGISTRY/cygnetci-api:latest   # same image as the API
+          command: ["python", "seed_fresh_db.py"]
+          env:
+            - name: ADMIN_USERNAME
+              value: admin
+            - name: ADMIN_EMAIL
+              value: admin@cygnetci.local
+            - name: ADMIN_PASSWORD
+              valueFrom:
+                secretKeyRef: { name: cygnetci-api-secrets, key: ADMIN_PASSWORD }
+          volumeMounts:
+            - name: config
+              mountPath: /app/config.ini
+              subPath: config.ini
+              readOnly: true
+      volumes:
+        - name: config
+          secret:
+            secretName: cygnetci-api-config

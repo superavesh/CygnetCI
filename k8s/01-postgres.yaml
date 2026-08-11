@@ -1,0 +1,67 @@
+# Fresh PostgreSQL 15 database for CygnetCI.
+# For production, a managed database (RDS/Cloud SQL/Azure DB) is recommended instead.
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: cygnetci-db
+  namespace: cygnetci
+type: Opaque
+stringData:
+  POSTGRES_DB: CygnetCI
+  POSTGRES_USER: cygnetci
+  # CHANGE THIS. Keep it alphanumeric/underscore to avoid config.ini/URL escaping issues.
+  POSTGRES_PASSWORD: Cygnet_K8s_2026
+---
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: cygnetci-postgres
+  namespace: cygnetci
+spec:
+  serviceName: cygnetci-postgres
+  replicas: 1
+  selector:
+    matchLabels: { app: cygnetci-postgres }
+  template:
+    metadata:
+      labels: { app: cygnetci-postgres }
+    spec:
+      containers:
+        - name: postgres
+          image: postgres:15
+          ports:
+            - containerPort: 5432
+          envFrom:
+            - secretRef: { name: cygnetci-db }
+          env:
+            - name: PGDATA
+              value: /var/lib/postgresql/data/pgdata
+          volumeMounts:
+            - name: pgdata
+              mountPath: /var/lib/postgresql/data
+          readinessProbe:
+            exec: { command: ["pg_isready", "-U", "cygnetci", "-d", "CygnetCI"] }
+            initialDelaySeconds: 10
+            periodSeconds: 5
+  volumeClaimTemplates:
+    - metadata:
+        name: pgdata
+      spec:
+        accessModes: ["ReadWriteOnce"]
+        # storageClassName: standard   # set to your cluster's storage class
+        resources:
+          requests:
+            storage: 20Gi
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: cygnetci-postgres
+  namespace: cygnetci
+spec:
+  selector: { app: cygnetci-postgres }
+  ports:
+    - port: 5432
+      targetPort: 5432
+  clusterIP: None

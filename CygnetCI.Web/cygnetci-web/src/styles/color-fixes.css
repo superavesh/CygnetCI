@@ -12,10 +12,12 @@ h3.text-white:not(.modal-header *):not(button *) {
 }
 
 /* Fix all body text that is white (should be gray-900) */
-/* Exception: User avatar initials should stay white */
-div.text-white:not(.modal-header *):not(button *):not(.badge),
-p.text-white:not(button *):not(.badge),
-span.text-white:not(button *):not(.badge):not([class*="rounded-full"] *) {
+/* Exceptions: white text on a colored background (any bg-* class, including gradients)
+   is intentional and must stay white — e.g. status badges, avatar initials, icon tiles.
+   Only "naked" white text (no background) is the actual bug this rule targets. */
+div.text-white:not(.modal-header *):not(button *):not(.badge):not([class*="bg-"]),
+p.text-white:not(button *):not(.badge):not([class*="bg-"]),
+span.text-white:not(button *):not(.badge):not([class*="rounded-full"] *):not([class*="bg-"]) {
   color: #111827 !important; /* gray-900 */
 }
 
@@ -119,8 +121,10 @@ button.hover\:text-\[blue-600\]:hover {
   color: #6b7280 !important; /* gray for download */
 }
 
-/* Icons inside buttons should inherit the button's text color */
-button .lucide {
+/* Icons inside buttons should inherit the button's text color —
+   except icons sitting on their own colored/gradient background (e.g. the
+   Ask Cygie sparkle on its gradient circle), which keep their own color. */
+button .lucide:not([class*="bg-"] *) {
   color: currentColor !important;
 }
 

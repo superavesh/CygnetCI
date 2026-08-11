@@ -1,0 +1,37 @@
+# Ingress exposes the web UI and the API on public hostnames.
+# Requires an ingress controller (e.g. ingress-nginx) and, ideally, cert-manager for TLS.
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: cygnetci
+  namespace: cygnetci
+  annotations:
+    # Agents can upload large artifacts — raise the body-size limit.
+    nginx.ingress.kubernetes.io/proxy-body-size: "5000m"
+    # cert-manager.io/cluster-issuer: letsencrypt-prod   # uncomment if using cert-manager
+spec:
+  ingressClassName: nginx
+  tls:
+    - hosts:
+        - cygnetci.example.com
+        - api.cygnetci.example.com
+      secretName: cygnetci-tls
+  rules:
+    - host: cygnetci.example.com          # Web UI
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: cygnetci-web
+                port: { number: 80 }
+    - host: api.cygnetci.example.com      # FastAPI
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: cygnetci-api
+                port: { number: 8000 }

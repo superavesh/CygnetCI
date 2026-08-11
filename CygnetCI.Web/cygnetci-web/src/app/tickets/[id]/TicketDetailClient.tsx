@@ -12,7 +12,7 @@ import {
   Edit2, Trash2, Download, Send, Sparkles, Bold, Italic, Code,
   List, ListOrdered, Heading2, Underline, Link as LinkIcon,
   Loader2, Upload, AlertCircle, CheckCircle,
-  XCircle, User, MoreHorizontal, ChevronRight, ChevronDown,
+  XCircle, User, MoreHorizontal, ChevronRight, ChevronDown, Reply,
   Building2, GitBranch, Rocket, Server, FileText, Image as ImageIcon,
 } from 'lucide-react';
 
@@ -275,7 +275,21 @@ function SidebarField({
 // ─── Main Client Component ───────────────────────────────────────────────────
 
 export default function TicketDetailClient({ ticketId, onBack }: { ticketId: string; onBack?: () => void }) {
-  const id = parseInt(ticketId, 10);
+  // The ticket id. On a direct deep-link (e.g. /tickets/76/) the static export serves the
+  // pre-built shell whose baked param is "0", so derive the real id from the URL on the client.
+  const [id, setId] = useState<number>(() => {
+    if (typeof window !== 'undefined') {
+      const m = window.location.pathname.match(/\/tickets\/(\d+)/);
+      if (m) { const u = parseInt(m[1], 10); if (!Number.isNaN(u)) return u; }
+    }
+    return parseInt(ticketId, 10);
+  });
+  // Keep in sync when navigated in-app (prop changes to a real, non-shell id).
+  useEffect(() => {
+    const p = parseInt(ticketId, 10);
+    if (!Number.isNaN(p) && p !== 0 && p !== id) setId(p);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [ticketId]);
 
   const [ticket, setTicket] = useState<Ticket | null>(null);
   const [comments, setComments] = useState<Comment[]>([]);
@@ -303,6 +317,9 @@ export default function TicketDetailClient({ ticketId, onBack }: { ticketId: str
   const [editingDesc, setEditingDesc] = useState(false);
   const [editingCommentId, setEditingCommentId] = useState<number | null>(null);
   const [commentFocused, setCommentFocused] = useState(false);
+  const [copiedCommentId, setCopiedCommentId] = useState<number | null>(null);
+  const [highlightCommentId, setHighlightCommentId] = useState<number | null>(null);
+  const commentBoxRef = useRef<HTMLDivElement>(null);
   const [activeTab, setActiveTab] = useState<'comments' | 'history' | 'approvals'>('comments');
 
   // AI chat
@@ -457,6 +474,49 @@ export default function TicketDetailClient({ ticketId, onBack }: { ticketId: str
     await fetch(`${API()}/ticket-comments/${commentId}`, { method: 'DELETE' });
     setComments(prev => prev.filter(c => c.id !== commentId));
   };
+
+  // Reply: open the comment editor pre-filled with a quote of the original.
+  const replyToComment = (c: Comment) => {
+    if (!commentEditor) return;
+    const who = (c.created_by_name || 'Unknown').replace(/</g, '&lt;');
+    setActiveTab('comments');
+    setCommentFocused(true);
+    commentEditor.commands.setContent(
+      `<blockquote><p><strong>${who}</strong> wrote:</p>${c.body}</blockquote><p></p>`
+    );
+    commentEditor.commands.focus('end');
+    setTimeout(() => commentBoxRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' }), 50);
+  };
+
+  // Copy a permalink to a specific comment.
+  const copyCommentLink = async (commentId: number) => {
+    const url = `${window.location.origin}/tickets/${id}/#comment-${commentId}`;
+    try {
+      await navigator.clipboard.writeText(url);
+    } catch {
+      // Fallback for browsers without clipboard API
+      const ta = document.createElement('textarea');
+      ta.value = url; document.body.appendChild(ta); ta.select();
+      document.execCommand('copy'); document.body.removeChild(ta);
+    }
+    setCopiedCommentId(commentId);
+    setTimeout(() => setCopiedCommentId(prev => (prev === commentId ? null : prev)), 1500);
+  };
+
+  // On load (and when comments arrive), scroll to and highlight a linked comment (#comment-N).
+  useEffect(() => {
+    if (typeof window === 'undefined' || comments.length === 0) return;
+    const hash = window.location.hash;
+    const m = hash.match(/^#comment-(\d+)$/);
+    if (!m) return;
+    const cid = parseInt(m[1], 10);
+    const el = document.getElementById(`comment-${cid}`);
+    if (el) {
+      el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      setHighlightCommentId(cid);
+      setTimeout(() => setHighlightCommentId(prev => (prev === cid ? null : prev)), 2500);
+    }
+  }, [comments]);
 
   // ── Approvals ───────────────────────────────────────────────────────────────
 
@@ -619,18 +679,18 @@ export default function TicketDetailClient({ ticketId, onBack }: { ticketId: str
           onClick={() => setShowAI(s => !s)}
           className={`group flex items-center gap-2 pl-1.5 pr-3.5 py-1.5 rounded-full text-sm font-medium transition-all ${
             showAI
-              ? 'bg-gradient-to-r from-blue-50 via-violet-50 to-pink-50 text-violet-700 ring-1 ring-violet-200 shadow-sm'
-              : 'bg-white border border-gray-300 text-gray-700 hover:border-violet-300 hover:shadow-sm'
+              ? 'bg-gradient-to-r from-blue-50 to-indigo-50 text-blue-700 ring-1 ring-blue-200 shadow-sm'
+              : 'bg-white border border-gray-300 text-gray-700 hover:border-blue-300 hover:shadow-sm'
           }`}
         >
-          <span className="flex items-center justify-center h-6 w-6 rounded-full bg-gradient-to-br from-blue-500 via-violet-500 to-pink-500 shadow-sm group-hover:scale-105 transition-transform">
+          <span className="flex items-center justify-center h-6 w-6 rounded-full bg-gradient-to-br from-blue-500 to-indigo-600 shadow-sm group-hover:scale-105 transition-transform">
             <Sparkles size={14} className="text-white" />
           </span>
           Ask Cygie
         </button>
       </div>
 
-      <div className="max-w-screen-xl mx-auto px-6 pt-6 pb-12 flex gap-8 items-start">
+      <div className="max-w-full px-6 pt-6 pb-12 flex gap-8 items-start">
 
         {/* ── Left: main content ──────────────────────────────────────────────── */}
         <div className="flex-1 min-w-0">
@@ -763,8 +823,8 @@ export default function TicketDetailClient({ ticketId, onBack }: { ticketId: str
             {activeTab === 'comments' && (
               <div>
                 {/* Jira-style comment input */}
-                <div className="flex gap-3 items-start mb-6">
-                  <div className="w-8 h-8 rounded-full bg-gradient-to-br from-blue-400 to-purple-500 flex items-center justify-center text-white text-xs font-bold flex-shrink-0 uppercase">
+                <div ref={commentBoxRef} className="flex gap-3 items-start mb-6">
+                  <div className="w-8 h-8 rounded-full bg-gradient-to-br from-blue-400 to-indigo-500 flex items-center justify-center text-white text-xs font-bold flex-shrink-0 uppercase">
                     {av(currentUserName)}
                   </div>
                   <div className="flex-1">
@@ -798,8 +858,16 @@ export default function TicketDetailClient({ ticketId, onBack }: { ticketId: str
                   <p className="text-sm text-gray-400 italic pl-11">No comments yet. Be the first to comment.</p>
                 )}
                 <div className="space-y-5">
-                  {comments.map(c => (
-                    <div key={c.id} className="flex gap-3 group">
+                  {[...comments]
+                    .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
+                    .map(c => (
+                    <div
+                      key={c.id}
+                      id={`comment-${c.id}`}
+                      className={`flex gap-3 group scroll-mt-20 rounded-lg transition-colors ${
+                        highlightCommentId === c.id ? 'ring-2 ring-blue-300 bg-blue-50/50 -m-1 p-1' : ''
+                      }`}
+                    >
                       <div className="w-8 h-8 rounded-full bg-gradient-to-br from-gray-300 to-gray-400 flex items-center justify-center text-white text-xs font-bold flex-shrink-0 uppercase">
                         {av(c.created_by_name)}
                       </div>
@@ -810,10 +878,16 @@ export default function TicketDetailClient({ ticketId, onBack }: { ticketId: str
                           {c.edited_at && <span className="text-xs text-gray-400 italic">· edited</span>}
                           <div className="flex-1" />
                           <div className="opacity-0 group-hover:opacity-100 flex gap-0.5 transition-opacity">
-                            <button onClick={() => startEditComment(c)} className="p-1 text-gray-400 hover:text-blue-600 rounded hover:bg-blue-50 transition-colors">
+                            <button onClick={() => replyToComment(c)} title="Reply" className="p-1 text-gray-400 hover:text-blue-600 rounded hover:bg-blue-50 transition-colors">
+                              <Reply size={13} />
+                            </button>
+                            <button onClick={() => copyCommentLink(c.id)} title="Copy link" className="p-1 text-gray-400 hover:text-blue-600 rounded hover:bg-blue-50 transition-colors">
+                              {copiedCommentId === c.id ? <Check size={13} className="text-green-600" /> : <LinkIcon size={13} />}
+                            </button>
+                            <button onClick={() => startEditComment(c)} title="Edit" className="p-1 text-gray-400 hover:text-blue-600 rounded hover:bg-blue-50 transition-colors">
                               <Edit2 size={13} />
                             </button>
-                            <button onClick={() => deleteComment(c.id)} className="p-1 text-gray-400 hover:text-red-500 rounded hover:bg-red-50 transition-colors">
+                            <button onClick={() => deleteComment(c.id)} title="Delete" className="p-1 text-gray-400 hover:text-red-500 rounded hover:bg-red-50 transition-colors">
                               <Trash2 size={13} />
                             </button>
                           </div>
@@ -971,7 +1045,7 @@ export default function TicketDetailClient({ ticketId, onBack }: { ticketId: str
               onSave={v => patchTicket({ assigned_to: v ? parseInt(v) : null })}
               renderValue={() => ticket.assigned_to_name ? (
                 <div className="flex items-center gap-2">
-                  <span className="h-6 w-6 rounded-full bg-gradient-to-br from-blue-400 to-purple-500 flex items-center justify-center text-white text-[10px] font-bold flex-shrink-0">
+                  <span className="h-6 w-6 rounded-full bg-gradient-to-br from-blue-400 to-indigo-500 flex items-center justify-center text-white text-[10px] font-bold flex-shrink-0">
                     {av(ticket.assigned_to_name)}
                   </span>
                   <span className="text-sm text-gray-800">{ticket.assigned_to_name}</span>
@@ -1125,32 +1199,32 @@ export default function TicketDetailClient({ ticketId, onBack }: { ticketId: str
           <div className="fixed inset-0 z-30 bg-gray-900/10 backdrop-blur-[1px]" onClick={() => setShowAI(false)} />
 
           <div className="fixed right-4 top-4 bottom-4 w-[396px] bg-white rounded-2xl shadow-2xl ring-1 ring-black/5 flex flex-col z-40 overflow-hidden animate-slide-in">
-            {/* Branded header */}
-            <div className="px-4 py-3.5 bg-gradient-to-r from-blue-600 via-violet-600 to-fuchsia-600 text-white flex items-center justify-between">
+            {/* Clean header */}
+            <div className="px-4 py-3 border-b border-gray-100 flex items-center justify-between">
               <div className="flex items-center gap-2.5">
-                <div className="flex items-center justify-center h-9 w-9 rounded-full bg-white/20 backdrop-blur-sm ring-1 ring-white/30">
+                <div className="flex items-center justify-center h-9 w-9 rounded-full bg-gradient-to-br from-blue-600 to-indigo-600 shadow-sm">
                   <Sparkles size={18} className="text-white" />
                 </div>
                 <div>
-                  <div className="text-sm font-semibold tracking-tight">Cygie</div>
-                  <div className="text-[11px] text-white/80">Ask about this ticket</div>
+                  <div className="text-sm font-semibold text-gray-900 tracking-tight">Cygie</div>
+                  <div className="text-[11px] text-gray-500">Ask about this ticket</div>
                 </div>
               </div>
               <div className="flex items-center gap-0.5">
-                <button onClick={() => setChatMsgs([])} className="text-white/80 hover:text-white hover:bg-white/15 p-1.5 rounded-lg transition-colors" title="Clear">
+                <button onClick={() => setChatMsgs([])} className="text-gray-400 hover:text-gray-700 hover:bg-gray-100 p-1.5 rounded-lg transition-colors" title="Clear">
                   <MoreHorizontal size={15} />
                 </button>
-                <button onClick={() => setShowAI(false)} className="text-white/80 hover:text-white hover:bg-white/15 p-1.5 rounded-lg transition-colors">
+                <button onClick={() => setShowAI(false)} className="text-gray-400 hover:text-gray-700 hover:bg-gray-100 p-1.5 rounded-lg transition-colors">
                   <X size={15} />
                 </button>
               </div>
             </div>
 
-            <div className="flex-1 overflow-y-auto px-4 py-4 space-y-4 bg-gradient-to-b from-violet-50/40 to-white">
+            <div className="flex-1 overflow-y-auto px-4 py-4 space-y-4 bg-gradient-to-b from-blue-50/40 to-white">
               {chatMsgs.length === 0 && (
                 <div className="mt-2">
                   <div className="flex flex-col items-center text-center mb-5">
-                    <div className="flex items-center justify-center h-12 w-12 rounded-2xl bg-gradient-to-br from-blue-500 via-violet-500 to-fuchsia-500 shadow-lg mb-3">
+                    <div className="flex items-center justify-center h-12 w-12 rounded-2xl bg-gradient-to-br from-blue-500 to-indigo-600 shadow-lg mb-3">
                       <Sparkles size={24} className="text-white" />
                     </div>
                     <p className="text-sm font-semibold text-gray-800">Hi, I&apos;m Cygie 👋</p>
@@ -1159,8 +1233,8 @@ export default function TicketDetailClient({ ticketId, onBack }: { ticketId: str
                   <div className="space-y-2">
                     {['Summarize this ticket', 'What might be the root cause?', 'Suggest resolution steps'].map(s => (
                       <button key={s} onClick={() => setChatInput(s)}
-                        className="group flex items-center gap-2.5 w-full text-left text-xs px-3 py-2.5 rounded-xl border border-gray-200 bg-white hover:border-violet-300 hover:bg-violet-50/60 hover:shadow-sm text-gray-600 hover:text-violet-700 transition-all">
-                        <span className="flex items-center justify-center h-6 w-6 rounded-lg bg-violet-50 text-violet-500 group-hover:bg-violet-100 transition-colors flex-shrink-0">
+                        className="group flex items-center gap-2.5 w-full text-left text-xs px-3 py-2.5 rounded-xl border border-gray-200 bg-white hover:border-blue-300 hover:bg-blue-50/60 hover:shadow-sm text-gray-600 hover:text-blue-700 transition-all">
+                        <span className="flex items-center justify-center h-6 w-6 rounded-lg bg-blue-50 text-blue-500 group-hover:bg-blue-100 transition-colors flex-shrink-0">
                           <Sparkles size={13} />
                         </span>
                         {s}
@@ -1172,14 +1246,14 @@ export default function TicketDetailClient({ ticketId, onBack }: { ticketId: str
               {chatMsgs.map((m, i) => (
                 <div key={i} className={`flex gap-2 ${m.role === 'user' ? 'justify-end' : 'justify-start'}`}>
                   {m.role === 'assistant' && (
-                    <div className="flex items-center justify-center h-7 w-7 rounded-full bg-gradient-to-br from-blue-500 via-violet-500 to-fuchsia-500 flex-shrink-0 mt-0.5">
+                    <div className="flex items-center justify-center h-7 w-7 rounded-full bg-gradient-to-br from-blue-500 to-indigo-600 flex-shrink-0 mt-0.5">
                       <Sparkles size={14} className="text-white" />
                     </div>
                   )}
-                  <div className={`max-w-[82%] rounded-2xl px-3.5 py-2 text-sm shadow-sm ${m.role === 'user' ? 'bg-gradient-to-br from-blue-600 to-violet-600 text-white rounded-br-md' : 'bg-white border border-gray-200 text-gray-700 rounded-bl-md'}`}>
+                  <div className={`max-w-[82%] rounded-2xl px-3.5 py-2 text-sm shadow-sm ${m.role === 'user' ? 'bg-blue-600 rounded-br-md' : 'bg-white border border-gray-200 rounded-bl-md'}`}>
                     {m.role === 'assistant' && !m.content && chatLoading
-                      ? <Loader2 size={14} className="animate-spin text-violet-400" />
-                      : <div className="whitespace-pre-wrap leading-relaxed">{m.content}</div>}
+                      ? <Loader2 size={14} className="animate-spin text-blue-400" />
+                      : <div className={`whitespace-pre-wrap leading-relaxed ${m.role === 'user' ? 'text-white' : 'text-gray-700'}`}>{m.content}</div>}
                   </div>
                 </div>
               ))}
@@ -1187,17 +1261,17 @@ export default function TicketDetailClient({ ticketId, onBack }: { ticketId: str
             </div>
 
             <div className="p-3 border-t border-gray-100 bg-white">
-              <div className="flex items-center gap-2 rounded-2xl border border-gray-200 bg-gray-50 focus-within:border-violet-400 focus-within:bg-white focus-within:ring-2 focus-within:ring-violet-100 transition-all px-2 py-1.5">
+              <div className="flex items-center gap-2 rounded-2xl border border-gray-300 bg-white focus-within:border-blue-500 transition-colors px-2 py-1.5">
                 <input
                   type="text"
                   value={chatInput}
                   onChange={e => setChatInput(e.target.value)}
                   onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendAIMessage(); } }}
                   placeholder="Ask Cygie about this ticket…"
-                  className="flex-1 text-sm bg-transparent px-1.5 py-1 text-gray-700 focus:outline-none"
+                  className="flex-1 text-sm bg-transparent px-1.5 py-1 text-gray-700 focus:outline-none focus:ring-0 border-0"
                 />
                 <button onClick={sendAIMessage} disabled={chatLoading || !chatInput.trim()}
-                  className="flex items-center justify-center h-8 w-8 rounded-full bg-gradient-to-br from-blue-600 via-violet-600 to-fuchsia-600 text-white hover:shadow-md disabled:opacity-30 disabled:cursor-not-allowed transition-all flex-shrink-0">
+                  className="flex items-center justify-center h-8 w-8 rounded-full bg-gradient-to-br from-blue-600 to-indigo-600 text-white hover:shadow-md disabled:opacity-30 disabled:cursor-not-allowed transition-all flex-shrink-0">
                   <Send size={14} />
                 </button>
               </div>

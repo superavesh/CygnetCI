@@ -1,0 +1,27 @@
+# =====================================================================
+# WINDOWS CONTAINER image built from the embedded-Python dist/ folder.
+#
+# Use this ONLY if your Kubernetes cluster has WINDOWS worker nodes.
+# The embedded runtime under dist/python (python.exe, *.pyd, *.dll,
+# psycopg2) is compiled for Windows and CANNOT run in a Linux container.
+#
+# For a Linux cluster, use ./Dockerfile instead (python:3.11-slim + pip),
+# which does NOT use the embedded folder.
+#
+# Build (from the CygnetCI.Api directory, on a Windows Docker host):
+#   docker build -f Dockerfile.windows -t REGISTRY/cygnetci-api-win:latest .
+# =====================================================================
+FROM mcr.microsoft.com/windows/servercore:ltsc2022
+
+WORKDIR C:\\app
+
+# Copy the already-built, self-contained app (embedded python + code + deps)
+COPY dist/ ./
+
+# config.ini is provided at runtime (mount a Secret over C:\app\config.ini).
+# A config.ini baked into dist/ will be overridden by that mount.
+
+EXPOSE 8000
+
+# Run uvicorn via the embedded interpreter, binding to all interfaces.
+CMD ["python\\python.exe", "-m", "uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000"]

@@ -1,0 +1,23 @@
+[Unit]
+Description=CygnetCI FastAPI (embedded Python bundle)
+After=network.target postgresql.service
+Wants=postgresql.service
+
+[Service]
+Type=simple
+User=cygnetci
+Group=cygnetci
+WorkingDirectory=/opt/cygnetci/api
+# The embedded, relocatable Python runs uvicorn. Bind to localhost — nginx proxies it.
+ExecStart=/opt/cygnetci/api/python/bin/python -m uvicorn main:app --host 127.0.0.1 --port 8000 --workers 2
+# Set a strong 32-byte key for email credential encryption.
+Environment=EMAIL_ENCRYPTION_KEY=change-me-to-a-32-byte-random-string
+Restart=on-failure
+RestartSec=5
+# light hardening
+NoNewPrivileges=true
+ProtectSystem=full
+PrivateTmp=true
+
+[Install]
+WantedBy=multi-user.target

@@ -2,9 +2,20 @@
 'use client';
 
 import React, { useState, useEffect, useCallback } from 'react';
-import { Users, Plus, Search, Edit2, Trash2, Shield, Mail, Key, UserCheck, UserX, Lock, FileText, Clock, AlertCircle, CheckCircle, X, RefreshCw } from 'lucide-react';
+import { Users, Plus, Search, Edit2, Trash2, Shield, Mail, Key, UserCheck, UserX, Lock, FileText, Clock, AlertCircle, CheckCircle, X, RefreshCw, UserCog, Building2 } from 'lucide-react';
 import { CONFIG } from '@/lib/config';
 import { useCustomer } from '@/lib/contexts/CustomerContext';
+
+interface UserRoleRef {
+  id: number;
+  name: string;
+}
+
+interface UserCustomerRef {
+  id: number;
+  name: string;
+  display_name: string;
+}
 
 interface User {
   id: number;
@@ -14,9 +25,20 @@ interface User {
   is_active: boolean;
   is_superuser: boolean;
   role_id?: number;
+  roles?: UserRoleRef[];
+  role_ids?: number[];
+  customers?: UserCustomerRef[];
+  customer_ids?: number[];
   created_at: string;
   updated_at: string;
   last_login?: string;
+}
+
+interface CustomerRef {
+  id: number;
+  name: string;
+  display_name: string;
+  is_active: boolean;
 }
 
 interface Role {
@@ -80,6 +102,13 @@ export default function UsersPage() {
     newPassword: '',
     confirmPassword: ''
   });
+
+  // Manage Access (roles + customers) state
+  const [showAccessModal, setShowAccessModal] = useState(false);
+  const [accessUser, setAccessUser] = useState<User | null>(null);
+  const [availableCustomers, setAvailableCustomers] = useState<CustomerRef[]>([]);
+  const [selectedRoleIds, setSelectedRoleIds] = useState<number[]>([]);
+  const [selectedCustomerIds, setSelectedCustomerIds] = useState<number[]>([]);
 
   // Roles state
   const [roles, setRoles] = useState<Role[]>([]);
@@ -167,11 +196,24 @@ export default function UsersPage() {
     }
   }, []);
 
+  const fetchCustomers = useCallback(async () => {
+    try {
+      const response = await fetch(`${CONFIG.api.baseUrl}/customers/?active_only=true`);
+      if (response.ok) {
+        const data = await response.json();
+        setAvailableCustomers(data);
+      }
+    } catch (error) {
+      console.error('Error fetching customers:', error);
+    }
+  }, []);
+
   useEffect(() => {
     fetchUsers();
     fetchRoles();
     fetchAuditLogs();
-  }, [fetchUsers, fetchRoles, fetchAuditLogs]);
+    fetchCustomers();
+  }, [fetchUsers, fetchRoles, fetchAuditLogs, fetchCustomers]);
 
   const handleCreate = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -302,6 +344,52 @@ export default function UsersPage() {
     }
   };
 
+  const openAccessModal = (user: User) => {
+    setAccessUser(user);
+    setSelectedRoleIds(user.role_ids ?? (user.roles ?? []).map(r => r.id));
+    setSelectedCustomerIds(user.customer_ids ?? (user.customers ?? []).map(c => c.id));
+    setShowAccessModal(true);
+  };
+
+  const toggleRoleId = (roleId: number) => {
+    setSelectedRoleIds(prev =>
+      prev.includes(roleId) ? prev.filter(id => id !== roleId) : [...prev, roleId]
+    );
+  };
+
+  const toggleCustomerId = (customerId: number) => {
+    setSelectedCustomerIds(prev =>
+      prev.includes(customerId) ? prev.filter(id => id !== customerId) : [...prev, customerId]
+    );
+  };
+
+  const handleSaveAccess = async () => {
+    if (!accessUser) return;
+    setActionLoading(true);
+    try {
+      const response = await fetch(`${CONFIG.api.baseUrl}/users/${accessUser.id}/access`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ role_ids: selectedRoleIds, customer_ids: selectedCustomerIds })
+      });
+
+      if (!response.ok) {
+        const error = await response.json().catch(() => ({}));
+        throw new Error(error.detail || 'Failed to update access');
+      }
+
+      await fetchUsers();
+      setShowAccessModal(false);
+      setAccessUser(null);
+      showNotification('success', `Access updated for "${accessUser.username}"`);
+    } catch (error: any) {
+      console.error('Error updating access:', error);
+      showNotification('error', error.message || 'Failed to update access');
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
   const handleDelete = async (userId: number, username: string) => {
     if (!confirm(`Are you sure you want to delete user "${username}"? This action cannot be undone.`)) return;
 
@@ -410,11 +498,6 @@ export default function UsersPage() {
       (user.username?.toLowerCase().includes(query))
     );
   });
-
-  const getRoleDisplay = (user: User) => {
-    if (user.is_superuser) return { text: 'Superuser', color: 'bg-purple-600 text-white border border-purple-300' };
-    return { text: 'User', color: 'bg-blue-600 text-white border border-blue-300' };
-  };
 
   const getStatusDisplay = (isActive: boolean) => {
     return isActive
@@ -641,7 +724,6 @@ export default function UsersPage() {
               </thead>
               <tbody className="bg-white divide-y divide-gray-200">
                 {filteredUsers.map(user => {
-                  const role = getRoleDisplay(user);
                   const status = getStatusDisplay(user.is_active);
 
                   return (
@@ -663,11 +745,35 @@ export default function UsersPage() {
                           </div>
                         </div>
                       </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <span className={`px-3 py-1 rounded-full text-xs font-medium flex items-center space-x-1 w-fit ${role.color}`}>
-                          {user.is_superuser && <Shield className="h-3 w-3" />}
-                          <span>{role.text}</span>
-                        </span>
+                      <td className="px-6 py-4">
+                        <div className="flex flex-col gap-1.5">
+                          <div className="flex flex-wrap gap-1 items-center">
+                            {user.is_superuser && (
+                              <span className="px-2.5 py-1 rounded-full text-xs font-medium flex items-center gap-1 w-fit bg-purple-600 text-white border border-purple-300">
+                                <Shield className="h-3 w-3" />
+                                <span>Superuser</span>
+                              </span>
+                            )}
+                            {(user.roles ?? []).map(r => (
+                              <span key={r.id} className="px-2.5 py-1 rounded-full text-xs font-medium w-fit bg-blue-600 text-white border border-blue-300">
+                                {r.name}
+                              </span>
+                            ))}
+                            {!user.is_superuser && (user.roles ?? []).length === 0 && (
+                              <span className="px-2.5 py-1 rounded-full text-xs font-medium w-fit bg-gray-200 text-gray-600">
+                                No role
+                              </span>
+                            )}
+                          </div>
+                          <div className="flex items-center gap-1 text-xs text-gray-500">
+                            <Building2 className="h-3 w-3" />
+                            <span>
+                              {(user.customers ?? []).length > 0
+                                ? `${(user.customers ?? []).length} customer${(user.customers ?? []).length > 1 ? 's' : ''}`
+                                : 'No customer access'}
+                            </span>
+                          </div>
+                        </div>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
                         <span className={`px-3 py-1 rounded-full text-xs font-medium flex items-center space-x-1 w-fit ${status.color}`}>
@@ -713,6 +819,14 @@ export default function UsersPage() {
                             disabled={actionLoading}
                           >
                             {user.is_active ? <UserX className="h-4 w-4" /> : <UserCheck className="h-4 w-4" />}
+                          </button>
+                          <button
+                            onClick={() => openAccessModal(user)}
+                            className="p-1.5 text-indigo-600 hover:text-indigo-700 hover:bg-indigo-50 rounded transition-colors"
+                            title="Manage Access (roles & customers)"
+                            disabled={actionLoading}
+                          >
+                            <UserCog className="h-4 w-4" />
                           </button>
                           <button
                             onClick={() => handleUpdate(user.id, { is_superuser: !user.is_superuser })}
@@ -1612,6 +1726,108 @@ export default function UsersPage() {
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* Manage Access Modal (roles + customers) */}
+      {showAccessModal && accessUser && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+            <div className="bg-gradient-to-br from-indigo-500 to-indigo-600 px-6 py-4 rounded-t-xl sticky top-0 z-10">
+              <h3 className="text-xl font-bold text-white flex items-center gap-2">
+                <UserCog className="h-5 w-5" /> Manage Access
+              </h3>
+              <p className="text-indigo-100 text-sm mt-1">
+                Assign roles and customer access for <span className="font-semibold">{accessUser.full_name || accessUser.username}</span>
+              </p>
+            </div>
+
+            <div className="p-6 space-y-6">
+              {/* Roles */}
+              <div>
+                <div className="flex items-center justify-between mb-2">
+                  <label className="text-sm font-semibold text-gray-800 flex items-center gap-1.5">
+                    <Shield className="h-4 w-4 text-blue-600" /> Roles
+                    <span className="text-xs font-normal text-gray-500">({selectedRoleIds.length} selected)</span>
+                  </label>
+                </div>
+                {roles.length === 0 ? (
+                  <p className="text-sm text-gray-500 border border-dashed border-gray-300 rounded-lg p-4 text-center">
+                    No roles defined yet. Create roles in the Roles tab first.
+                  </p>
+                ) : (
+                  <div className="border border-gray-200 rounded-lg divide-y divide-gray-100 max-h-52 overflow-y-auto">
+                    {roles.map(r => (
+                      <label key={r.id} className="flex items-start gap-3 px-4 py-2.5 hover:bg-gray-50 cursor-pointer">
+                        <input
+                          type="checkbox"
+                          checked={selectedRoleIds.includes(r.id)}
+                          onChange={() => toggleRoleId(r.id)}
+                          className="mt-0.5 h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+                        />
+                        <span className="flex-1">
+                          <span className="block text-sm font-medium text-gray-900">{r.name}</span>
+                          {r.description && <span className="block text-xs text-gray-500">{r.description}</span>}
+                        </span>
+                      </label>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              {/* Customers */}
+              <div>
+                <div className="flex items-center justify-between mb-2">
+                  <label className="text-sm font-semibold text-gray-800 flex items-center gap-1.5">
+                    <Building2 className="h-4 w-4 text-emerald-600" /> Customer Access
+                    <span className="text-xs font-normal text-gray-500">({selectedCustomerIds.length} selected)</span>
+                  </label>
+                </div>
+                {availableCustomers.length === 0 ? (
+                  <p className="text-sm text-gray-500 border border-dashed border-gray-300 rounded-lg p-4 text-center">
+                    No active customers available.
+                  </p>
+                ) : (
+                  <div className="border border-gray-200 rounded-lg divide-y divide-gray-100 max-h-52 overflow-y-auto">
+                    {availableCustomers.map(c => (
+                      <label key={c.id} className="flex items-center gap-3 px-4 py-2.5 hover:bg-gray-50 cursor-pointer">
+                        <input
+                          type="checkbox"
+                          checked={selectedCustomerIds.includes(c.id)}
+                          onChange={() => toggleCustomerId(c.id)}
+                          className="h-4 w-4 text-emerald-600 focus:ring-emerald-500 border-gray-300 rounded"
+                        />
+                        <span className="flex-1">
+                          <span className="block text-sm font-medium text-gray-900">{c.display_name}</span>
+                          <span className="block text-xs text-gray-500">{c.name}</span>
+                        </span>
+                      </label>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              <div className="flex space-x-3 pt-2">
+                <button
+                  type="button"
+                  onClick={() => { setShowAccessModal(false); setAccessUser(null); }}
+                  className="flex-1 px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 transition-colors"
+                  disabled={actionLoading}
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  onClick={handleSaveAccess}
+                  className="flex-1 px-4 py-2 bg-indigo-500 hover:bg-indigo-600 text-white rounded-lg transition-colors font-medium flex items-center justify-center gap-2"
+                  disabled={actionLoading}
+                >
+                  {actionLoading && <RefreshCw className="h-4 w-4 animate-spin" />}
+                  <span>{actionLoading ? 'Saving...' : 'Save Access'}</span>
+                </button>
+              </div>
+            </div>
           </div>
         </div>
       )}

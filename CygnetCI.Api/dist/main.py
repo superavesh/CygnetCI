@@ -16,6 +16,8 @@ import ipaddress
 import shutil
 import bcrypt
 import uuid
+import secrets
+from collections import defaultdict
 
 # Import database, models, and config
 from database import get_db, engine
@@ -629,8 +631,9 @@ async def _agent_status_checker():
                     db.commit()
             finally:
                 db.close()
-        except Exception:
-            pass  # never crash the loop
+        except Exception as e:
+            # Never crash the loop, but don't swallow silently — surface the error in logs.
+            print(f"[agent_status_checker] error: {type(e).__name__}: {e}")
 
 @app.on_event("startup")
 async def startup_event():
@@ -670,16 +673,55 @@ def root():
 
 # ==================== AUTHENTICATION ====================
 
+# SECURITY: simple in-memory brute-force throttle for login.
+# Tracks recent failed attempts per (client-ip, username) and locks out after a threshold.
+_LOGIN_MAX_ATTEMPTS = 5
+_LOGIN_WINDOW_SECONDS = 300   # attempts are counted within a rolling 5-minute window
+_LOGIN_LOCKOUT_SECONDS = 300  # lockout duration once the threshold is exceeded
+_login_attempts: dict = defaultdict(list)  # key -> list[timestamp of failed attempts]
+_login_attempts_lock = threading.Lock()
+
+def _login_key(request: Request, username: str) -> str:
+    return f"{_get_real_ip(request)}|{(username or '').lower()}"
+
+def _login_is_locked(key: str) -> bool:
+    now = time.time()
+    with _login_attempts_lock:
+        attempts = [t for t in _login_attempts.get(key, []) if now - t < _LOGIN_LOCKOUT_SECONDS]
+        _login_attempts[key] = attempts
+        return len(attempts) >= _LOGIN_MAX_ATTEMPTS
+
+def _login_record_failure(key: str):
+    now = time.time()
+    with _login_attempts_lock:
+        attempts = [t for t in _login_attempts.get(key, []) if now - t < _LOGIN_WINDOW_SECONDS]
+        attempts.append(now)
+        _login_attempts[key] = attempts
+
+def _login_reset(key: str):
+    with _login_attempts_lock:
+        _login_attempts.pop(key, None)
+
+
 @app.post("/auth/login", response_model=LoginResponse, tags=["🔐 Authentication"])
-def login(credentials: LoginRequest, db: Session = Depends(get_db)):
+def login(credentials: LoginRequest, request: Request, db: Session = Depends(get_db)):
     """
     Authenticate user with username and password
     Returns access token and user information
     """
+    # SECURITY: throttle repeated failed attempts before doing any work
+    attempt_key = _login_key(request, credentials.username)
+    if _login_is_locked(attempt_key):
+        raise HTTPException(
+            status_code=429,
+            detail="Too many failed login attempts. Please try again in a few minutes."
+        )
+
     # Find user by username
     user = db.query(models.User).filter(models.User.username.ilike(credentials.username)).first()
 
     if not user:
+        _login_record_failure(attempt_key)
         raise HTTPException(status_code=401, detail="Invalid username or password")
 
     # Verify password - support both bcrypt and SHA256 for backward compatibility
@@ -698,18 +740,25 @@ def login(credentials: LoginRequest, db: Session = Depends(get_db)):
         password_valid = user.password_hash == hashed_password
 
     if not password_valid:
+        _login_record_failure(attempt_key)
         raise HTTPException(status_code=401, detail="Invalid username or password")
 
     # Check if user is active
     if not user.is_active:
         raise HTTPException(status_code=403, detail="User account is disabled")
 
+    # Successful login — clear the failed-attempt counter
+    _login_reset(attempt_key)
+
     # Update last login timestamp
     user.last_login = datetime.now()
     db.commit()
 
-    # Generate access token (simple token for now - should use JWT in production)
-    access_token = hashlib.sha256(f"{user.username}{datetime.now().isoformat()}".encode()).hexdigest()
+    # Generate access token.
+    # SECURITY: use a cryptographically-random token instead of a predictable
+    # sha256(username + timestamp). (Note: this token is not yet validated server-side;
+    # a proper JWT/session layer is a separate, planned change.)
+    access_token = secrets.token_urlsafe(48)
 
     # Return user data (without password)
     user_data = {
@@ -1098,58 +1147,68 @@ def report_monitoring_data(agent_uuid: str = Depends(get_agent_uuid), data: dict
         # Clear old data (keep only last 24 hours)
         cutoff_time = datetime.now() - timedelta(hours=24)
 
-        # Store Windows Services
+        # Store Windows Services.
+        # Use a single bulk insert instead of hundreds of individual ORM adds — a server
+        # with many services would otherwise block this (single-process) endpoint long
+        # enough to make the reverse proxy return 502. Values are coalesced/truncated to the
+        # column limits so one bad service entry can't fail the whole report.
         if "windows_services" in data:
-            # Delete old services for this agent
             db.query(models.AgentWindowsService)\
                 .filter(models.AgentWindowsService.agent_id == agent.id)\
-                .delete()
+                .delete(synchronize_session=False)
 
-            for service in data["windows_services"]:
-                db_service = models.AgentWindowsService(
-                    agent_id=agent.id,
-                    service_name=service["name"],
-                    display_name=service["display_name"],
-                    status=service["status"],
-                    description=service.get("description", "")
-                )
-                db.add(db_service)
+            services = data.get("windows_services") or []
+            rows = []
+            for s in services:
+                name = (s.get("name") or "").strip()
+                if not name:
+                    continue  # service_name is required
+                rows.append({
+                    "agent_id": agent.id,
+                    "service_name": name[:255],
+                    "display_name": ((s.get("display_name") or name)[:255]),
+                    "status": ((s.get("status") or "unknown")[:50]),
+                    "description": s.get("description") or "",
+                })
+            if rows:
+                db.bulk_insert_mappings(models.AgentWindowsService, rows)
 
         # Store Drive Info
         if "drives" in data:
-            # Delete old drives for this agent
             db.query(models.AgentDriveInfo)\
                 .filter(models.AgentDriveInfo.agent_id == agent.id)\
-                .delete()
+                .delete(synchronize_session=False)
 
-            for drive in data["drives"]:
-                db_drive = models.AgentDriveInfo(
+            for drive in (data.get("drives") or []):
+                if not drive.get("letter"):
+                    continue
+                db.add(models.AgentDriveInfo(
                     agent_id=agent.id,
-                    drive_letter=drive["letter"],
-                    drive_label=drive.get("label", ""),
-                    total_gb=drive["total_gb"],
-                    used_gb=drive["used_gb"],
-                    free_gb=drive["free_gb"],
-                    percent_used=drive["percent_used"]
-                )
-                db.add(db_drive)
+                    drive_letter=str(drive["letter"])[:10],
+                    drive_label=(drive.get("label") or "")[:255],
+                    total_gb=drive.get("total_gb", 0),
+                    used_gb=drive.get("used_gb", 0),
+                    free_gb=drive.get("free_gb", 0),
+                    percent_used=drive.get("percent_used", 0),
+                ))
 
         # Store Website Pings
         if "website_pings" in data:
             # Delete all existing pings for this agent so URL changes take effect immediately
             db.query(models.AgentWebsitePing)\
                 .filter(models.AgentWebsitePing.agent_id == agent.id)\
-                .delete()
+                .delete(synchronize_session=False)
 
-            for ping in data["website_pings"]:
-                db_ping = models.AgentWebsitePing(
+            for ping in (data.get("website_pings") or []):
+                if not ping.get("url"):
+                    continue
+                db.add(models.AgentWebsitePing(
                     agent_id=agent.id,
-                    url=ping["url"],
-                    name=ping["name"],
-                    status=ping["status"],
-                    response_time_ms=ping["response_time_ms"]
-                )
-                db.add(db_ping)
+                    url=str(ping["url"])[:500],
+                    name=(ping.get("name") or "")[:255],
+                    status=(ping.get("status") or "unknown")[:50],
+                    response_time_ms=ping.get("response_time_ms", 0),
+                ))
 
         db.commit()
         return {"success": True, "message": "Monitoring data received"}
@@ -3105,34 +3164,54 @@ async def upload_file(
     if file_type not in ['script', 'artifact']:
         raise HTTPException(status_code=400, detail="file_type must be 'script' or 'artifact'")
 
-    # Validate file extension (optional - can be disabled in config)
-    # if not app_config.validate_file_extension(file.filename, file_type):
-    #     allowed_exts = app_config.get_allowed_script_extensions() if file_type == 'script' else app_config.get_allowed_artifact_extensions()
-    #     raise HTTPException(status_code=400, detail=f"File extension not allowed. Allowed extensions: {', '.join(allowed_exts)}")
+    # SECURITY: sanitize version and filename to prevent path traversal.
+    # `version` becomes a directory name and `file.filename` a leaf file name; neither may
+    # contain path separators, parent-directory references, or be absolute.
+    if not file.filename:
+        raise HTTPException(status_code=400, detail="Filename is required")
+    safe_filename = os.path.basename(file.filename.replace("\\", "/"))
+    if not safe_filename or safe_filename in (".", ".."):
+        raise HTTPException(status_code=400, detail="Invalid filename")
+    safe_version = (version or "").strip()
+    if (not safe_version or ".." in safe_version
+            or "/" in safe_version or "\\" in safe_version
+            or os.path.isabs(safe_version)):
+        raise HTTPException(status_code=400, detail="Invalid version")
 
     try:
         # Create folder structure using config helper
-        folder_path = app_config.get_file_path(file_type, version)
+        folder_path = app_config.get_file_path(file_type, safe_version)
         os.makedirs(folder_path, exist_ok=True)
 
-        # Save file
-        file_path = os.path.join(folder_path, file.filename)
+        # Save file (use sanitized leaf name)
+        file_path = os.path.join(folder_path, safe_filename)
 
-        # Write file in chunks to handle large files efficiently
+        # Defense in depth: ensure the resolved path stays inside the intended folder
+        if os.path.commonpath([os.path.abspath(folder_path),
+                                os.path.abspath(file_path)]) != os.path.abspath(folder_path):
+            raise HTTPException(status_code=400, detail="Invalid file path")
+
+        # Write file in chunks to handle large files efficiently.
+        # SECURITY: enforce the size limit DURING the stream so an oversized upload is
+        # aborted early instead of being written to disk in full first.
+        max_size = app_config.get_max_file_size_bytes()
         file_size = 0
         chunk_size = 1024 * 1024  # 1 MB chunks
+        too_large = False
         with open(file_path, "wb") as buffer:
             while True:
                 chunk = await file.read(chunk_size)
                 if not chunk:
                     break
-                buffer.write(chunk)
                 file_size += len(chunk)
+                if file_size > max_size:
+                    too_large = True
+                    break
+                buffer.write(chunk)
 
-        # Validate file size
-        max_size = app_config.get_max_file_size_bytes()
-        if file_size > max_size:
-            os.remove(file_path)  # Clean up the file
+        if too_large:
+            if os.path.exists(file_path):
+                os.remove(file_path)  # Clean up the partial file
             raise HTTPException(
                 status_code=400,
                 detail=f"File too large. Maximum size: {app_config.get_max_file_size_mb()} MB"
@@ -3147,8 +3226,8 @@ async def upload_file(
         existing_file = db.query(models.TransferFile)\
             .filter(
                 models.TransferFile.file_type == file_type,
-                models.TransferFile.file_name == file.filename,
-                models.TransferFile.version == version
+                models.TransferFile.file_name == safe_filename,
+                models.TransferFile.version == safe_version
             ).first()
 
         if existing_file:
@@ -3179,8 +3258,8 @@ async def upload_file(
         # Create new database record
         transfer_file = models.TransferFile(
             file_type=file_type,
-            file_name=file.filename,
-            version=version,
+            file_name=safe_filename,
+            version=safe_version,
             file_path=file_path,
             file_size_bytes=file_size,
             checksum=checksum,
@@ -4203,6 +4282,11 @@ def get_users(
     # Convert to dict and remove password
     result = []
     for user in users:
+        roles = [{"id": ur.role.id, "name": ur.role.name}
+                 for ur in user.user_roles if ur.role is not None]
+        customers = [{"id": uc.customer.id, "name": uc.customer.name,
+                      "display_name": uc.customer.display_name}
+                     for uc in user.user_customers if uc.customer is not None]
         user_dict = {
             "id": user.id,
             "username": user.username,
@@ -4210,6 +4294,10 @@ def get_users(
             "full_name": user.full_name,
             "is_active": user.is_active,
             "is_superuser": user.is_superuser,
+            "roles": roles,
+            "role_ids": [r["id"] for r in roles],
+            "customers": customers,
+            "customer_ids": [c["id"] for c in customers],
             "created_at": user.created_at.isoformat() if user.created_at else None,
             "updated_at": user.updated_at.isoformat() if user.updated_at else None,
             "last_login": user.last_login.isoformat() if user.last_login else None
@@ -4315,6 +4403,74 @@ def delete_user(user_id: int, db: Session = Depends(get_db)):
     return {"success": True, "message": "User deleted"}
 
 
+class UserAccessUpdate(BaseModel):
+    role_ids: List[int] = []
+    customer_ids: List[int] = []
+
+
+@app.get("/users/{user_id}/access", tags=["👥 Users"])
+def get_user_access(user_id: int, db: Session = Depends(get_db)):
+    """Get the roles and customers currently assigned to a user."""
+    user = db.query(models.User).filter(models.User.id == user_id).first()
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+
+    roles = [{"id": ur.role.id, "name": ur.role.name}
+             for ur in user.user_roles if ur.role is not None]
+    customers = [{"id": uc.customer.id, "name": uc.customer.name,
+                  "display_name": uc.customer.display_name}
+                 for uc in user.user_customers if uc.customer is not None]
+    return {
+        "user_id": user.id,
+        "role_ids": [r["id"] for r in roles],
+        "customer_ids": [c["id"] for c in customers],
+        "roles": roles,
+        "customers": customers,
+    }
+
+
+@app.put("/users/{user_id}/access", tags=["👥 Users"])
+def update_user_access(user_id: int, access: UserAccessUpdate, db: Session = Depends(get_db)):
+    """Replace the set of roles and customers assigned to a user."""
+    user = db.query(models.User).filter(models.User.id == user_id).first()
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+
+    role_ids = list(dict.fromkeys(access.role_ids))          # de-dupe, keep order
+    customer_ids = list(dict.fromkeys(access.customer_ids))
+
+    # Validate that every referenced role / customer exists
+    if role_ids:
+        found = {r.id for r in db.query(models.Role.id).filter(models.Role.id.in_(role_ids)).all()}
+        missing = [rid for rid in role_ids if rid not in found]
+        if missing:
+            raise HTTPException(status_code=400, detail=f"Unknown role id(s): {missing}")
+    if customer_ids:
+        found = {c.id for c in db.query(models.Customer.id).filter(models.Customer.id.in_(customer_ids)).all()}
+        missing = [cid for cid in customer_ids if cid not in found]
+        if missing:
+            raise HTTPException(status_code=400, detail=f"Unknown customer id(s): {missing}")
+
+    # Replace role assignments
+    db.query(models.UserRole).filter(models.UserRole.user_id == user_id).delete(synchronize_session=False)
+    for rid in role_ids:
+        db.add(models.UserRole(user_id=user_id, role_id=rid))
+
+    # Replace customer assignments (first customer becomes the default)
+    db.query(models.UserCustomer).filter(models.UserCustomer.user_id == user_id).delete(synchronize_session=False)
+    for idx, cid in enumerate(customer_ids):
+        db.add(models.UserCustomer(user_id=user_id, customer_id=cid, is_default=(idx == 0)))
+
+    db.commit()
+
+    return {
+        "success": True,
+        "user_id": user_id,
+        "role_ids": role_ids,
+        "customer_ids": customer_ids,
+    }
+
+
 # ==============================================
 # ROLES & PERMISSIONS ENDPOINTS
 # ==============================================
@@ -4351,6 +4507,81 @@ def get_role(role_id: int, db: Session = Depends(get_db)):
         "created_at": role.created_at,
         "updated_at": role.updated_at
     }
+
+class RoleCreate(BaseModel):
+    name: str
+    description: Optional[str] = None
+    permissions: Dict[str, Any] = {}
+
+class RoleUpdate(BaseModel):
+    name: Optional[str] = None
+    description: Optional[str] = None
+    permissions: Optional[Dict[str, Any]] = None
+
+
+def _serialize_role(role) -> dict:
+    return {
+        "id": role.id,
+        "name": role.name,
+        "description": role.description,
+        "permissions": role.permissions,
+        "is_system": role.is_system,
+        "created_at": role.created_at,
+        "updated_at": role.updated_at,
+    }
+
+
+@app.post("/roles", tags=["🛡️ Roles"], status_code=201)
+def create_role(role: RoleCreate, db: Session = Depends(get_db)):
+    """Create a new custom role"""
+    if not role.name or not role.name.strip():
+        raise HTTPException(status_code=400, detail="Role name is required")
+
+    existing = db.query(models.Role).filter(models.Role.name == role.name).first()
+    if existing:
+        raise HTTPException(status_code=400, detail="A role with this name already exists")
+
+    db_role = models.Role(
+        name=role.name.strip(),
+        description=role.description,
+        permissions=role.permissions or {},
+        is_system=False,
+    )
+    db.add(db_role)
+    db.commit()
+    db.refresh(db_role)
+    return _serialize_role(db_role)
+
+
+@app.put("/roles/{role_id}", tags=["🛡️ Roles"])
+def update_role(role_id: int, role: RoleUpdate, db: Session = Depends(get_db)):
+    """Update a role (system roles cannot be modified)"""
+    db_role = db.query(models.Role).filter(models.Role.id == role_id).first()
+    if not db_role:
+        raise HTTPException(status_code=404, detail="Role not found")
+    if db_role.is_system:
+        raise HTTPException(status_code=403, detail="Cannot modify system roles")
+
+    update_data = role.model_dump(exclude_unset=True)
+
+    new_name = update_data.get("name")
+    if new_name is not None and new_name != db_role.name:
+        if not new_name.strip():
+            raise HTTPException(status_code=400, detail="Role name is required")
+        existing = db.query(models.Role).filter(models.Role.name == new_name).first()
+        if existing:
+            raise HTTPException(status_code=400, detail="A role with this name already exists")
+        db_role.name = new_name.strip()
+
+    if "description" in update_data:
+        db_role.description = update_data["description"]
+    if update_data.get("permissions") is not None:
+        db_role.permissions = update_data["permissions"]
+
+    db.commit()
+    db.refresh(db_role)
+    return _serialize_role(db_role)
+
 
 @app.delete("/roles/{role_id}", tags=["🛡️ Roles"])
 def delete_role(role_id: int, db: Session = Depends(get_db)):
@@ -5731,17 +5962,32 @@ def review_approval(approval_id: int, data: ApprovalReview, db: Session = Depend
 
 # ── AI Settings ───────────────────────────────────────────────────────────────
 
-from cryptography.fernet import Fernet
+from cryptography.fernet import Fernet, InvalidToken
 import base64
 
-_FERNET_KEY_SEED = b"CygnetCI-AI-Settings-Secret-Key!"  # 32 bytes
-_fernet = Fernet(base64.urlsafe_b64encode(_FERNET_KEY_SEED))
+# SECURITY: the encryption key is read from the AI_SETTINGS_KEY environment variable.
+# It must be a 32-byte value. The previous build used a hardcoded key; that key is kept
+# ONLY as a decryption fallback so existing rows stay readable after you set a real key.
+# Set AI_SETTINGS_KEY in the environment to a strong secret and re-save the AI API key to
+# migrate it; once migrated you can remove the legacy fallback.
+def _fernet_from_seed(seed: bytes) -> Fernet:
+    seed = seed[:32].ljust(32, b"0")  # normalize to exactly 32 bytes
+    return Fernet(base64.urlsafe_b64encode(seed))
+
+_LEGACY_FERNET = _fernet_from_seed(b"CygnetCI-AI-Settings-Secret-Key!")
+_env_key = os.environ.get("AI_SETTINGS_KEY")
+_fernet = _fernet_from_seed(_env_key.encode()) if _env_key else _LEGACY_FERNET
 
 def _encrypt(plain: str) -> str:
     return _fernet.encrypt(plain.encode()).decode()
 
 def _decrypt(token: str) -> str:
-    return _fernet.decrypt(token.encode()).decode()
+    try:
+        return _fernet.decrypt(token.encode()).decode()
+    except InvalidToken:
+        # Fall back to the legacy key so data encrypted before AI_SETTINGS_KEY was set
+        # still decrypts. (No-op if the env key is unset / already the legacy key.)
+        return _LEGACY_FERNET.decrypt(token.encode()).decode()
 
 class AISettingsBody(BaseModel):
     provider: str = "anthropic"

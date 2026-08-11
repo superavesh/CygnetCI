@@ -12,9 +12,15 @@ from cryptography.fernet import Fernet
 import os
 import re
 
-# Encryption key for storing passwords securely
-# In production, this should be stored in environment variables or a secrets manager
-ENCRYPTION_KEY = os.environ.get('EMAIL_ENCRYPTION_KEY', 'your-32-byte-key-here-for-fernet!')
+# Encryption key for storing SMTP/IMAP passwords securely.
+# SECURITY: set EMAIL_ENCRYPTION_KEY (32 bytes) in the environment. The hardcoded default
+# below is insecure and only exists so the app keeps running if the variable is unset —
+# anyone with the source can decrypt passwords protected by it.
+_DEFAULT_EMAIL_KEY = 'your-32-byte-key-here-for-fernet!'
+ENCRYPTION_KEY = os.environ.get('EMAIL_ENCRYPTION_KEY', _DEFAULT_EMAIL_KEY)
+if ENCRYPTION_KEY == _DEFAULT_EMAIL_KEY:
+    print("[email_service] WARNING: EMAIL_ENCRYPTION_KEY is not set — using the insecure "
+          "default key. Set EMAIL_ENCRYPTION_KEY in the environment for production.")
 
 def get_fernet():
     """Get Fernet cipher for encryption/decryption"""

@@ -100,12 +100,12 @@ const TYPE_META: Record<string, { label: string; color: string; icon: React.Reac
   question:    { label: 'Question',    color: 'bg-teal-50 text-teal-600 border-teal-200',   icon: <HelpCircle className="h-3 w-3" /> },
 };
 
-// Jira-style status display
+// Jira-style status display — all solid background with white text for consistent contrast
 const JIRA_STATUS: Record<string, { label: string; cls: string }> = {
-  open:        { label: 'OPEN',        cls: 'bg-blue-100 text-blue-700' },
-  in_progress: { label: 'IN PROGRESS', cls: 'bg-amber-100 text-amber-700' },
+  open:        { label: 'OPEN',        cls: 'bg-blue-600 text-white' },
+  in_progress: { label: 'IN PROGRESS', cls: 'bg-amber-500 text-white' },
   resolved:    { label: 'RESOLVED',    cls: 'bg-green-600 text-white' },
-  closed:      { label: 'CLOSED',      cls: 'bg-gray-600 text-white' },
+  closed:      { label: 'CLOSED',      cls: 'bg-gray-500 text-white' },
 };
 
 const PRIORITY_JIRA: Record<string, { label: string; dot: string; text: string }> = {
@@ -259,26 +259,32 @@ export default function TicketsPage() {
     }
   };
 
-  // Open / close ticket detail — use URL manipulation so URL stays in sync
+  // Open / close ticket detail — keep the URL in sync WITHOUT clobbering Next.js's
+  // internal router state. Next stores its history tree under reserved keys in
+  // history.state; replacing the whole object (the old bug) desynced the app-router and
+  // broke later <Link> navigation back to /tickets. We merge with the existing state and
+  // use trailing-slash URLs to match next.config (trailingSlash: true).
   const openTicket = (t: TicketItem) => {
     setCurrentTicketId(t.id);
-    window.history.pushState({ ticketId: t.id }, '', `/tickets/${t.id}`);
+    window.history.pushState({ ...window.history.state, ticketId: t.id }, '', `/tickets/${t.id}/`);
   };
 
   const closeTicket = () => {
     setCurrentTicketId(null);
-    window.history.pushState({}, '', '/tickets');
+    window.history.pushState({ ...window.history.state, ticketId: null }, '', '/tickets/');
     fetchTickets();
   };
 
-  // Sync state when browser back/forward buttons are used
+  // Detect a deep-linked ticket id from the URL on mount (e.g. a direct load of
+  // /tickets/76/), and keep state in sync with browser back/forward.
   useEffect(() => {
-    const onPop = () => {
+    const syncFromUrl = () => {
       const match = window.location.pathname.match(/\/tickets\/(\d+)/);
       setCurrentTicketId(match ? parseInt(match[1]) : null);
     };
-    window.addEventListener('popstate', onPop);
-    return () => window.removeEventListener('popstate', onPop);
+    syncFromUrl();
+    window.addEventListener('popstate', syncFromUrl);
+    return () => window.removeEventListener('popstate', syncFromUrl);
   }, []);
 
   // option lists
@@ -355,8 +361,8 @@ export default function TicketsPage() {
   }
 
   return (
-    <div className="flex-1 overflow-auto bg-gray-50 min-h-screen">
-      <div className="max-w-screen-2xl mx-auto px-6 py-5">
+    <div className="bg-gray-50 min-h-screen w-full">
+      <div className="max-w-full px-6 py-5">
 
         {/* ── Header ── */}
         <div className="flex items-center justify-between mb-5">
@@ -388,11 +394,11 @@ export default function TicketsPage() {
               onClick={() => setShowAI(s => !s)}
               className={`group flex items-center gap-2 pl-1.5 pr-3.5 py-1.5 rounded-full text-sm font-medium transition-all ${
                 showAI
-                  ? 'bg-gradient-to-r from-blue-50 via-violet-50 to-pink-50 text-violet-700 ring-1 ring-violet-200 shadow-sm'
-                  : 'bg-white border border-gray-300 text-gray-700 hover:border-violet-300 hover:shadow-sm'
+                  ? 'bg-gradient-to-r from-blue-50 to-indigo-50 text-blue-700 ring-1 ring-blue-200 shadow-sm'
+                  : 'bg-white border border-gray-300 text-gray-700 hover:border-blue-300 hover:shadow-sm'
               }`}
             >
-              <span className="flex items-center justify-center h-6 w-6 rounded-full bg-gradient-to-br from-blue-500 via-violet-500 to-pink-500 shadow-sm group-hover:scale-105 transition-transform">
+              <span className="flex items-center justify-center h-6 w-6 rounded-full bg-gradient-to-br from-blue-500 to-indigo-600 shadow-sm group-hover:scale-105 transition-transform">
                 <Sparkles className="h-3.5 w-3.5 text-white" />
               </span>
               Ask Cygie
@@ -471,35 +477,33 @@ export default function TicketsPage() {
           <div className="fixed inset-0 z-30 bg-gray-900/10 backdrop-blur-[1px]" onClick={() => setShowAI(false)} />
 
           <div className="fixed right-4 top-4 bottom-4 w-[396px] bg-white rounded-2xl shadow-2xl ring-1 ring-black/5 flex flex-col z-40 overflow-hidden animate-slide-in">
-            {/* Branded header */}
-            <div className="relative px-4 py-3.5 bg-gradient-to-r from-blue-600 via-violet-600 to-fuchsia-600 text-white">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2.5">
-                  <div className="flex items-center justify-center h-9 w-9 rounded-full bg-white/20 backdrop-blur-sm ring-1 ring-white/30">
-                    <Sparkles className="h-5 w-5 text-white" />
-                  </div>
-                  <div>
-                    <div className="text-sm font-semibold tracking-tight">Cygie</div>
-                    <div className="text-[11px] text-white/80">AI assistant · Search · Create · Update</div>
-                  </div>
+            {/* Clean header */}
+            <div className="px-4 py-3 border-b border-gray-100 flex items-center justify-between">
+              <div className="flex items-center gap-2.5">
+                <div className="flex items-center justify-center h-9 w-9 rounded-full bg-gradient-to-br from-blue-600 to-indigo-600 shadow-sm">
+                  <Sparkles className="h-5 w-5 text-white" />
                 </div>
-                <div className="flex items-center gap-0.5">
-                  <button onClick={() => setChatEntries([])} title="Clear conversation" className="p-1.5 text-white/80 hover:text-white hover:bg-white/15 rounded-lg transition-colors">
-                    <MoreHorizontal className="h-4 w-4" />
-                  </button>
-                  <button onClick={() => setShowAI(false)} title="Close" className="p-1.5 text-white/80 hover:text-white hover:bg-white/15 rounded-lg transition-colors">
-                    <X className="h-4 w-4" />
-                  </button>
+                <div>
+                  <div className="text-sm font-semibold text-gray-900 tracking-tight">Cygie</div>
+                  <div className="text-[11px] text-gray-500">AI assistant · Search · Create · Update</div>
                 </div>
+              </div>
+              <div className="flex items-center gap-0.5">
+                <button onClick={() => setChatEntries([])} title="Clear conversation" className="p-1.5 text-gray-400 hover:text-gray-700 hover:bg-gray-100 rounded-lg transition-colors">
+                  <MoreHorizontal className="h-4 w-4" />
+                </button>
+                <button onClick={() => setShowAI(false)} title="Close" className="p-1.5 text-gray-400 hover:text-gray-700 hover:bg-gray-100 rounded-lg transition-colors">
+                  <X className="h-4 w-4" />
+                </button>
               </div>
             </div>
 
             {/* Messages */}
-            <div className="flex-1 overflow-y-auto px-4 py-4 space-y-4 bg-gradient-to-b from-violet-50/40 to-white">
+            <div className="flex-1 overflow-y-auto px-4 py-4 space-y-4 bg-gradient-to-b from-blue-50/40 to-white">
               {chatEntries.length === 0 && (
                 <div className="mt-2">
                   <div className="flex flex-col items-center text-center mb-5">
-                    <div className="flex items-center justify-center h-12 w-12 rounded-2xl bg-gradient-to-br from-blue-500 via-violet-500 to-fuchsia-500 shadow-lg mb-3">
+                    <div className="flex items-center justify-center h-12 w-12 rounded-2xl bg-gradient-to-br from-blue-500 to-indigo-600 shadow-lg mb-3">
                       <Sparkles className="h-6 w-6 text-white" />
                     </div>
                     <p className="text-sm font-semibold text-gray-800">Hi, I&apos;m Cygie 👋</p>
@@ -518,9 +522,9 @@ export default function TicketsPage() {
                       <button
                         key={s.text}
                         onClick={() => sendAIMessage(s.text)}
-                        className="group flex items-center gap-2.5 w-full text-left text-xs px-3 py-2.5 rounded-xl border border-gray-200 bg-white hover:border-violet-300 hover:bg-violet-50/60 hover:shadow-sm text-gray-600 hover:text-violet-700 transition-all"
+                        className="group flex items-center gap-2.5 w-full text-left text-xs px-3 py-2.5 rounded-xl border border-gray-200 bg-white hover:border-blue-300 hover:bg-blue-50/60 hover:shadow-sm text-gray-600 hover:text-blue-700 transition-all"
                       >
-                        <span className="flex items-center justify-center h-6 w-6 rounded-lg bg-violet-50 text-violet-500 group-hover:bg-violet-100 transition-colors flex-shrink-0">
+                        <span className="flex items-center justify-center h-6 w-6 rounded-lg bg-blue-50 text-blue-500 group-hover:bg-blue-100 transition-colors flex-shrink-0">
                           {s.icon}
                         </span>
                         {s.text}
@@ -533,7 +537,7 @@ export default function TicketsPage() {
               {chatEntries.map((entry, i) => (
                 <div key={i} className={`flex gap-2 ${entry.role === 'user' ? 'justify-end' : 'justify-start'}`}>
                   {entry.role === 'assistant' && (
-                    <div className="flex items-center justify-center h-7 w-7 rounded-full bg-gradient-to-br from-blue-500 via-violet-500 to-fuchsia-500 flex-shrink-0 mt-0.5">
+                    <div className="flex items-center justify-center h-7 w-7 rounded-full bg-gradient-to-br from-blue-500 to-indigo-600 flex-shrink-0 mt-0.5">
                       <Sparkles className="h-3.5 w-3.5 text-white" />
                     </div>
                   )}
@@ -541,17 +545,17 @@ export default function TicketsPage() {
                     {/* Bubble */}
                     <div className={`rounded-2xl px-3.5 py-2 text-sm shadow-sm ${
                       entry.role === 'user'
-                        ? 'bg-gradient-to-br from-blue-600 to-violet-600 text-white rounded-br-md'
-                        : 'bg-white border border-gray-200 text-gray-700 rounded-bl-md'
+                        ? 'bg-blue-600 rounded-br-md'
+                        : 'bg-white border border-gray-200 rounded-bl-md'
                     }`}>
                       {entry.loading ? (
                         <div className="flex items-center gap-1.5 py-0.5">
-                          <span className="w-1.5 h-1.5 bg-violet-400 rounded-full animate-bounce" style={{ animationDelay: '0ms' }} />
-                          <span className="w-1.5 h-1.5 bg-violet-400 rounded-full animate-bounce" style={{ animationDelay: '150ms' }} />
-                          <span className="w-1.5 h-1.5 bg-violet-400 rounded-full animate-bounce" style={{ animationDelay: '300ms' }} />
+                          <span className="w-1.5 h-1.5 bg-blue-400 rounded-full animate-bounce" style={{ animationDelay: '0ms' }} />
+                          <span className="w-1.5 h-1.5 bg-blue-400 rounded-full animate-bounce" style={{ animationDelay: '150ms' }} />
+                          <span className="w-1.5 h-1.5 bg-blue-400 rounded-full animate-bounce" style={{ animationDelay: '300ms' }} />
                         </div>
                       ) : (
-                        <div className="whitespace-pre-wrap leading-relaxed">{entry.content}</div>
+                        <div className={`whitespace-pre-wrap leading-relaxed ${entry.role === 'user' ? 'text-white' : 'text-gray-700'}`}>{entry.content}</div>
                       )}
                     </div>
 
@@ -579,7 +583,7 @@ export default function TicketsPage() {
                             <button
                               key={t.id}
                               onClick={() => openTicket(t)}
-                              className="w-full text-left bg-white rounded-xl border border-gray-200 hover:border-violet-400 hover:shadow-md p-3 transition-all group"
+                              className="w-full text-left bg-white rounded-xl border border-gray-200 hover:border-blue-400 hover:shadow-md p-3 transition-all group"
                             >
                               <div className="flex items-center gap-2 mb-1.5">
                                 <span className="font-mono text-xs text-blue-600 font-semibold">{t.ticket_number}</span>
@@ -595,7 +599,7 @@ export default function TicketsPage() {
                                   t.status === 'resolved' ? 'bg-green-100 text-green-700' :
                                   'bg-gray-200 text-gray-600'
                                 }`}>{t.status.replace('_', ' ')}</span>
-                                <ExternalLink className="h-3 w-3 text-gray-300 group-hover:text-violet-500 ml-auto" />
+                                <ExternalLink className="h-3 w-3 text-gray-300 group-hover:text-blue-500 ml-auto" />
                               </div>
                               <p className="text-xs text-gray-800 font-medium line-clamp-2">{t.title}</p>
                               {t.assigned_to_name && (
@@ -614,7 +618,7 @@ export default function TicketsPage() {
 
             {/* Input */}
             <div className="p-3 border-t border-gray-100 bg-white">
-              <div className="flex items-end gap-2 rounded-2xl border border-gray-200 bg-gray-50 focus-within:border-violet-400 focus-within:bg-white focus-within:ring-2 focus-within:ring-violet-100 transition-all px-2 py-1.5">
+              <div className="flex items-end gap-2 rounded-2xl border border-gray-300 bg-white focus-within:border-blue-500 transition-colors px-2 py-1.5">
                 <textarea
                   value={chatInput}
                   onChange={e => setChatInput(e.target.value)}
@@ -623,12 +627,12 @@ export default function TicketsPage() {
                   }}
                   placeholder="Ask Cygie to search, create or update…"
                   rows={1}
-                  className="flex-1 text-sm bg-transparent px-1.5 py-1 text-gray-700 focus:outline-none resize-none max-h-28"
+                  className="flex-1 text-sm bg-transparent px-1.5 py-1 text-gray-700 focus:outline-none focus:ring-0 border-0 resize-none max-h-28"
                 />
                 <button
                   onClick={() => sendAIMessage()}
                   disabled={chatLoading || !chatInput.trim()}
-                  className="flex items-center justify-center h-8 w-8 rounded-full bg-gradient-to-br from-blue-600 via-violet-600 to-fuchsia-600 text-white hover:shadow-md disabled:opacity-30 disabled:cursor-not-allowed transition-all flex-shrink-0"
+                  className="flex items-center justify-center h-8 w-8 rounded-full bg-gradient-to-br from-blue-600 to-indigo-600 text-white hover:shadow-md disabled:opacity-30 disabled:cursor-not-allowed transition-all flex-shrink-0"
                 >
                   <Send className="h-4 w-4" />
                 </button>
@@ -818,7 +822,7 @@ function ListView({
                 <td className="px-3 py-2">
                   {t.assigned_to_name ? (
                     <div className="flex items-center gap-1.5">
-                      <span className="h-5 w-5 rounded-full bg-gradient-to-br from-blue-400 to-purple-500 flex items-center justify-center text-white text-[9px] font-bold flex-shrink-0">
+                      <span className="h-5 w-5 rounded-full bg-gradient-to-br from-blue-600 to-indigo-600 flex items-center justify-center text-white text-[9px] font-bold flex-shrink-0">
                         {avatar(t.assigned_to_name)}
                       </span>
                       <span className="text-xs text-gray-700 truncate max-w-[100px]">{t.assigned_to_name}</span>
@@ -965,7 +969,7 @@ function TicketCard({ ticket: t, onOpen, isDragging, onDragStart, onDragEnd }: {
       <div className="flex items-center justify-between">
         <TypeBadge type={t.type} />
         {t.assigned_to_name && (
-          <span className="h-6 w-6 rounded-full bg-gradient-to-br from-blue-500 to-purple-500 flex items-center justify-center text-white text-xs font-bold flex-shrink-0" title={t.assigned_to_name}>
+          <span className="h-6 w-6 rounded-full bg-gradient-to-br from-blue-600 to-indigo-600 flex items-center justify-center text-white text-xs font-bold flex-shrink-0" title={t.assigned_to_name}>
             {avatar(t.assigned_to_name)}
           </span>
         )}
@@ -1023,13 +1027,15 @@ function CreateModal({ users, customers, pipelines, releases, agents, onClose, o
 
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto">
-        <div className="bg-gradient-to-br from-blue-500 to-purple-600 px-6 py-4 rounded-t-2xl flex items-center justify-between">
-          <div className="flex items-center gap-2 text-white">
-            <Plus className="h-5 w-5" />
-            <h2 className="text-lg font-bold">New Ticket</h2>
+      <div className="bg-white rounded-xl shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto">
+        <div className="px-6 py-4 border-b border-gray-100 flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <div className="flex items-center justify-center h-8 w-8 rounded-lg bg-blue-50 text-blue-600">
+              <Plus className="h-4 w-4" />
+            </div>
+            <h2 className="text-base font-semibold text-gray-900">Create ticket</h2>
           </div>
-          <button onClick={onClose} className="text-white/80 hover:text-white"><X className="h-5 w-5" /></button>
+          <button onClick={onClose} className="p-1.5 rounded-lg text-gray-400 hover:text-gray-700 hover:bg-gray-100 transition-colors"><X className="h-5 w-5" /></button>
         </div>
 
         <form onSubmit={handleSubmit} className="p-6 space-y-4">
@@ -1115,7 +1121,7 @@ function CreateModal({ users, customers, pipelines, releases, agents, onClose, o
 
           <div className="flex justify-end gap-3 pt-2">
             <button type="button" onClick={onClose} className="px-4 py-2 rounded-lg border border-gray-300 text-sm text-gray-700 hover:bg-gray-50">Cancel</button>
-            <button type="submit" disabled={saving} className="px-5 py-2 rounded-lg bg-gradient-to-r from-blue-500 to-purple-600 text-white text-sm font-medium hover:from-blue-600 hover:to-purple-700 disabled:opacity-60 flex items-center gap-2">
+            <button type="submit" disabled={saving} className="px-5 py-2 rounded-lg bg-blue-600 text-white text-sm font-medium hover:bg-blue-700 disabled:opacity-60 flex items-center gap-2 transition-colors">
               {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Plus className="h-4 w-4" />}
               Create Ticket
             </button>
@@ -1468,7 +1474,7 @@ function DetailModal({ ticket, users, customers, pipelines, releases, agents, on
                 </select>
               ) : ticket.assigned_to_name ? (
                 <div className="flex items-center gap-2">
-                  <span className="h-7 w-7 rounded-full bg-gradient-to-br from-blue-500 to-purple-500 flex items-center justify-center text-white text-xs font-bold">
+                  <span className="h-7 w-7 rounded-full bg-gradient-to-br from-blue-600 to-indigo-600 flex items-center justify-center text-white text-xs font-bold">
                     {avatar(ticket.assigned_to_name)}
                   </span>
                   <span className="text-sm text-gray-700">{ticket.assigned_to_name}</span>
