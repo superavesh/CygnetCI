@@ -17,7 +17,16 @@
       "Bash(python -c ' *)",
       "Bash(awk '{print $NF}')",
       "Bash(cd \"d:/Avesh/CygnetCI/SourceCode/CygnetCI/CygnetCI.Web/cygnetci-web\" && echo \"=== out/ present? ===\"; ls out/ 2>/dev/null | head -20 || echo \"no out/ yet\"; echo \"=== is it static \\(index.html\\) or standalone \\(server.js\\)? ===\"; find out .next/standalone -maxdepth 2 \\\\\\( -name \"index.html\" -o -name \"server.js\" \\\\\\) 2>/dev/null | head; echo \"=== start_api.bat ===\"; cat ../../CygnetCI.Api/dist/start_api.bat)",
-      "Read(//d/Avesh/CygnetCI/CygnetCI.Api/dist/**)"
+      "Read(//d/Avesh/CygnetCI/CygnetCI.Api/dist/**)",
+      "Bash(grep -nA2 -E \"@app\\\\.\\(get|post|put|delete\\)\\\\\\(\\\\\"/roles\" main.py)",
+      "Bash(grep -nA2 -E \"@app.get\\\\\\(\\\\\"/audit-logs\" main.py)",
+      "Bash(python -m py_compile main.py auth.py models.py)",
+      "Bash(python run_user_sessions_migration.py)",
+      "Bash(grep -nE \"^  return \\\\\\(|^    return \\\\\\(|return \\\\\\($\" src/app/users/page.tsx)",
+      "Bash(grep -nA4 \"class LoginResponse\" main.py)",
+      "Bash(python -m py_compile run_user_sessions_migration.py run_user_roles_migration.py seed_fresh_db.py auth.py)",
+      "PowerShell($path = \"D:\\\\Avesh\\\\CygnetCI\\\\SourceCode\\\\CygnetCI\\\\CygnetCI.Api\\\\build_for_iis.ps1\"; $tokens=$null; $errors=$null; [System.Management.Automation.Language.Parser]::ParseFile\\($path, [ref]$tokens, [ref]$errors\\) | Out-Null; if \\($errors.Count -eq 0\\) { Write-Output \"PS PARSE OK - no syntax errors\" } else { $errors | ForEach-Object { Write-Output $_.Message } })",
+      "Bash(python -m py_compile run_user_roles_migration.py run_user_sessions_migration.py seed_fresh_db.py)"
     ],
     "additionalDirectories": [
       "d:\\Avesh\\CygnetCI\\SourceCode\\CygnetCI\\CygnetCI.Web\\cygnetci-web"

@@ -5,6 +5,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { Users, Plus, Search, Edit2, Trash2, Shield, Mail, Key, UserCheck, UserX, Lock, FileText, Clock, AlertCircle, CheckCircle, X, RefreshCw, UserCog, Building2 } from 'lucide-react';
 import { CONFIG } from '@/lib/config';
 import { useCustomer } from '@/lib/contexts/CustomerContext';
+import { isSuperuser, hasPermission } from '@/lib/permissions';
 
 interface UserRoleRef {
   id: number;
@@ -136,6 +137,12 @@ export default function UsersPage() {
 
   // Loading states
   const [actionLoading, setActionLoading] = useState(false);
+
+  // Access guard (deep-link protection; nav also hides this page for non-admins)
+  const [access, setAccess] = useState<{ checked: boolean; ok: boolean }>({ checked: false, ok: true });
+  useEffect(() => {
+    setAccess({ checked: true, ok: isSuperuser() || hasPermission('users', 'read') });
+  }, []);
 
   const pages = ['Overview', 'Pipelines', 'Releases', 'Transfer', 'Rollback', 'Agents', 'Monitoring', 'Customers', 'Users', 'Tasks'];
 
@@ -563,6 +570,16 @@ export default function UsersPage() {
     }, 0);
     return { granted, total, percentage: total > 0 ? Math.round((granted / total) * 100) : 0 };
   };
+
+  if (access.checked && !access.ok) {
+    return (
+      <div className="flex flex-col items-center justify-center h-64 text-center">
+        <Lock className="h-12 w-12 text-gray-400 mb-4" />
+        <h3 className="text-xl font-semibold text-gray-800 mb-1">Access denied</h3>
+        <p className="text-gray-600">You don&apos;t have permission to manage users.</p>
+      </div>
+    );
+  }
 
   if (loading) {
     return (

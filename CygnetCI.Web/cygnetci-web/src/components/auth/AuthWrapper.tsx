@@ -9,6 +9,7 @@ import { SidebarProvider, useSidebar } from '@/lib/contexts/SidebarContext';
 import { LoadingState } from '@/components/common/LoadingState';
 import { AlertCircle } from 'lucide-react';
 import { CONFIG } from '@/lib/config';
+import { installFetchInterceptor } from '@/lib/apiClient';
 
 // Content wrapper that uses sidebar context
 function LayoutContent({ children }: { children: React.ReactNode }) {
@@ -45,8 +46,9 @@ export function AuthWrapper({ children }: { children: React.ReactNode }) {
   // Handle both with and without trailing slash (Next.js trailingSlash: true)
   const isLoginPage = pathname === '/login' || pathname === '/login/';
 
-  // Mark as mounted after hydration
+  // Mark as mounted after hydration; install the API auth interceptor first
   useEffect(() => {
+    installFetchInterceptor();
     setMounted(true);
   }, []);
 

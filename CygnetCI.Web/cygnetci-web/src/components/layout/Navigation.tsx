@@ -6,6 +6,7 @@ import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useSidebar } from '@/lib/contexts/SidebarContext';
+import { canRead, isSuperuser } from '@/lib/permissions';
 import {
   BarChart3,
   GitBranch,
@@ -21,29 +22,41 @@ import {
   Ticket
 } from 'lucide-react';
 
+// `resource` is the permission key that gates the item (null = always visible).
 const navItems = [
-  { id: 'overview', name: 'Overview', icon: BarChart3, href: '/' },
-  { id: 'pipelines', name: 'Pipelines', icon: GitBranch, href: '/pipelines' },
-  { id: 'releases', name: 'Releases', icon: Rocket, href: '/releases' },
-  { id: 'transfer', name: 'Transfer', icon: Upload, href: '/transfer' },
-  { id: 'rollback', name: 'Rollback', icon: RotateCcw, href: '/rollback' },
-  { id: 'agents', name: 'Agents', icon: Server, href: '/agents' },
-  { id: 'monitoring', name: 'Monitoring', icon: Monitor, href: '/monitoring' },
-  { id: 'email-alerts', name: 'Email Alerts', icon: Mail, href: '/email-alerts' },
-  { id: 'tickets', name: 'Tickets', icon: Ticket, href: '/tickets' },
-  { id: 'customers', name: 'Customers', icon: Building2, href: '/customers' },
-  { id: 'users', name: 'Users', icon: Users, href: '/users' }
+  { id: 'overview', name: 'Overview', icon: BarChart3, href: '/', resource: null },
+  { id: 'pipelines', name: 'Pipelines', icon: GitBranch, href: '/pipelines', resource: 'pipelines' },
+  { id: 'releases', name: 'Releases', icon: Rocket, href: '/releases', resource: 'releases' },
+  { id: 'transfer', name: 'Transfer', icon: Upload, href: '/transfer', resource: 'transfer' },
+  { id: 'rollback', name: 'Rollback', icon: RotateCcw, href: '/rollback', resource: 'rollback' },
+  { id: 'agents', name: 'Agents', icon: Server, href: '/agents', resource: 'agents' },
+  { id: 'monitoring', name: 'Monitoring', icon: Monitor, href: '/monitoring', resource: 'monitoring' },
+  { id: 'email-alerts', name: 'Email Alerts', icon: Mail, href: '/email-alerts', resource: 'email-alerts' },
+  { id: 'tickets', name: 'Tickets', icon: Ticket, href: '/tickets', resource: 'tickets' },
+  { id: 'customers', name: 'Customers', icon: Building2, href: '/customers', resource: 'customers' },
+  { id: 'users', name: 'Users', icon: Users, href: '/users', resource: 'users' }
 ];
 
 export const Navigation: React.FC = () => {
   const pathname = usePathname();
   const { isCollapsed, setIsCollapsed } = useSidebar();
   const [currentPath, setCurrentPath] = useState('');
+  const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
     const p = window.location.pathname.replace(/\/$/, '') || '/';
     setCurrentPath(p);
   }, [pathname]);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  // Before mount (SSR/static) show all items to avoid a hydration flash;
+  // after mount, filter by the logged-in user's permissions.
+  const visibleItems = !mounted
+    ? navItems
+    : navItems.filter(item => item.resource === null || isSuperuser() || canRead(item.resource));
 
   return (
     <nav
@@ -55,7 +68,7 @@ export const Navigation: React.FC = () => {
     >
       {/* Navigation Items */}
       <div className="flex flex-col py-4 overflow-y-auto h-full">
-        {navItems.map(item => {
+        {visibleItems.map(item => {
           const isActive = currentPath === item.href;
           return (
             <Link

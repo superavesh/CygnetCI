@@ -18,7 +18,12 @@ Optionally override the admin credentials via environment variables:
     ADMIN_USERNAME, ADMIN_EMAIL, ADMIN_PASSWORD
 """
 import os
+import sys
 import bcrypt
+
+# Embeddable Python (._pth) does not add the script's own directory to sys.path
+# when run by path, so ensure local modules (database, models, config) import.
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
 from database import SessionLocal, engine, Base
 import models

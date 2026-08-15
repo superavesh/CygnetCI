@@ -852,6 +852,23 @@ class UserRole(Base):
     role = relationship("Role")
 
 
+class UserSession(Base):
+    """
+    Server-side session tokens for authenticating UI/API requests.
+    The raw bearer token is never stored — only its SHA-256 hash.
+    """
+    __tablename__ = "user_sessions"
+
+    id = Column(Integer, primary_key=True, index=True)
+    token_hash = Column(String(64), unique=True, nullable=False, index=True)
+    user_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True)
+    created_at = Column(TIMESTAMP, server_default=func.now(), nullable=False)
+    expires_at = Column(TIMESTAMP, nullable=False)
+    last_used_at = Column(TIMESTAMP, server_default=func.now(), nullable=False)
+
+    user = relationship("User")
+
+
 class AuditLog(Base):
     """
     Audit trail for tracking user actions and system changes

@@ -96,24 +96,37 @@ Write-Host "  Dependencies installed" -ForegroundColor Green
 
 # Step 6: Copy application files
 Write-Host "`n[6/7] Copying application files..." -ForegroundColor Yellow
-$FilesToCopy = @(
-    "main.py",
-    "models.py",
-    "database.py",
-    "config.py",
-    "customer_api.py",
-    "claude_service.py",
-    "email_service.py",
+
+# Copy ALL top-level Python modules so new files (e.g. auth.py) and migration/seed
+# scripts are always included automatically — no hardcoded list to keep in sync.
+$pyFiles = Get-ChildItem -Path $SourcePath -Filter "*.py" -File |
+    Where-Object { $_.Name -notlike "build_*" }
+foreach ($f in $pyFiles) {
+    Copy-Item $f.FullName -Destination $DistPath
+    Write-Host "  Copied: $($f.Name)" -ForegroundColor Gray
+}
+
+# Copy supporting non-Python files if present
+$OtherFiles = @(
     "requirements.txt",
     "config.ini"
 )
-
-foreach ($file in $FilesToCopy) {
+foreach ($file in $OtherFiles) {
     $srcFile = Join-Path $SourcePath $file
     if (Test-Path $srcFile) {
         Copy-Item $srcFile -Destination $DistPath
         Write-Host "  Copied: $file" -ForegroundColor Gray
     }
+}
+
+# Also bundle the SQL migration files INTO the package (dist\CygnetCI.Database) so the
+# run_*_migration.py scripts can find them when run on the server.
+$DbSourceDir = Join-Path (Split-Path $SourcePath -Parent) "CygnetCI.Database"
+if (Test-Path $DbSourceDir) {
+    $DbDistDir = Join-Path $DistPath "CygnetCI.Database"
+    New-Item -ItemType Directory -Force -Path $DbDistDir | Out-Null
+    Copy-Item (Join-Path $DbSourceDir "*.sql") -Destination $DbDistDir -Force
+    Write-Host "  Copied: CygnetCI.Database\*.sql -> dist\CygnetCI.Database" -ForegroundColor Gray
 }
 
 # Step 7: Create startup files and web.config

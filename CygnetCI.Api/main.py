@@ -24,6 +24,7 @@ from database import get_db, engine
 import models
 from config import app_config
 import customer_api
+import auth as auth_lib
 
 # Create tables
 models.Base.metadata.create_all(bind=engine)
@@ -517,6 +518,33 @@ def _ip_in_allowlist(ip_str: str, allowlist: list) -> bool:
 
     return False
 
+# Public (unauthenticated) UI/browser endpoints
+_PUBLIC_EXACT = {"/", "/favicon.ico", "/openapi.json", "/docs", "/redoc", "/monitoring/api/ping"}
+_PUBLIC_PREFIXES = ("/auth/login", "/docs", "/redoc", "/static")
+
+
+def _is_public_ui_path(path: str, method: str) -> bool:
+    if path in _PUBLIC_EXACT:
+        return True
+    if any(path.startswith(p) for p in _PUBLIC_PREFIXES):
+        return True
+    # Agent registration may arrive before a UUID header is set
+    if path == "/agents" and method == "POST":
+        return True
+    return False
+
+
+def _auth_error(request: Request, detail: str):
+    """401 JSONResponse with CORS headers (the CORS middleware doesn't wrap
+    responses returned from this outer middleware)."""
+    headers = {}
+    origin = request.headers.get("origin")
+    if origin and origin in app_config.get_allowed_origins():
+        headers["Access-Control-Allow-Origin"] = origin
+        headers["Access-Control-Allow-Credentials"] = "true"
+    return JSONResponse(status_code=401, content={"detail": detail}, headers=headers)
+
+
 @app.middleware("http")
 async def security_middleware(request: Request, call_next):
     # Always pass OPTIONS preflight through untouched so CORS middleware can handle it
@@ -526,6 +554,26 @@ async def security_middleware(request: Request, call_next):
     agent_uuid = request.headers.get("X-Agent-UUID")
 
     if not agent_uuid:
+        # UI / browser request — require a valid user session (except public paths).
+        if _is_public_ui_path(request.url.path, request.method):
+            return await call_next(request)
+
+        token = auth_lib.bearer_from_header(request.headers.get("Authorization"))
+        from database import SessionLocal
+        db = SessionLocal()
+        try:
+            user = auth_lib.validate_token(db, token)
+            if user is None:
+                return _auth_error(request, "Not authenticated")
+            # Capture identity + permissions as plain data, then close the DB
+            # BEFORE call_next (call_next opens its own connection).
+            request.state.auth = {
+                "user_id": user.id,
+                "username": user.username,
+                **auth_lib.permissions_payload(user),
+            }
+        finally:
+            db.close()
         return await call_next(request)
 
     if request.url.path == "/agents" and request.method == "POST":
@@ -600,6 +648,41 @@ async def security_middleware(request: Request, call_next):
         return JSONResponse(status_code=401, content={"detail": "Invalid credentials"})
 
     return await call_next(request)
+
+# ==============================================
+# USER AUTH DEPENDENCIES (session already validated by security_middleware)
+# ==============================================
+
+def get_current_auth(request: Request) -> dict:
+    """Return the authenticated identity dict set by security_middleware."""
+    a = getattr(request.state, "auth", None)
+    if not a:
+        raise HTTPException(status_code=401, detail="Not authenticated")
+    return a
+
+
+def get_current_user(request: Request, db: Session = Depends(get_db)) -> models.User:
+    """Reload the ORM user for the current session."""
+    a = get_current_auth(request)
+    user = db.query(models.User).filter(models.User.id == a["user_id"]).first()
+    if not user or not user.is_active:
+        raise HTTPException(status_code=401, detail="Not authenticated")
+    return user
+
+
+def require_permission(resource: str, action: str):
+    """Dependency factory: 403 unless the current user is a superuser or the
+    resource/action is granted by one of their roles."""
+    def checker(request: Request) -> dict:
+        a = get_current_auth(request)
+        if a.get("is_superuser"):
+            return a
+        allowed = a.get("permissions", {}).get(resource.lower(), [])
+        if action.lower() not in allowed:
+            raise HTTPException(status_code=403, detail=f"Permission denied: {action} on {resource}")
+        return a
+    return checker
+
 
 # Include customer API router
 app.include_router(customer_api.router)
@@ -754,13 +837,11 @@ def login(credentials: LoginRequest, request: Request, db: Session = Depends(get
     user.last_login = datetime.now()
     db.commit()
 
-    # Generate access token.
-    # SECURITY: use a cryptographically-random token instead of a predictable
-    # sha256(username + timestamp). (Note: this token is not yet validated server-side;
-    # a proper JWT/session layer is a separate, planned change.)
-    access_token = secrets.token_urlsafe(48)
+    # Create a server-side session; the returned raw token is validated on every
+    # subsequent request by security_middleware.
+    access_token = auth_lib.create_session(db, user.id)
 
-    # Return user data (without password)
+    # Return user data (without password) + roles/permissions so the UI can gate itself
     user_data = {
         "id": user.id,
         "username": user.username,
@@ -769,13 +850,37 @@ def login(credentials: LoginRequest, request: Request, db: Session = Depends(get
         "is_active": user.is_active,
         "is_superuser": user.is_superuser,
         "created_at": user.created_at.isoformat() if user.created_at else None,
-        "last_login": user.last_login.isoformat() if user.last_login else None
+        "last_login": user.last_login.isoformat() if user.last_login else None,
+        **auth_lib.permissions_payload(user),
     }
 
     return LoginResponse(
         access_token=access_token,
         user=user_data
     )
+
+
+@app.post("/auth/logout", tags=["🔐 Authentication"])
+def logout(authorization: Optional[str] = Header(None), db: Session = Depends(get_db)):
+    """Invalidate the current session token."""
+    token = auth_lib.bearer_from_header(authorization)
+    auth_lib.delete_token(db, token)
+    return {"success": True}
+
+
+@app.get("/auth/me", tags=["🔐 Authentication"])
+def get_me(current_user: models.User = Depends(get_current_user)):
+    """Return the currently authenticated user with roles and permissions."""
+    return {
+        "id": current_user.id,
+        "username": current_user.username,
+        "email": current_user.email,
+        "full_name": current_user.full_name,
+        "is_active": current_user.is_active,
+        "is_superuser": current_user.is_superuser,
+        "last_login": current_user.last_login.isoformat() if current_user.last_login else None,
+        **auth_lib.permissions_payload(current_user),
+    }
 
 # ==================== DASHBOARD ====================
 
@@ -4268,7 +4373,8 @@ def add_pipeline_pickup_log(pickup_id: int, log_data: dict, db: Session = Depend
 @app.get("/users", tags=["👥 Users"])
 def get_users(
     customer_id: Optional[int] = Query(None, description="Filter by customer"),
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    _perm: dict = Depends(require_permission("users", "read")),
 ):
     """Get all users, optionally filtered by customer"""
     query = db.query(models.User)
@@ -4313,7 +4419,8 @@ def create_user(
     full_name: str = Form(...),
     password: str = Form(...),
     is_superuser: bool = Form(False),
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    _perm: dict = Depends(require_permission("users", "create")),
 ):
     """Create a new user"""
     # Check if username or email already exists
@@ -4350,6 +4457,33 @@ def create_user(
         "is_superuser": new_user.is_superuser
     }
 
+class PasswordChange(BaseModel):
+    current_password: str
+    new_password: str
+
+
+@app.put("/users/me/password", tags=["👥 Users"])
+def change_my_password(
+    body: PasswordChange,
+    current_user: models.User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    """Self-service: the logged-in user changes their OWN password."""
+    ph = current_user.password_hash or ""
+    if ph.startswith("$2b$") or ph.startswith("$2a$"):
+        valid = bcrypt.checkpw(body.current_password.encode("utf-8"), ph.encode("utf-8"))
+    else:
+        valid = ph == hashlib.sha256(body.current_password.encode()).hexdigest()
+    if not valid:
+        raise HTTPException(status_code=400, detail="Current password is incorrect")
+    if len(body.new_password) < 6:
+        raise HTTPException(status_code=400, detail="New password must be at least 6 characters")
+
+    current_user.password_hash = bcrypt.hashpw(body.new_password.encode("utf-8"), bcrypt.gensalt()).decode("utf-8")
+    db.commit()
+    return {"success": True, "message": "Password updated"}
+
+
 @app.put("/users/{user_id}", tags=["👥 Users"])
 def update_user(
     user_id: int,
@@ -4358,7 +4492,8 @@ def update_user(
     is_active: Optional[bool] = Form(None),
     is_superuser: Optional[bool] = Form(None),
     password: Optional[str] = Form(None),
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    _perm: dict = Depends(require_permission("users", "update")),
 ):
     """Update user details"""
     user = db.query(models.User).filter(models.User.id == user_id).first()
@@ -4390,7 +4525,8 @@ def update_user(
     }
 
 @app.delete("/users/{user_id}", tags=["👥 Users"])
-def delete_user(user_id: int, db: Session = Depends(get_db)):
+def delete_user(user_id: int, db: Session = Depends(get_db),
+                _perm: dict = Depends(require_permission("users", "delete"))):
     """Delete a user"""
     user = db.query(models.User).filter(models.User.id == user_id).first()
 
@@ -4409,7 +4545,8 @@ class UserAccessUpdate(BaseModel):
 
 
 @app.get("/users/{user_id}/access", tags=["👥 Users"])
-def get_user_access(user_id: int, db: Session = Depends(get_db)):
+def get_user_access(user_id: int, db: Session = Depends(get_db),
+                    _perm: dict = Depends(require_permission("users", "read"))):
     """Get the roles and customers currently assigned to a user."""
     user = db.query(models.User).filter(models.User.id == user_id).first()
     if not user:
@@ -4430,7 +4567,8 @@ def get_user_access(user_id: int, db: Session = Depends(get_db)):
 
 
 @app.put("/users/{user_id}/access", tags=["👥 Users"])
-def update_user_access(user_id: int, access: UserAccessUpdate, db: Session = Depends(get_db)):
+def update_user_access(user_id: int, access: UserAccessUpdate, db: Session = Depends(get_db),
+                       _perm: dict = Depends(require_permission("users", "update"))):
     """Replace the set of roles and customers assigned to a user."""
     user = db.query(models.User).filter(models.User.id == user_id).first()
     if not user:
@@ -4476,7 +4614,8 @@ def update_user_access(user_id: int, access: UserAccessUpdate, db: Session = Dep
 # ==============================================
 
 @app.get("/roles", tags=["🛡️ Roles"])
-def get_roles(db: Session = Depends(get_db)):
+def get_roles(db: Session = Depends(get_db),
+              _perm: dict = Depends(require_permission("roles", "read"))):
     """Get all roles"""
     roles = db.query(models.Role).all()
     return [{
@@ -4491,7 +4630,8 @@ def get_roles(db: Session = Depends(get_db)):
 
 
 @app.get("/roles/{role_id}", tags=["🛡️ Roles"])
-def get_role(role_id: int, db: Session = Depends(get_db)):
+def get_role(role_id: int, db: Session = Depends(get_db),
+             _perm: dict = Depends(require_permission("roles", "read"))):
     """Get a specific role"""
     role = db.query(models.Role).filter(models.Role.id == role_id).first()
 
@@ -4532,7 +4672,8 @@ def _serialize_role(role) -> dict:
 
 
 @app.post("/roles", tags=["🛡️ Roles"], status_code=201)
-def create_role(role: RoleCreate, db: Session = Depends(get_db)):
+def create_role(role: RoleCreate, db: Session = Depends(get_db),
+                _perm: dict = Depends(require_permission("roles", "create"))):
     """Create a new custom role"""
     if not role.name or not role.name.strip():
         raise HTTPException(status_code=400, detail="Role name is required")
@@ -4554,7 +4695,8 @@ def create_role(role: RoleCreate, db: Session = Depends(get_db)):
 
 
 @app.put("/roles/{role_id}", tags=["🛡️ Roles"])
-def update_role(role_id: int, role: RoleUpdate, db: Session = Depends(get_db)):
+def update_role(role_id: int, role: RoleUpdate, db: Session = Depends(get_db),
+                _perm: dict = Depends(require_permission("roles", "update"))):
     """Update a role (system roles cannot be modified)"""
     db_role = db.query(models.Role).filter(models.Role.id == role_id).first()
     if not db_role:
@@ -4584,7 +4726,8 @@ def update_role(role_id: int, role: RoleUpdate, db: Session = Depends(get_db)):
 
 
 @app.delete("/roles/{role_id}", tags=["🛡️ Roles"])
-def delete_role(role_id: int, db: Session = Depends(get_db)):
+def delete_role(role_id: int, db: Session = Depends(get_db),
+                _perm: dict = Depends(require_permission("roles", "delete"))):
     """Delete a role (only custom roles, not system roles)"""
     role = db.query(models.Role).filter(models.Role.id == role_id).first()
 
