@@ -19,7 +19,8 @@ import {
   Building2,
   RotateCcw,
   Mail,
-  Ticket
+  Ticket,
+  Settings
 } from 'lucide-react';
 
 // `resource` is the permission key that gates the item (null = always visible).
@@ -34,7 +35,8 @@ const navItems = [
   { id: 'email-alerts', name: 'Email Alerts', icon: Mail, href: '/email-alerts', resource: 'email-alerts' },
   { id: 'tickets', name: 'Tickets', icon: Ticket, href: '/tickets', resource: 'tickets' },
   { id: 'customers', name: 'Customers', icon: Building2, href: '/customers', resource: 'customers' },
-  { id: 'users', name: 'Users', icon: Users, href: '/users', resource: 'users' }
+  { id: 'users', name: 'Users', icon: Users, href: '/users', resource: 'users' },
+  { id: 'settings', name: 'Settings', icon: Settings, href: '/settings', resource: 'settings' }
 ];
 
 export const Navigation: React.FC = () => {

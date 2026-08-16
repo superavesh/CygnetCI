@@ -38,7 +38,10 @@
       "Bash(dotnet add *)",
       "Bash(dotnet sln *)",
       "Bash(python -m py_compile main.py email_publisher.py)",
-      "Bash(grep -vE \"Connecting|WARNING|Reload|Debug|CORS|Allowed|Max File|Script Ext|Artifact Ext|====|^\\\\[|Host:|Port:|URL:|NFS|Scripts:|Artifacts:|Configuration|RabbitMQ|^\\\\s*$|email_publisher\")"
+      "Bash(grep -vE \"Connecting|WARNING|Reload|Debug|CORS|Allowed|Max File|Script Ext|Artifact Ext|====|^\\\\[|Host:|Port:|URL:|NFS|Scripts:|Artifacts:|Configuration|RabbitMQ|^\\\\s*$|email_publisher\")",
+      "Bash(flutter --version)",
+      "Bash(python -m py_compile main.py)",
+      "Bash(grep -vE \"Connecting|WARNING|Reload|Debug|CORS|Allowed|Max File|Script Ext|Artifact Ext|====|^\\\\[|Host:|Port:|URL:|NFS|Scripts:|Artifacts:|Configuration|RabbitMQ|^\\\\s*$\")"
     ],
     "additionalDirectories": [
       "d:\\Avesh\\CygnetCI\\SourceCode\\CygnetCI\\CygnetCI.Web\\cygnetci-web"

@@ -685,6 +685,14 @@ def require_permission(resource: str, action: str):
     return checker
 
 
+def require_superuser(request: Request) -> dict:
+    """Dependency: 403 unless the current user is a superuser."""
+    a = get_current_auth(request)
+    if not a.get("is_superuser"):
+        raise HTTPException(status_code=403, detail="Superuser required")
+    return a
+
+
 # Include customer API router
 app.include_router(customer_api.router)
 
@@ -999,6 +1007,60 @@ def reset_password(body: ResetPasswordRequest, db: Session = Depends(get_db)):
     db.query(models.UserSession).filter(models.UserSession.user_id == user.id).delete(synchronize_session=False)
     db.commit()
     return {"success": True, "message": "Password has been reset. Please sign in."}
+
+
+# ==============================================
+# SETTINGS: alert thresholds (consumed by the mobile app; edited in the web UI)
+# ==============================================
+
+class AlertThresholds(BaseModel):
+    cpu: int = 90
+    memory: int = 90
+    disk: int = 90
+
+
+@app.get("/settings/alert-thresholds", tags=["⚙️ Settings"])
+def get_alert_thresholds(db: Session = Depends(get_db)):
+    """Current CPU/RAM/disk alert thresholds (defaults to 90). Any authenticated user."""
+    import json
+    result = {"cpu": 90, "memory": 90, "disk": 90}
+    raw = _get_setting(db, "alert_thresholds", "")
+    if raw:
+        try:
+            data = json.loads(raw)
+            for k in result:
+                v = data.get(k)
+                if isinstance(v, (int, float)):
+                    result[k] = int(v)
+        except Exception:
+            pass
+    return result
+
+
+@app.put("/settings/alert-thresholds", tags=["⚙️ Settings"])
+def update_alert_thresholds(
+    body: AlertThresholds,
+    db: Session = Depends(get_db),
+    _perm: dict = Depends(require_superuser),
+):
+    """Update alert thresholds (superuser only). Values are percentages 1-100."""
+    import json
+    for name, v in (("cpu", body.cpu), ("memory", body.memory), ("disk", body.disk)):
+        if not (1 <= v <= 100):
+            raise HTTPException(status_code=400, detail=f"{name} must be between 1 and 100")
+
+    value = json.dumps({"cpu": body.cpu, "memory": body.memory, "disk": body.disk})
+    row = db.query(models.AppSetting).filter(models.AppSetting.key == "alert_thresholds").first()
+    if row:
+        row.value = value
+    else:
+        db.add(models.AppSetting(
+            key="alert_thresholds",
+            value=value,
+            description="Mobile alert thresholds (CPU/RAM/disk %)",
+        ))
+    db.commit()
+    return {"cpu": body.cpu, "memory": body.memory, "disk": body.disk}
 
 # ==================== DASHBOARD ====================
 

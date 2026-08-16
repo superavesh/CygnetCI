@@ -1,0 +1,29 @@
+name: cygnetci_mobile
+description: CygnetCI monitoring & critical-alert app (polling, push-free).
+publish_to: "none"
+version: 1.0.0+1
+
+environment:
+  sdk: ">=3.4.0 <4.0.0"
+
+dependencies:
+  flutter:
+    sdk: flutter
+  cupertino_icons: ^1.0.8
+  dio: ^5.7.0
+  provider: ^6.1.2
+  flutter_secure_storage: ^9.2.2
+  shared_preferences: ^2.3.2
+  flutter_local_notifications: ^17.2.3
+  flutter_background_service: ^5.0.10
+  flutter_background_service_android: ^6.2.7
+  vibration: ^2.0.0
+  audioplayers: ^6.1.0
+
+dev_dependencies:
+  flutter_lints: ^4.0.0
+
+flutter:
+  uses-material-design: true
+  assets:
+    - assets/alarm.mp3
