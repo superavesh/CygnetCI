@@ -1,0 +1,16 @@
+[Unit]
+Description=CygnetCI EmailEngine (RabbitMQ -> SMTP)
+After=network.target
+
+[Service]
+Type=notify
+# Point these at the published folder on the server
+WorkingDirectory=/opt/cygnetci/emailengine
+ExecStart=/opt/cygnetci/emailengine/CygnetCI.EmailEngine
+Restart=on-failure
+RestartSec=5
+User=cygnetci
+Group=cygnetci
+
+[Install]
+WantedBy=multi-user.target

@@ -43,8 +43,12 @@ export function AuthWrapper({ children }: { children: React.ReactNode }) {
   const [apiError, setApiError] = useState<string | null>(null);
   const [apiChecked, setApiChecked] = useState(false);
 
-  // Handle both with and without trailing slash (Next.js trailingSlash: true)
-  const isLoginPage = pathname === '/login' || pathname === '/login/';
+  // Public pages that must render without auth (handle trailing slash too)
+  const isLoginPage = [
+    '/login', '/login/',
+    '/forgot-password', '/forgot-password/',
+    '/reset-password', '/reset-password/',
+  ].includes(pathname);
 
   // Mark as mounted after hydration; install the API auth interceptor first
   useEffect(() => {

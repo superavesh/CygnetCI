@@ -25,6 +25,7 @@ import models
 from config import app_config
 import customer_api
 import auth as auth_lib
+import email_publisher
 
 # Create tables
 models.Base.metadata.create_all(bind=engine)
@@ -520,7 +521,7 @@ def _ip_in_allowlist(ip_str: str, allowlist: list) -> bool:
 
 # Public (unauthenticated) UI/browser endpoints
 _PUBLIC_EXACT = {"/", "/favicon.ico", "/openapi.json", "/docs", "/redoc", "/monitoring/api/ping"}
-_PUBLIC_PREFIXES = ("/auth/login", "/docs", "/redoc", "/static")
+_PUBLIC_PREFIXES = ("/auth/login", "/auth/forgot-password", "/auth/reset-password", "/docs", "/redoc", "/static")
 
 
 def _is_public_ui_path(path: str, method: str) -> bool:
@@ -687,6 +688,39 @@ def require_permission(resource: str, action: str):
 # Include customer API router
 app.include_router(customer_api.router)
 
+
+# ==============================================
+# EMAIL / SETTINGS HELPERS
+# ==============================================
+
+def _get_setting(db: Session, key: str, default: str = "") -> str:
+    row = db.query(models.AppSetting).filter(models.AppSetting.key == key).first()
+    return row.value if row and row.value is not None else default
+
+
+def _publish_alert(db: Session, alert_subject: str, message: str, event: str, resource: str = ""):
+    """Send a system alert email to the configured recipient list (best-effort)."""
+    recipients_raw = _get_setting(db, "alert_recipients", "")
+    recipients = [r.strip() for r in recipients_raw.replace(";", ",").split(",") if r.strip()]
+    if not recipients:
+        return
+    try:
+        email_publisher.publish_email(
+            email_type="agent_alert",
+            to=recipients,
+            template="agent_alert",
+            data={
+                "alert_subject": alert_subject,
+                "message": message,
+                "event": event,
+                "resource": resource,
+                "occurred_at": datetime.now().isoformat(timespec="seconds"),
+            },
+        )
+    except Exception as e:  # noqa: BLE001
+        print(f"[alert] failed to queue alert '{alert_subject}': {e}")
+
+
 # ==============================================
 # BACKGROUND: Proactive agent status checker
 # ==============================================
@@ -709,9 +743,19 @@ async def _agent_status_checker():
                     .all()
                 )
                 if stale:
+                    stale_info = [(a.name, a.id) for a in stale]
                     for agent in stale:
                         agent.status = "offline"
                     db.commit()
+                    # Alert on each agent that just went offline
+                    for name, aid in stale_info:
+                        _publish_alert(
+                            db,
+                            alert_subject=f"Agent offline: {name}",
+                            message=f"Agent '{name}' has stopped reporting and was marked offline.",
+                            event="agent_offline",
+                            resource=f"agent#{aid} {name}",
+                        )
             finally:
                 db.close()
         except Exception as e:
@@ -881,6 +925,80 @@ def get_me(current_user: models.User = Depends(get_current_user)):
         "last_login": current_user.last_login.isoformat() if current_user.last_login else None,
         **auth_lib.permissions_payload(current_user),
     }
+
+
+PASSWORD_RESET_TTL_MINUTES = 60
+
+
+class ForgotPasswordRequest(BaseModel):
+    email: str
+
+
+class ResetPasswordRequest(BaseModel):
+    token: str
+    new_password: str
+
+
+@app.post("/auth/forgot-password", tags=["🔐 Authentication"])
+def forgot_password(body: ForgotPasswordRequest, db: Session = Depends(get_db)):
+    """Queue a password-reset email. Always returns success (no account enumeration)."""
+    email = (body.email or "").strip()
+    if email:
+        user = db.query(models.User).filter(models.User.email.ilike(email)).first()
+        if user and user.is_active:
+            # Invalidate any previous unused tokens for this user
+            db.query(models.PasswordResetToken).filter(
+                models.PasswordResetToken.user_id == user.id,
+                models.PasswordResetToken.used_at.is_(None),
+            ).delete(synchronize_session=False)
+
+            raw = secrets.token_urlsafe(48)
+            token_hash = hashlib.sha256(raw.encode()).hexdigest()
+            db.add(models.PasswordResetToken(
+                user_id=user.id,
+                token_hash=token_hash,
+                expires_at=datetime.now() + timedelta(minutes=PASSWORD_RESET_TTL_MINUTES),
+            ))
+            db.commit()
+
+            base = _get_setting(db, "web_base_url", "http://localhost").rstrip("/")
+            reset_url = f"{base}/reset-password?token={raw}"
+            email_publisher.publish_email(
+                email_type="password_reset",
+                to=[user.email],
+                template="password_reset",
+                data={
+                    "full_name": user.full_name or user.username,
+                    "reset_url": reset_url,
+                    "ttl_minutes": PASSWORD_RESET_TTL_MINUTES,
+                },
+            )
+    return {"success": True, "message": "If that email exists, a reset link has been sent."}
+
+
+@app.post("/auth/reset-password", tags=["🔐 Authentication"])
+def reset_password(body: ResetPasswordRequest, db: Session = Depends(get_db)):
+    """Complete a password reset using a valid, unexpired, single-use token."""
+    if len(body.new_password) < 6:
+        raise HTTPException(status_code=400, detail="New password must be at least 6 characters")
+
+    token_hash = hashlib.sha256((body.token or "").encode()).hexdigest()
+    prt = db.query(models.PasswordResetToken).filter(
+        models.PasswordResetToken.token_hash == token_hash
+    ).first()
+    if not prt or prt.used_at is not None or prt.expires_at <= datetime.now():
+        raise HTTPException(status_code=400, detail="Invalid or expired reset link")
+
+    user = db.query(models.User).filter(models.User.id == prt.user_id).first()
+    if not user or not user.is_active:
+        raise HTTPException(status_code=400, detail="Invalid or expired reset link")
+
+    user.password_hash = bcrypt.hashpw(body.new_password.encode("utf-8"), bcrypt.gensalt()).decode("utf-8")
+    prt.used_at = datetime.now()
+    # Security: invalidate all existing sessions for this user
+    db.query(models.UserSession).filter(models.UserSession.user_id == user.id).delete(synchronize_session=False)
+    db.commit()
+    return {"success": True, "message": "Password has been reset. Please sign in."}
 
 # ==================== DASHBOARD ====================
 
@@ -4447,6 +4565,22 @@ def create_user(
     db.add(new_user)
     db.commit()
     db.refresh(new_user)
+
+    # Best-effort welcome email
+    try:
+        base = _get_setting(db, "web_base_url", "http://localhost").rstrip("/")
+        email_publisher.publish_email(
+            email_type="user_welcome",
+            to=[new_user.email],
+            template="user_welcome",
+            data={
+                "full_name": new_user.full_name or new_user.username,
+                "username": new_user.username,
+                "login_url": f"{base}/login",
+            },
+        )
+    except Exception as _e:  # noqa: BLE001
+        print(f"[user_welcome] failed to queue: {_e}")
 
     return {
         "id": new_user.id,

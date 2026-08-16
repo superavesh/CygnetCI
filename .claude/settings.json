@@ -26,7 +26,19 @@
       "Bash(grep -nA4 \"class LoginResponse\" main.py)",
       "Bash(python -m py_compile run_user_sessions_migration.py run_user_roles_migration.py seed_fresh_db.py auth.py)",
       "PowerShell($path = \"D:\\\\Avesh\\\\CygnetCI\\\\SourceCode\\\\CygnetCI\\\\CygnetCI.Api\\\\build_for_iis.ps1\"; $tokens=$null; $errors=$null; [System.Management.Automation.Language.Parser]::ParseFile\\($path, [ref]$tokens, [ref]$errors\\) | Out-Null; if \\($errors.Count -eq 0\\) { Write-Output \"PS PARSE OK - no syntax errors\" } else { $errors | ForEach-Object { Write-Output $_.Message } })",
-      "Bash(python -m py_compile run_user_roles_migration.py run_user_sessions_migration.py seed_fresh_db.py)"
+      "Bash(python -m py_compile run_user_roles_migration.py run_user_sessions_migration.py seed_fresh_db.py)",
+      "Bash(grep -nA15 \"class EmailAlert\" CygnetCI.Api/models.py)",
+      "Bash(grep -nA20 \"class EmailConfig\\\\|__tablename__ = \\\\\"email_config\" CygnetCI.Api/models.py)",
+      "Bash(python -m py_compile main.py email_publisher.py models.py config.py run_email_engine_migration.py)",
+      "Bash(python run_email_engine_migration.py)",
+      "Bash(dotnet --version)",
+      "Bash(dotnet --list-sdks)",
+      "Bash(dotnet --list-runtimes)",
+      "Bash(dotnet build *)",
+      "Bash(dotnet add *)",
+      "Bash(dotnet sln *)",
+      "Bash(python -m py_compile main.py email_publisher.py)",
+      "Bash(grep -vE \"Connecting|WARNING|Reload|Debug|CORS|Allowed|Max File|Script Ext|Artifact Ext|====|^\\\\[|Host:|Port:|URL:|NFS|Scripts:|Artifacts:|Configuration|RabbitMQ|^\\\\s*$|email_publisher\")"
     ],
     "additionalDirectories": [
       "d:\\Avesh\\CygnetCI\\SourceCode\\CygnetCI\\CygnetCI.Web\\cygnetci-web"
