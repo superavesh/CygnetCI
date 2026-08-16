@@ -106,6 +106,16 @@ foreach ($f in $pyFiles) {
     Write-Host "  Copied: $($f.Name)" -ForegroundColor Gray
 }
 
+# Copy Python sub-packages (e.g. routers/) so their modules are deployed too.
+$pyPackages = @("routers")
+foreach ($pkg in $pyPackages) {
+    $srcDir = Join-Path $SourcePath $pkg
+    if (Test-Path $srcDir) {
+        Copy-Item $srcDir -Destination $DistPath -Recurse -Force
+        Write-Host "  Copied package: $pkg\" -ForegroundColor Gray
+    }
+}
+
 # Copy supporting non-Python files if present
 $OtherFiles = @(
     "requirements.txt",

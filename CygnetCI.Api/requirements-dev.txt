@@ -1,0 +1,3 @@
+# Dev/test-only dependencies (not needed at runtime / not bundled by build_for_iis.ps1)
+-r requirements.txt
+pytest==9.1.1
