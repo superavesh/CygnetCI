@@ -62,17 +62,15 @@ def get_agents_metrics(
 def get_agent_metrics_history(
     agent_uuid: str = Depends(get_agent_uuid),
     hours: int = Query(1, ge=1, le=24),
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    _perm: dict = Depends(require_permission("monitoring", "read")),
+    allowed: Optional[list] = Depends(get_allowed_customer_ids),
 ):
-    """Get historical metrics for an agent (last N hours).
-
-    NOTE: called by the UI with the agent identified via the X-Agent-UUID header (not a
-    path/query param) — the security middleware treats ANY request carrying that header as
-    agent traffic and never populates request.state.auth, so require_permission() cannot be
-    used here without a middleware redesign. See routers/k8s.py for the same constraint."""
+    """Get historical metrics for an agent (last N hours)"""
     agent = db.query(models.Agent).filter(models.Agent.uuid == agent_uuid).first()
     if not agent:
         raise HTTPException(status_code=404, detail="Agent not found")
+    require_customer_access(agent.customer_id, allowed)
 
     from_time = datetime.now() - timedelta(hours=hours)
 
@@ -99,15 +97,15 @@ def delete_agent_metrics_history(
     agent_uuid: str = Depends(get_agent_uuid),
     start_date: str = Query(..., description="Start datetime in ISO format"),
     end_date: str = Query(..., description="End datetime in ISO format"),
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    _perm: dict = Depends(require_permission("monitoring", "update")),
+    allowed: Optional[list] = Depends(get_allowed_customer_ids),
 ):
-    """Delete historical metrics for an agent within a date range.
-
-    NOTE: identified via X-Agent-UUID header — see get_agent_metrics_history for why
-    require_permission() can't be applied here without a middleware redesign."""
+    """Delete historical metrics for an agent within a date range"""
     agent = db.query(models.Agent).filter(models.Agent.uuid == agent_uuid).first()
     if not agent:
         raise HTTPException(status_code=404, detail="Agent not found")
+    require_customer_access(agent.customer_id, allowed)
 
     try:
         from_time = datetime.fromisoformat(start_date.replace('Z', '+00:00'))
@@ -230,15 +228,15 @@ def report_monitoring_data(agent_uuid: str = Depends(get_agent_uuid), data: dict
 @router.get("/monitoring/agents/windows-services", tags=["🌐 UI - Monitoring"])
 def get_agent_windows_services(
     agent_uuid: str = Depends(get_agent_uuid),
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    _perm: dict = Depends(require_permission("monitoring", "read")),
+    allowed: Optional[list] = Depends(get_allowed_customer_ids),
 ):
-    """Get Windows services starting with 'CI' for an agent.
-
-    NOTE: identified via X-Agent-UUID header — see get_agent_metrics_history for why
-    require_permission() can't be applied here without a middleware redesign."""
+    """Get Windows services starting with 'CI' for an agent"""
     agent = db.query(models.Agent).filter(models.Agent.uuid == agent_uuid).first()
     if not agent:
         raise HTTPException(status_code=404, detail="Agent not found")
+    require_customer_access(agent.customer_id, allowed)
 
     # Get latest reported services from database
     services = db.query(models.AgentWindowsService)\
@@ -261,17 +259,17 @@ def control_windows_service(
     agent_uuid: str = Depends(get_agent_uuid),
     service_name: str = None,
     action: str = None,
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    _perm: dict = Depends(require_permission("monitoring", "update")),
+    allowed: Optional[list] = Depends(get_allowed_customer_ids),
 ):
-    """Control Windows service (start/stop) - queues command for agent to execute.
-
-    NOTE: identified via X-Agent-UUID header — see get_agent_metrics_history for why
-    require_permission() can't be applied here without a middleware redesign."""
+    """Control Windows service (start/stop) - queues command for agent to execute"""
     import json
 
     agent = db.query(models.Agent).filter(models.Agent.uuid == agent_uuid).first()
     if not agent:
         raise HTTPException(status_code=404, detail="Agent not found")
+    require_customer_access(agent.customer_id, allowed)
 
     if not service_name or not action:
         raise HTTPException(status_code=400, detail="service_name and action are required")
@@ -307,15 +305,15 @@ def control_windows_service(
 @router.get("/monitoring/agents/drive-info", tags=["🌐 UI - Monitoring"])
 def get_agent_drive_info(
     agent_uuid: str = Depends(get_agent_uuid),
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    _perm: dict = Depends(require_permission("monitoring", "read")),
+    allowed: Optional[list] = Depends(get_allowed_customer_ids),
 ):
-    """Get drive information for an agent.
-
-    NOTE: identified via X-Agent-UUID header — see get_agent_metrics_history for why
-    require_permission() can't be applied here without a middleware redesign."""
+    """Get drive information for an agent"""
     agent = db.query(models.Agent).filter(models.Agent.uuid == agent_uuid).first()
     if not agent:
         raise HTTPException(status_code=404, detail="Agent not found")
+    require_customer_access(agent.customer_id, allowed)
 
     # Get drive data from database
     drives = db.query(models.AgentDriveInfo)\
@@ -337,15 +335,15 @@ def get_agent_drive_info(
 @router.get("/monitoring/agents/website-ping", tags=["🌐 UI - Monitoring"])
 def get_agent_website_ping(
     agent_uuid: str = Depends(get_agent_uuid),
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    _perm: dict = Depends(require_permission("monitoring", "read")),
+    allowed: Optional[list] = Depends(get_allowed_customer_ids),
 ):
-    """Get website/API ping status from agent (from agent's appsettings.json configuration).
-
-    NOTE: identified via X-Agent-UUID header — see get_agent_metrics_history for why
-    require_permission() can't be applied here without a middleware redesign."""
+    """Get website/API ping status from agent (from agent's appsettings.json configuration)"""
     agent = db.query(models.Agent).filter(models.Agent.uuid == agent_uuid).first()
     if not agent:
         raise HTTPException(status_code=404, detail="Agent not found")
+    require_customer_access(agent.customer_id, allowed)
 
     # Get the latest ping data for each URL (most recent check)
     # Using a subquery to get the latest checked_at for each URL
@@ -379,15 +377,15 @@ def get_service_logs(
     service_name: str = None,
     date: Optional[str] = None,
     limit: int = Query(100, ge=1, le=1000),
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    _perm: dict = Depends(require_permission("monitoring", "read")),
+    allowed: Optional[list] = Depends(get_allowed_customer_ids),
 ):
-    """Get logs for a specific service on an agent.
-
-    NOTE: identified via X-Agent-UUID header — see get_agent_metrics_history for why
-    require_permission() can't be applied here without a middleware redesign."""
+    """Get logs for a specific service on an agent"""
     agent = db.query(models.Agent).filter(models.Agent.uuid == agent_uuid).first()
     if not agent:
         raise HTTPException(status_code=404, detail="Agent not found")
+    require_customer_access(agent.customer_id, allowed)
 
     query = db.query(models.AgentLog)\
         .filter(models.AgentLog.agent_id == agent.id)
@@ -458,15 +456,15 @@ def get_command_result(
 def request_service_log_list(
     agent_uuid: str = Depends(get_agent_uuid),
     service_name: str = None,
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    _perm: dict = Depends(require_permission("monitoring", "read")),
+    allowed: Optional[list] = Depends(get_allowed_customer_ids),
 ):
-    """Ask the agent to list log files for a service. Returns command_id to poll.
-
-    NOTE: identified via X-Agent-UUID header — see get_agent_metrics_history for why
-    require_permission() can't be applied here without a middleware redesign."""
+    """Ask the agent to list log files for a service. Returns command_id to poll."""
     agent = db.query(models.Agent).filter(models.Agent.uuid == agent_uuid).first()
     if not agent:
         raise HTTPException(status_code=404, detail="Agent not found")
+    require_customer_access(agent.customer_id, allowed)
 
     cmd = models.AgentCommand(
         agent_id=agent.id,
@@ -485,15 +483,15 @@ def request_service_log_read(
     service_name: str = None,
     file_name: str = Query(...),
     max_kb: int = Query(512, ge=1, le=4096),
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    _perm: dict = Depends(require_permission("monitoring", "read")),
+    allowed: Optional[list] = Depends(get_allowed_customer_ids),
 ):
-    """Ask the agent to read a specific log file. Returns command_id to poll.
-
-    NOTE: identified via X-Agent-UUID header — see get_agent_metrics_history for why
-    require_permission() can't be applied here without a middleware redesign."""
+    """Ask the agent to read a specific log file. Returns command_id to poll."""
     agent = db.query(models.Agent).filter(models.Agent.uuid == agent_uuid).first()
     if not agent:
         raise HTTPException(status_code=404, detail="Agent not found")
+    require_customer_access(agent.customer_id, allowed)
 
     cmd = models.AgentCommand(
         agent_id=agent.id,

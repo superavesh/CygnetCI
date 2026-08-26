@@ -12,7 +12,7 @@ from sqlalchemy.orm import Session
 
 from database import get_db
 import models
-from deps import get_agent_uuid
+from deps import get_agent_uuid, require_permission, get_allowed_customer_ids, require_customer_access
 
 router = APIRouter()
 
@@ -57,12 +57,15 @@ def get_service_log_content(
     agent_uuid: str = Depends(get_agent_uuid),
     service_name: str = Query(...),
     file_name: str = Query(...),
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    _perm: dict = Depends(require_permission("monitoring", "read")),
+    allowed: Optional[list] = Depends(get_allowed_customer_ids),
 ):
     """UI retrieves log file content that the agent previously pushed."""
     agent = db.query(models.Agent).filter(models.Agent.uuid == agent_uuid).first()
     if not agent:
         raise HTTPException(status_code=404, detail="Agent not found")
+    require_customer_access(agent.customer_id, allowed)
     key = f"{agent_uuid}:{service_name}:{file_name}"
     entry = _service_log_content_store.pop(key, None)  # consume once — free memory
     if entry is None:
@@ -125,11 +128,17 @@ _K8S_EMPTY_SNAPSHOT = {
 }
 
 @router.get("/agents/k8s-clusters", tags=["🌐 UI - K8s"])
-def get_k8s_clusters(agent_uuid: str = Depends(get_agent_uuid), db: Session = Depends(get_db)):
+def get_k8s_clusters(
+    agent_uuid: str = Depends(get_agent_uuid),
+    db: Session = Depends(get_db),
+    _perm: dict = Depends(require_permission("monitoring", "read")),
+    allowed: Optional[list] = Depends(get_allowed_customer_ids),
+):
     """List all cluster names that have reported metrics for this agent."""
     agent = db.query(models.Agent).filter(models.Agent.uuid == agent_uuid).first()
     if not agent:
         raise HTTPException(status_code=404, detail="Agent not found")
+    require_customer_access(agent.customer_id, allowed)
     prefix = f"{agent_uuid}:"
     clusters = sorted({k[len(prefix):] for k in _k8s_metrics_store if k.startswith(prefix)})
     return clusters
@@ -139,12 +148,15 @@ def get_k8s_metrics(
     agent_uuid: str = Depends(get_agent_uuid),
     cluster_name: Optional[str] = Query(None, description="Cluster name. Omit to get the first available cluster."),
     at: Optional[str] = Query(None, description="ISO datetime to retrieve closest historical snapshot"),
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    _perm: dict = Depends(require_permission("monitoring", "read")),
+    allowed: Optional[list] = Depends(get_allowed_customer_ids),
 ):
     """Get latest K8s observability snapshot for an agent + cluster, or closest snapshot to a given datetime."""
     agent = db.query(models.Agent).filter(models.Agent.uuid == agent_uuid).first()
     if not agent:
         raise HTTPException(status_code=404, detail="Agent not found")
+    require_customer_access(agent.customer_id, allowed)
 
     # Resolve cluster key — fall back to first available if not specified
     if cluster_name:
@@ -183,12 +195,15 @@ def get_k8s_metrics(
 def get_k8s_metrics_history(
     agent_uuid: str = Depends(get_agent_uuid),
     cluster_name: Optional[str] = Query(None, description="Cluster name. Omit to get the first available cluster."),
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    _perm: dict = Depends(require_permission("monitoring", "read")),
+    allowed: Optional[list] = Depends(get_allowed_customer_ids),
 ):
     """Get time-series history of K8s metrics for sparklines."""
     agent = db.query(models.Agent).filter(models.Agent.uuid == agent_uuid).first()
     if not agent:
         raise HTTPException(status_code=404, detail="Agent not found")
+    require_customer_access(agent.customer_id, allowed)
 
     if cluster_name:
         key = f"{agent_uuid}:{cluster_name}"
@@ -200,7 +215,13 @@ def get_k8s_metrics_history(
     return _k8s_metrics_history.get(key, [])
 
 @router.post("/agents/k8s-onboard", tags=["🌐 UI - K8s"])
-def k8s_onboard_application(agent_uuid: str = Depends(get_agent_uuid), payload: dict = Body(...), db: Session = Depends(get_db)):
+def k8s_onboard_application(
+    agent_uuid: str = Depends(get_agent_uuid),
+    payload: dict = Body(...),
+    db: Session = Depends(get_db),
+    _perm: dict = Depends(require_permission("monitoring", "update")),
+    allowed: Optional[list] = Depends(get_allowed_customer_ids),
+):
     """
     Send a k8s_onboard command to an agent — creates an ArgoCD Application for a new workload.
     payload: { app_name, namespace, helm_repo_url, helm_chart_name, helm_chart_version,
@@ -209,6 +230,7 @@ def k8s_onboard_application(agent_uuid: str = Depends(get_agent_uuid), payload: 
     agent = db.query(models.Agent).filter(models.Agent.uuid == agent_uuid).first()
     if not agent:
         raise HTTPException(status_code=404, detail="Agent not found")
+    require_customer_access(agent.customer_id, allowed)
 
     import json as _json
     command = models.AgentCommand(
@@ -223,7 +245,13 @@ def k8s_onboard_application(agent_uuid: str = Depends(get_agent_uuid), payload: 
     return {"success": True, "command_id": command.id}
 
 @router.post("/agents/k8s-sync", tags=["🌐 UI - K8s"])
-def k8s_sync_application(agent_uuid: str = Depends(get_agent_uuid), payload: dict = Body(...), db: Session = Depends(get_db)):
+def k8s_sync_application(
+    agent_uuid: str = Depends(get_agent_uuid),
+    payload: dict = Body(...),
+    db: Session = Depends(get_db),
+    _perm: dict = Depends(require_permission("monitoring", "update")),
+    allowed: Optional[list] = Depends(get_allowed_customer_ids),
+):
     """
     Send a k8s_argocd_sync command to an agent — updates image tag and triggers ArgoCD sync.
     payload: { app_name, image_repository, image_tag }
@@ -231,6 +259,7 @@ def k8s_sync_application(agent_uuid: str = Depends(get_agent_uuid), payload: dic
     agent = db.query(models.Agent).filter(models.Agent.uuid == agent_uuid).first()
     if not agent:
         raise HTTPException(status_code=404, detail="Agent not found")
+    require_customer_access(agent.customer_id, allowed)
 
     import json as _json
     command = models.AgentCommand(

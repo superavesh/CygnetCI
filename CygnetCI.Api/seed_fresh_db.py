@@ -48,7 +48,7 @@ ROLES = [
             "agents": ["create", "read", "update", "delete"],
             "releases": ["create", "read", "update", "delete", "deploy"],
             "pipelines": ["create", "read", "update", "delete", "execute"],
-            "monitoring": ["read"],
+            "monitoring": ["read", "update"],
             "overview": ["read", "update"],
             "transfer": ["create", "read", "delete"],
             "rollback": ["create", "read", "execute", "delete"],
