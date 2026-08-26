@@ -13,9 +13,14 @@ import { ReleaseExecutionViewModal } from '@/components/releases/ReleaseExecutio
 import { ReleaseFilter, filterReleases } from '@/components/tables/ReleaseFilter';
 import { ReleaseImportModal } from '@/components/releases/ReleaseImportModal';
 import { useCustomer } from '@/lib/contexts/CustomerContext';
+import { hasPermission } from '@/lib/permissions';
 
 export default function ReleasesPage() {
   const { selectedCustomer } = useCustomer();
+  const canCreate = hasPermission('releases', 'create');
+  const canUpdate = hasPermission('releases', 'update');
+  const canDelete = hasPermission('releases', 'delete');
+  const canDeploy = hasPermission('releases', 'deploy');
   const [releases, setReleases] = useState<Release[]>([]);
   const [environments, setEnvironments] = useState<Environment[]>([]);
   const [loading, setLoading] = useState(true);
@@ -209,14 +214,18 @@ export default function ReleasesPage() {
               {exporting ? <RefreshCw className="h-4 w-4 animate-spin" /> : <Download className="h-4 w-4" />}
               <span>Export All</span>
             </button>
-            <button onClick={() => setShowImportModal(true)}
-              className="bg-gray-100 hover:bg-gray-200 text-gray-700 px-3 py-2 rounded-lg flex items-center gap-2 transition-colors text-sm">
-              <Upload className="h-4 w-4" /><span>Import</span>
-            </button>
-            <button onClick={() => setShowCreateModal(true)}
-              className="bg-blue-500 hover:bg-blue-600 text-white px-3 py-2 rounded-lg flex items-center gap-2 transition-colors text-sm">
-              <Plus className="h-4 w-4" /><span>New Release</span>
-            </button>
+            {canCreate && (
+              <button onClick={() => setShowImportModal(true)}
+                className="bg-gray-100 hover:bg-gray-200 text-gray-700 px-3 py-2 rounded-lg flex items-center gap-2 transition-colors text-sm">
+                <Upload className="h-4 w-4" /><span>Import</span>
+              </button>
+            )}
+            {canCreate && (
+              <button onClick={() => setShowCreateModal(true)}
+                className="bg-blue-500 hover:bg-blue-600 text-white px-3 py-2 rounded-lg flex items-center gap-2 transition-colors text-sm">
+                <Plus className="h-4 w-4" /><span>New Release</span>
+              </button>
+            )}
           </div>
         </div>
 
@@ -363,20 +372,24 @@ export default function ReleasesPage() {
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
                           <div className="flex space-x-2">
-                            <button
-                              onClick={() => handleDeploy(release)}
-                              className="text-green-600 hover:text-green-700 transition-colors"
-                              title="Deploy Release"
-                            >
-                              <Play className="h-4 w-4" />
-                            </button>
-                            <button
-                              onClick={() => handleEdit(release)}
-                              className="text-indigo-600 hover:text-indigo-700 transition-colors"
-                              title="Edit Release"
-                            >
-                              <Pencil className="h-4 w-4" />
-                            </button>
+                            {canDeploy && (
+                              <button
+                                onClick={() => handleDeploy(release)}
+                                className="text-green-600 hover:text-green-700 transition-colors"
+                                title="Deploy Release"
+                              >
+                                <Play className="h-4 w-4" />
+                              </button>
+                            )}
+                            {canUpdate && (
+                              <button
+                                onClick={() => handleEdit(release)}
+                                className="text-indigo-600 hover:text-indigo-700 transition-colors"
+                                title="Edit Release"
+                              >
+                                <Pencil className="h-4 w-4" />
+                              </button>
+                            )}
                             <button
                               onClick={() => handleViewHistory(release)}
                               className="text-blue-600 hover:text-blue-700 transition-colors"
@@ -391,6 +404,7 @@ export default function ReleasesPage() {
                             >
                               <FileDown className="h-4 w-4" />
                             </button>
+                            {canDelete && (
                             <button
                               onClick={() => handleDelete(release.id)}
                               className="text-red-600 hover:text-red-700 transition-colors"
@@ -398,6 +412,7 @@ export default function ReleasesPage() {
                             >
                               <Trash2 className="h-4 w-4" />
                             </button>
+                            )}
                           </div>
                         </td>
                       </tr>

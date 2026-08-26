@@ -144,7 +144,7 @@ export default function UsersPage() {
     setAccess({ checked: true, ok: isSuperuser() || hasPermission('users', 'read') });
   }, []);
 
-  const pages = ['Overview', 'Pipelines', 'Releases', 'Transfer', 'Rollback', 'Agents', 'Monitoring', 'Customers', 'Users', 'Tasks'];
+  const pages = ['Overview', 'Pipelines', 'Releases', 'Transfer', 'Rollback', 'Agents', 'Monitoring', 'Customers', 'Users', 'Tasks', 'Tickets', 'Services', 'Email'];
 
   const showNotification = (type: NotificationType, message: string) => {
     const id = notificationId;

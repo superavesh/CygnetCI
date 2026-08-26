@@ -869,6 +869,61 @@ class UserSession(Base):
     user = relationship("User")
 
 
+class AppSetting(Base):
+    """Global key/value application settings (e.g. SMTP config XML, web_base_url)."""
+    __tablename__ = "app_settings"
+
+    id = Column(Integer, primary_key=True, index=True)
+    key = Column(String(100), unique=True, nullable=False, index=True)
+    value = Column(Text)
+    description = Column(Text)
+    updated_at = Column(TIMESTAMP, server_default=func.now(), onupdate=func.now(), nullable=False)
+
+
+class EmailTemplate(Base):
+    """DB-editable email templates rendered by the EmailEngine (Scriban)."""
+    __tablename__ = "email_templates"
+
+    id = Column(Integer, primary_key=True, index=True)
+    name = Column(String(100), unique=True, nullable=False, index=True)
+    subject = Column(String(500), nullable=False)
+    html_body = Column(Text, nullable=False)
+    text_body = Column(Text)
+    updated_at = Column(TIMESTAMP, server_default=func.now(), onupdate=func.now(), nullable=False)
+
+
+class EmailLog(Base):
+    """Audit of every outbound email send attempt (written by the EmailEngine)."""
+    __tablename__ = "email_log"
+
+    id = Column(Integer, primary_key=True, index=True)
+    recipient = Column(Text, nullable=False)
+    email_type = Column(String(50))
+    template = Column(String(100))
+    subject = Column(String(500))
+    provider = Column(String(50))
+    status = Column(String(20), nullable=False, default="pending")  # sent, failed
+    error = Column(Text)
+    message_id = Column(String(255))
+    idempotency_key = Column(String(255))
+    created_at = Column(TIMESTAMP, server_default=func.now(), nullable=False)
+    sent_at = Column(TIMESTAMP)
+
+
+class PasswordResetToken(Base):
+    """Single-use password reset tokens (only the SHA-256 hash is stored)."""
+    __tablename__ = "password_reset_tokens"
+
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True)
+    token_hash = Column(String(64), unique=True, nullable=False, index=True)
+    expires_at = Column(TIMESTAMP, nullable=False)
+    used_at = Column(TIMESTAMP)
+    created_at = Column(TIMESTAMP, server_default=func.now(), nullable=False)
+
+    user = relationship("User")
+
+
 class AuditLog(Base):
     """
     Audit trail for tracking user actions and system changes

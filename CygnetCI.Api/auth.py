@@ -16,8 +16,17 @@ import models
 
 SESSION_TTL_DAYS = 7
 
-# Map Shape-B boolean flags -> canonical actions
-_SHAPE_B_MAP = {"read": "read", "write": "create", "edit": "update", "delete": "delete"}
+# Map Shape-B boolean flags -> canonical actions.
+# The role editor UI only exposes read/write/edit/delete checkboxes — there's no
+# separate "execute"/"deploy" toggle. "write" therefore also grants execute/deploy so a
+# role with write access to pipelines/releases can actually run/deploy them; the extra
+# actions are harmless no-ops on resources that don't check for them.
+_SHAPE_B_MAP = {
+    "read": ("read",),
+    "write": ("create", "execute", "deploy"),
+    "edit": ("update",),
+    "delete": ("delete",),
+}
 
 
 def hash_token(raw_token: str) -> str:
@@ -84,9 +93,9 @@ def normalize_permissions(user) -> dict:
             if isinstance(val, list):
                 bucket.update(str(a).lower() for a in val)
             elif isinstance(val, dict):
-                for flag, canonical in _SHAPE_B_MAP.items():
+                for flag, canonicals in _SHAPE_B_MAP.items():
                     if val.get(flag):
-                        bucket.add(canonical)
+                        bucket.update(canonicals)
     return result
 
 

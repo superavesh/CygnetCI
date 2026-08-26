@@ -16,6 +16,8 @@ interface ConfigureAgentModalProps {
     location: string;
   }) => void;
   onDelete: (agentId: number) => void;
+  canUpdate?: boolean;
+  canDelete?: boolean;
 }
 
 export const ConfigureAgentModal: React.FC<ConfigureAgentModalProps> = ({
@@ -23,7 +25,9 @@ export const ConfigureAgentModal: React.FC<ConfigureAgentModalProps> = ({
   agent,
   onClose,
   onUpdate,
-  onDelete
+  onDelete,
+  canUpdate = true,
+  canDelete = true
 }) => {
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
@@ -217,15 +221,17 @@ export const ConfigureAgentModal: React.FC<ConfigureAgentModalProps> = ({
 
           {/* Action Buttons */}
           <div className="flex space-x-3 pt-4 border-t border-gray-200">
-            <button
-              type="button"
-              onClick={() => setShowDeleteConfirm(true)}
-              disabled={showDeleteConfirm}
-              className="px-4 py-2 border border-red-300 text-red-600 hover:bg-red-50 rounded-lg transition-colors flex items-center space-x-2 disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              <Trash2 className="h-4 w-4" />
-              <span>Delete Agent</span>
-            </button>
+            {canDelete && (
+              <button
+                type="button"
+                onClick={() => setShowDeleteConfirm(true)}
+                disabled={showDeleteConfirm}
+                className="px-4 py-2 border border-red-300 text-red-600 hover:bg-red-50 rounded-lg transition-colors flex items-center space-x-2 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                <Trash2 className="h-4 w-4" />
+                <span>Delete Agent</span>
+              </button>
+            )}
             <div className="flex-1"></div>
             <button
               type="button"
@@ -234,13 +240,15 @@ export const ConfigureAgentModal: React.FC<ConfigureAgentModalProps> = ({
             >
               Cancel
             </button>
-            <button
-              type="submit"
-              className="px-4 py-2 bg-blue-500 hover:bg-blue-600 text-white rounded-lg transition-colors flex items-center space-x-2"
-            >
-              <Save className="h-4 w-4" />
-              <span>Save Changes</span>
-            </button>
+            {canUpdate && (
+              <button
+                type="submit"
+                className="px-4 py-2 bg-blue-500 hover:bg-blue-600 text-white rounded-lg transition-colors flex items-center space-x-2"
+              >
+                <Save className="h-4 w-4" />
+                <span>Save Changes</span>
+              </button>
+            )}
           </div>
         </form>
       </div>

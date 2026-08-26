@@ -15,6 +15,7 @@ import { ExecutionHistoryModal } from '@/components/pipelines/ExecutionHistoryMo
 import { RunPipelineModal } from '@/components/pipelines/RunPipelineModal';
 import { apiService } from '@/lib/api/apiService';
 import { CONFIG } from '@/lib/config';
+import { hasPermission } from '@/lib/permissions';
 
 export default function PipelinesPage() {
   const { selectedCustomer } = useCustomer();
@@ -32,6 +33,10 @@ export default function PipelinesPage() {
   const [openedLogsFromHistory, setOpenedLogsFromHistory] = useState(false);
   const [showImportModal, setShowImportModal] = useState(false);
   const [exporting, setExporting] = useState(false);
+  const canCreate = hasPermission('pipelines', 'create');
+  const canUpdate = hasPermission('pipelines', 'update');
+  const canDelete = hasPermission('pipelines', 'delete');
+  const canExecute = hasPermission('pipelines', 'execute');
 
   const handleCreatePipeline = async (data: PipelineFormData) => {
     if (!selectedCustomer) {
@@ -250,12 +255,16 @@ export default function PipelinesPage() {
               {exporting ? <RefreshCw className="h-4 w-4 animate-spin" /> : <Download className="h-4 w-4" />}
               <span>Export All</span>
             </button>
-            <button onClick={() => setShowImportModal(true)} className="bg-gray-100 hover:bg-gray-200 text-gray-700 px-3 py-2 rounded-lg flex items-center gap-2 transition-colors text-sm">
-              <Upload className="h-4 w-4" /><span>Import</span>
-            </button>
-            <button onClick={() => setShowCreateModal(true)} className="bg-blue-500 hover:bg-blue-600 text-white px-3 py-2 rounded-lg flex items-center gap-2 transition-colors text-sm">
-              <Plus className="h-4 w-4" /><span>New Pipeline</span>
-            </button>
+            {canCreate && (
+              <button onClick={() => setShowImportModal(true)} className="bg-gray-100 hover:bg-gray-200 text-gray-700 px-3 py-2 rounded-lg flex items-center gap-2 transition-colors text-sm">
+                <Upload className="h-4 w-4" /><span>Import</span>
+              </button>
+            )}
+            {canCreate && (
+              <button onClick={() => setShowCreateModal(true)} className="bg-blue-500 hover:bg-blue-600 text-white px-3 py-2 rounded-lg flex items-center gap-2 transition-colors text-sm">
+                <Plus className="h-4 w-4" /><span>New Pipeline</span>
+              </button>
+            )}
           </div>
         </div>
 
@@ -340,17 +349,18 @@ export default function PipelinesPage() {
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
                           <div className="flex space-x-2">
-                            {/* Always show Run with Parameters button */}
-                            <button
-                              onClick={() => handleRunClick(pipeline)}
-                              className="text-purple-600 hover:text-purple-700 transition-colors"
-                              title="Run with Parameters"
-                            >
-                              <Sliders className="h-4 w-4" />
-                            </button>
+                            {canExecute && (
+                              <button
+                                onClick={() => handleRunClick(pipeline)}
+                                className="text-purple-600 hover:text-purple-700 transition-colors"
+                                title="Run with Parameters"
+                              >
+                                <Sliders className="h-4 w-4" />
+                              </button>
+                            )}
 
                             {/* Show Quick Run only if pipeline has default agent and no parameters */}
-                            {!hasParameters && pipeline.agent_id && (
+                            {canExecute && !hasParameters && pipeline.agent_id && (
                               <button
                                 onClick={() => handleQuickRun(pipeline)}
                                 className="text-green-600 hover:text-green-700 transition-colors"
@@ -367,13 +377,15 @@ export default function PipelinesPage() {
                             >
                               <History className="h-4 w-4" />
                             </button>
-                            <button
-                              onClick={() => handleEditClick(pipeline)}
-                              className="text-gray-600 hover:text-gray-700 transition-colors"
-                              title="Edit Pipeline"
-                            >
-                              <Settings className="h-4 w-4" />
-                            </button>
+                            {(canUpdate || canDelete) && (
+                              <button
+                                onClick={() => handleEditClick(pipeline)}
+                                className="text-gray-600 hover:text-gray-700 transition-colors"
+                                title="Edit Pipeline"
+                              >
+                                <Settings className="h-4 w-4" />
+                              </button>
+                            )}
                             <button
                               onClick={() => handleExportSingle(pipeline)}
                               className="text-gray-400 hover:text-green-600 transition-colors"
@@ -430,6 +442,8 @@ export default function PipelinesPage() {
         onDelete={handleDeletePipeline}
         pipeline={selectedPipeline}
         agents={agents}
+        canUpdate={canUpdate}
+        canDelete={canDelete}
       />
 
       <RunPipelineModal

@@ -150,6 +150,27 @@ class Config:
 
         return file_ext in allowed_extensions
 
+    # RabbitMQ Configuration (used to publish outbound email jobs)
+    def get_rabbitmq(self):
+        section = 'rabbitmq'
+        has = self.config.has_section(section)
+
+        def g(opt, default):
+            return self.config.get(section, opt, fallback=default) if has else default
+
+        return {
+            'enabled': g('enabled', 'true').strip().lower() == 'true',
+            'host': g('host', 'localhost'),
+            'port': int(g('port', '5672')),
+            'vhost': g('vhost', '/'),
+            'username': g('username', 'guest'),
+            'password': g('password', 'guest'),
+            'exchange': g('exchange', 'cygnetci.email'),
+            'queue': g('queue', 'email.send'),
+            'dlq': g('dlq', 'email.send.dlq'),
+            'routing_key': g('routing_key', 'email.send'),
+        }
+
     # Utility Methods
     def print_config(self):
         """Print all configuration settings (for debugging)"""

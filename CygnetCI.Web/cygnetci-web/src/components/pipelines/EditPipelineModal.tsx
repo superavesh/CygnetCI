@@ -13,6 +13,8 @@ interface EditPipelineModalProps {
   onDelete: (pipelineId: number) => void;
   pipeline: any | null;
   agents: Array<{ id: number; name: string; status: string }>;
+  canUpdate?: boolean;
+  canDelete?: boolean;
 }
 
 export const EditPipelineModal: React.FC<EditPipelineModalProps> = ({
@@ -21,7 +23,9 @@ export const EditPipelineModal: React.FC<EditPipelineModalProps> = ({
   onUpdate,
   onDelete,
   pipeline,
-  agents
+  agents,
+  canUpdate = true,
+  canDelete = true
 }) => {
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
@@ -538,15 +542,17 @@ export const EditPipelineModal: React.FC<EditPipelineModalProps> = ({
 
           {/* Action Buttons */}
           <div className="flex space-x-3 pt-4 border-t border-gray-200">
-            <button
-              type="button"
-              onClick={() => setShowDeleteConfirm(true)}
-              disabled={showDeleteConfirm}
-              className="px-4 py-2 border border-red-300 text-red-600 hover:bg-red-50 rounded-lg flex items-center space-x-2 disabled:opacity-50"
-            >
-              <Trash2 className="h-4 w-4" />
-              <span>Delete Pipeline</span>
-            </button>
+            {canDelete && (
+              <button
+                type="button"
+                onClick={() => setShowDeleteConfirm(true)}
+                disabled={showDeleteConfirm}
+                className="px-4 py-2 border border-red-300 text-red-600 hover:bg-red-50 rounded-lg flex items-center space-x-2 disabled:opacity-50"
+              >
+                <Trash2 className="h-4 w-4" />
+                <span>Delete Pipeline</span>
+              </button>
+            )}
             <div className="flex-1"></div>
             <button
               type="button"
@@ -555,13 +561,15 @@ export const EditPipelineModal: React.FC<EditPipelineModalProps> = ({
             >
               Cancel
             </button>
-            <button
-              type="submit"
-              className="px-4 py-2 bg-blue-500 hover:bg-blue-600 text-white rounded-lg flex items-center space-x-2"
-            >
-              <Save className="h-4 w-4" />
-              <span>Save Changes</span>
-            </button>
+            {canUpdate && (
+              <button
+                type="submit"
+                className="px-4 py-2 bg-blue-500 hover:bg-blue-600 text-white rounded-lg flex items-center space-x-2"
+              >
+                <Save className="h-4 w-4" />
+                <span>Save Changes</span>
+              </button>
+            )}
           </div>
         </form>
       </div>

@@ -18,7 +18,12 @@ Optionally override the admin credentials via environment variables:
     ADMIN_USERNAME, ADMIN_EMAIL, ADMIN_PASSWORD
 """
 import os
+import sys
 import bcrypt
+
+# Embeddable Python (._pth) does not add the script's own directory to sys.path
+# when run by path, so ensure local modules (database, models, config) import.
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
 from database import SessionLocal, engine, Base
 import models
@@ -44,6 +49,14 @@ ROLES = [
             "releases": ["create", "read", "update", "delete", "deploy"],
             "pipelines": ["create", "read", "update", "delete", "execute"],
             "monitoring": ["read"],
+            "overview": ["read", "update"],
+            "transfer": ["create", "read", "delete"],
+            "rollback": ["create", "read", "execute", "delete"],
+            "customers": ["create", "read", "update", "delete"],
+            "tasks": ["read", "delete"],
+            "tickets": ["create", "read", "update", "delete"],
+            "services": ["create", "read", "update", "delete"],
+            "email": ["create", "read", "update", "delete"],
         },
     },
     {
@@ -51,9 +64,16 @@ ROLES = [
         "description": "Can manage pipelines and releases",
         "is_system": True,
         "permissions": {
+            "agents": ["read"],
             "releases": ["create", "read", "update", "deploy"],
             "pipelines": ["create", "read", "update", "delete", "execute"],
             "monitoring": ["read"],
+            "overview": ["read"],
+            "transfer": ["create", "read"],
+            "rollback": ["create", "read", "execute"],
+            "tasks": ["read"],
+            "tickets": ["create", "read", "update"],
+            "services": ["read"],
         },
     },
     {
@@ -65,6 +85,13 @@ ROLES = [
             "releases": ["read"],
             "pipelines": ["read"],
             "monitoring": ["read"],
+            "overview": ["read"],
+            "transfer": ["read"],
+            "rollback": ["read"],
+            "tasks": ["read"],
+            "tickets": ["read"],
+            "services": ["read"],
+            "email": ["read"],
         },
     },
 ]

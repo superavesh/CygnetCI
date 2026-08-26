@@ -2,6 +2,7 @@
 
 import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import { CONFIG } from '../config';
+import { apiFetch } from '../apiClient';
 
 interface Customer {
   id: number;
@@ -52,7 +53,7 @@ export const CustomerProvider: React.FC<{ children: React.ReactNode }> = ({ chil
 
   const fetchCustomers = useCallback(async () => {
     try {
-      const response = await fetch(`${CONFIG.api.baseUrl}/customers/?active_only=true`);
+      const response = await apiFetch(`${CONFIG.api.baseUrl}/customers/?active_only=true`);
       if (!response.ok) throw new Error('Failed to fetch customers');
 
       const data = await response.json();
@@ -81,7 +82,7 @@ export const CustomerProvider: React.FC<{ children: React.ReactNode }> = ({ chil
 
   const fetchCustomerStats = useCallback(async (customerId: number) => {
     try {
-      const response = await fetch(`${CONFIG.api.baseUrl}/customers/${customerId}/statistics`);
+      const response = await apiFetch(`${CONFIG.api.baseUrl}/customers/${customerId}/statistics`);
       if (!response.ok) throw new Error('Failed to fetch customer statistics');
 
       const data = await response.json();

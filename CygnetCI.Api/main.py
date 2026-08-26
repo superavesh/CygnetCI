@@ -2,6 +2,7 @@
 from fastapi import FastAPI, HTTPException, Depends, Query, Body, UploadFile, File, Form, Response, Header, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse, JSONResponse
+from fastapi.security import HTTPBearer
 from pydantic import BaseModel, Field
 from typing import List, Optional, Dict, Any
 from datetime import datetime, timedelta
@@ -143,12 +144,22 @@ tags_metadata = [
     },
 ]
 
+# Swagger "Authorize" support. This is a SCHEMA-ONLY declaration so Swagger shows the
+# Authorize button and sends `Authorization: Bearer <token>` on requests. Actual auth is
+# still enforced by security_middleware; auto_error=False keeps this a no-op at runtime
+# (public + agent endpoints don't send a Bearer and must not be rejected here).
+swagger_bearer = HTTPBearer(
+    auto_error=False,
+    description="Paste the access_token returned by POST /auth/login (no 'Bearer ' prefix).",
+)
+
 app = FastAPI(
     title="CygnetCI API",
     description="API for CygnetCI - CI/CD Management Platform",
     version="1.0.0",
     debug=app_config.get_debug_mode(),
-    openapi_tags=tags_metadata
+    openapi_tags=tags_metadata,
+    dependencies=[Depends(swagger_bearer)],
 )
 
 # Configure CORS from config file

@@ -6,6 +6,12 @@ Works both in the repo (../CygnetCI.Database) and in the deployed package
 (./CygnetCI.Database bundled by build_for_iis.ps1).
 """
 import os
+import sys
+
+# Embeddable Python (._pth) does not add the script's own directory to sys.path
+# when run by path, so ensure local modules (config, models, ...) are importable.
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+
 from sqlalchemy import create_engine, text
 from config import app_config
 

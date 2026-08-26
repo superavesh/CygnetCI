@@ -13,11 +13,15 @@ import { SimpleChart } from '@/components/charts/SimpleChart';
 import { AddAgentModal } from '@/components/agents/AddAgentModal';
 import { ConfigureAgentModal } from '@/components/agents/ConfigureAgentModal';
 import { AgentLogsModal } from '@/components/agents/AgentLogsModal';
+import { hasPermission } from '@/lib/permissions';
 import type { Agent } from '@/types';
 
 export default function AgentsPage() {
   const { selectedCustomer } = useCustomer();
   const { agents, refetch } = useData(selectedCustomer?.id);
+  const canCreate = hasPermission('agents', 'create');
+  const canUpdate = hasPermission('agents', 'update');
+  const canDelete = hasPermission('agents', 'delete');
   const [showAddModal, setShowAddModal] = useState(false);
   const [showConfigModal, setShowConfigModal] = useState(false);
   const [showLogsModal, setShowLogsModal] = useState(false);
@@ -98,13 +102,15 @@ export default function AgentsPage() {
               <RefreshCw className="h-4 w-4" />
               <span>Refresh</span>
             </button>
-            <button
-              onClick={handleOpenAddModal}
-              className="bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded-lg flex items-center space-x-2 transition-colors"
-            >
-              <Server className="h-4 w-4" />
-              <span>Add Agent</span>
-            </button>
+            {canCreate && (
+              <button
+                onClick={handleOpenAddModal}
+                className="bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded-lg flex items-center space-x-2 transition-colors"
+              >
+                <Server className="h-4 w-4" />
+                <span>Add Agent</span>
+              </button>
+            )}
           </div>
         </div>
 
@@ -137,13 +143,15 @@ export default function AgentsPage() {
             <Server className="h-16 w-16 text-gray-400 mx-auto mb-4" />
             <h3 className="text-lg font-semibold text-gray-800 mb-2">No Agents Found</h3>
             <p className="text-gray-600 mb-4">Get started by adding your first deployment agent</p>
-            <button
-              onClick={handleOpenAddModal}
-              className="bg-green-500 hover:bg-green-600 text-white px-6 py-3 rounded-lg inline-flex items-center space-x-2 transition-colors"
-            >
-              <Server className="h-5 w-5" />
-              <span>Add Your First Agent</span>
-            </button>
+            {canCreate && (
+              <button
+                onClick={handleOpenAddModal}
+                className="bg-green-500 hover:bg-green-600 text-white px-6 py-3 rounded-lg inline-flex items-center space-x-2 transition-colors"
+              >
+                <Server className="h-5 w-5" />
+                <span>Add Your First Agent</span>
+              </button>
+            )}
           </div>
         )}
       </div>
@@ -165,6 +173,8 @@ export default function AgentsPage() {
         }}
         onUpdate={handleUpdateAgent}
         onDelete={handleDeleteAgent}
+        canUpdate={canUpdate}
+        canDelete={canDelete}
       />
 
       <AgentLogsModal

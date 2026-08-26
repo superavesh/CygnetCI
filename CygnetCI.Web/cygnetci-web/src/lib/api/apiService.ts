@@ -506,6 +506,16 @@ class ApiService {
             resolve({ success: true });
           }
         } else {
+          // Session expired / not authenticated — mirror the fetch interceptor.
+          if (xhr.status === 401 && typeof window !== 'undefined' && !window.location.pathname.startsWith('/login')) {
+            try {
+              localStorage.removeItem('auth_token');
+              localStorage.removeItem('user');
+            } catch {
+              /* ignore */
+            }
+            window.location.href = '/login';
+          }
           try {
             const errorData = JSON.parse(xhr.responseText);
             reject(new Error(errorData.detail || `Upload failed with status ${xhr.status}`));
@@ -524,6 +534,13 @@ class ApiService {
       });
 
       xhr.open('POST', url);
+      // XHR isn't covered by the global fetch interceptor, so attach the token here.
+      try {
+        const token = localStorage.getItem('auth_token');
+        if (token) xhr.setRequestHeader('Authorization', `Bearer ${token}`);
+      } catch {
+        /* ignore */
+      }
       xhr.send(fileData);
     });
   }
