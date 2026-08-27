@@ -258,17 +258,24 @@ async def security_middleware(request: Request, call_next):
         return await call_next(request)
 
     agent_uuid = request.headers.get("X-Agent-UUID")
+    bearer_token = auth_lib.bearer_from_header(request.headers.get("Authorization"))
 
-    if not agent_uuid:
+    # A request carrying a Bearer token is always treated as a logged-in UI/browser call,
+    # even when it also sends X-Agent-UUID — several monitoring/k8s endpoints use that
+    # header purely to identify which agent's data to fetch, not to authenticate the
+    # caller. The real .NET agent never sends an Authorization header to this API (only
+    # X-Agent-UUID, and X-Client-ID/X-Client-Signature when HMAC is enabled), so treating
+    # "has a bearer token" as authoritative for the session path cannot misclassify
+    # genuine agent traffic.
+    if not agent_uuid or bearer_token:
         # UI / browser request — require a valid user session (except public paths).
         if _is_public_ui_path(request.url.path, request.method):
             return await call_next(request)
 
-        token = auth_lib.bearer_from_header(request.headers.get("Authorization"))
         from database import SessionLocal
         db = SessionLocal()
         try:
-            user = auth_lib.validate_token(db, token)
+            user = auth_lib.validate_token(db, bearer_token)
             if user is None:
                 return _auth_error(request, "Not authenticated")
             # Capture identity + permissions as plain data, then close the DB

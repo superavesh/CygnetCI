@@ -2,7 +2,7 @@
 
 'use client';
 
-import React, { useState, useEffect, Suspense } from 'react';
+import React, { useState, useEffect, useRef, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
 import {
   Monitor, Activity, Cpu, HardDrive, Server, Settings,
@@ -45,7 +45,15 @@ function MonitoringPageInner() {
   const [selectedAgent, setSelectedAgent] = useState<AgentMetrics | null>(null);
   const [selectedMetric, setSelectedMetric] = useState<'cpu' | 'memory' | 'disk'>('cpu');
 
+  // Guards against out-of-order responses: on a direct page load/refresh, selectedCustomer
+  // starts null (CustomerContext hasn't resolved yet) and this effect fires an unscoped
+  // fetch, then reruns once the real customer loads. If the earlier unscoped response
+  // resolves after the scoped one, it would overwrite the correct data. Only the response
+  // matching the most recently issued request is ever applied.
+  const latestRequestId = useRef(0);
+
   const fetchAgentsMetrics = async (showLoading = true) => {
+    const requestId = ++latestRequestId.current;
     if (showLoading) setLoading(true);
     setRefreshing(true);
     try {
@@ -55,13 +63,17 @@ function MonitoringPageInner() {
       const response = await fetch(url);
       if (response.ok) {
         const data = await response.json();
-        setAgents(data);
+        if (requestId === latestRequestId.current) {
+          setAgents(data);
+        }
       }
     } catch (error) {
       console.error('Failed to fetch agents metrics:', error);
     } finally {
-      if (showLoading) setLoading(false);
-      setRefreshing(false);
+      if (requestId === latestRequestId.current) {
+        if (showLoading) setLoading(false);
+        setRefreshing(false);
+      }
     }
   };
 
