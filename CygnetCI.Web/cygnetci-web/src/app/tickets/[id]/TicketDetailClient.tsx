@@ -3,8 +3,6 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { useEditor, EditorContent } from '@tiptap/react';
 import StarterKit from '@tiptap/starter-kit';
-import UnderlineExt from '@tiptap/extension-underline';
-import LinkExt from '@tiptap/extension-link';
 import PlaceholderExt from '@tiptap/extension-placeholder';
 import { CONFIG } from '@/lib/config';
 import {
@@ -299,6 +297,9 @@ export default function TicketDetailClient({ ticketId, onBack }: { ticketId: str
   const [users, setUsers] = useState<AppUser[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  // Failures in the secondary panels (comments/history/approvals/attachments/users) are
+  // shown as a small retry banner instead of failing the whole ticket view — see loadAll().
+  const [secondaryError, setSecondaryError] = useState<string | null>(null);
 
   // Current logged-in user (from localStorage) — used to attribute comments, edits,
   // approvals and field changes instead of sending a null author (which renders as "?").
@@ -335,11 +336,11 @@ export default function TicketDetailClient({ ticketId, onBack }: { ticketId: str
 
   // ── Tiptap editors ─────────────────────────────────────────────────────────
 
+  // StarterKit (v3) already bundles Link and Underline — configure them here instead of
+  // adding separate extension instances, which used to register 'link'/'underline' twice.
   const descEditor = useEditor({
     extensions: [
-      StarterKit,
-      UnderlineExt,
-      LinkExt.configure({ openOnClick: false }),
+      StarterKit.configure({ link: { openOnClick: false } }),
       PlaceholderExt.configure({ placeholder: 'Add a description…' }),
     ],
     content: '',
@@ -348,9 +349,7 @@ export default function TicketDetailClient({ ticketId, onBack }: { ticketId: str
 
   const commentEditor = useEditor({
     extensions: [
-      StarterKit,
-      UnderlineExt,
-      LinkExt.configure({ openOnClick: false }),
+      StarterKit.configure({ link: { openOnClick: false } }),
       PlaceholderExt.configure({ placeholder: 'Add a comment…' }),
     ],
     content: '',
@@ -358,40 +357,62 @@ export default function TicketDetailClient({ ticketId, onBack }: { ticketId: str
   });
 
   const editCommentEditor = useEditor({
-    extensions: [StarterKit, UnderlineExt, LinkExt.configure({ openOnClick: false })],
+    extensions: [StarterKit.configure({ link: { openOnClick: false } })],
     content: '',
     editorProps: { attributes: { class: 'px-3 py-2 text-gray-700 min-h-[60px]' } },
   });
 
   // ── Data loading ───────────────────────────────────────────────────────────
 
+  // The core ticket fetch is fatal on failure (there's nothing to render without it) and
+  // is kept separate from the secondary panels below, which load independently so a single
+  // endpoint's hiccup (e.g. a transient 502) can't take down the whole ticket view.
   const loadAll = useCallback(async () => {
+    setLoading(true);
+    setError(null);
+    setSecondaryError(null);
+    const base = API();
+
+    let t: Ticket;
     try {
-      setLoading(true);
-      setError(null);
-      const base = API();
-      const [t, c, h, ap, att, u] = await Promise.all([
-        fetch(`${base}/tickets/${id}`).then(r => { if (!r.ok) throw new Error('Ticket not found'); return r.json(); }),
-        fetch(`${base}/tickets/${id}/comments`).then(r => r.json()),
-        fetch(`${base}/tickets/${id}/history`).then(r => r.json()),
-        fetch(`${base}/tickets/${id}/approvals`).then(r => r.json()),
-        fetch(`${base}/tickets/${id}/attachments`).then(r => r.json()),
-        fetch(`${base}/users`).then(r => r.json()).catch(() => []),
-      ]);
-      setTicket(t);
-      setComments(c);
-      setHistory(h);
-      setApprovals(ap);
-      setAttachments(att);
-      setUsers(Array.isArray(u) ? u : []);
-      setTitleDraft(t.title);
-      if (descEditor && t.description) {
-        descEditor.commands.setContent(t.description);
-      }
+      const res = await fetch(`${base}/tickets/${id}`);
+      if (!res.ok) throw new Error('Ticket not found');
+      t = await res.json();
     } catch (e: unknown) {
       setError(e instanceof Error ? e.message : 'Failed to load ticket');
-    } finally {
       setLoading(false);
+      return;
+    }
+    setTicket(t);
+    setTitleDraft(t.title);
+    if (descEditor && t.description) {
+      descEditor.commands.setContent(t.description);
+    }
+    setLoading(false);
+
+    const fetchJson = async (path: string) => {
+      const res = await fetch(`${base}${path}`);
+      if (!res.ok) throw new Error(`${path} -> ${res.status}`);
+      return res.json();
+    };
+
+    const [cRes, hRes, apRes, attRes, uRes] = await Promise.allSettled([
+      fetchJson(`/tickets/${id}/comments`),
+      fetchJson(`/tickets/${id}/history`),
+      fetchJson(`/tickets/${id}/approvals`),
+      fetchJson(`/tickets/${id}/attachments`),
+      fetchJson('/users'),
+    ]);
+
+    if (cRes.status === 'fulfilled') setComments(cRes.value); else console.error('Failed to load comments:', cRes.reason);
+    if (hRes.status === 'fulfilled') setHistory(hRes.value); else console.error('Failed to load history:', hRes.reason);
+    if (apRes.status === 'fulfilled') setApprovals(apRes.value); else console.error('Failed to load approvals:', apRes.reason);
+    if (attRes.status === 'fulfilled') setAttachments(attRes.value); else console.error('Failed to load attachments:', attRes.reason);
+    if (uRes.status === 'fulfilled') setUsers(Array.isArray(uRes.value) ? uRes.value : []); else console.error('Failed to load users:', uRes.reason);
+
+    const failed = [cRes, hRes, apRes, attRes, uRes].filter(r => r.status === 'rejected').length;
+    if (failed > 0) {
+      setSecondaryError(`Failed to load ${failed} section${failed > 1 ? 's' : ''} of this ticket.`);
     }
   }, [id, descEditor]);
 
@@ -689,6 +710,16 @@ export default function TicketDetailClient({ ticketId, onBack }: { ticketId: str
           Ask Cygie
         </button>
       </div>
+
+      {secondaryError && (
+        <div className="bg-amber-50 border-b border-amber-200 px-6 py-2 flex items-center gap-2 text-sm text-amber-800">
+          <AlertCircle size={14} className="flex-shrink-0" />
+          <span className="flex-1">{secondaryError}</span>
+          <button onClick={() => loadAll()} className="font-medium text-amber-900 hover:underline flex-shrink-0">
+            Retry
+          </button>
+        </div>
+      )}
 
       <div className="max-w-full px-6 pt-6 pb-12 flex gap-8 items-start">
 
