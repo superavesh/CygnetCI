@@ -46,6 +46,9 @@ var builder = Host.CreateDefaultBuilder(args)
 
         // HTTP Client with Proxy Support
         services.AddTransient<AgentUuidHeaderHandler>();
+        // Singleton so the learned server-clock offset survives HttpClientFactory's periodic
+        // recycling of the underlying handler chain (HmacCredentialHandler itself is transient).
+        services.AddSingleton<ServerClockSync>();
         services.AddTransient<HmacCredentialHandler>();
         services.AddHttpClient<ICygnetApiClient, CygnetApiClient>(client =>
         {
