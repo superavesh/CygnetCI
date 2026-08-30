@@ -12,7 +12,10 @@ CREATE TABLE IF NOT EXISTS agent_commands (
     started_at TIMESTAMP,
     completed_at TIMESTAMP,
     CONSTRAINT check_command_status CHECK (status IN ('pending', 'in_progress', 'completed', 'failed')),
-    CONSTRAINT check_command_type CHECK (command_type IN ('service_control', 'execute_script', 'system_command'))
+    CONSTRAINT check_command_type CHECK (command_type IN (
+        'service_control', 'execute_script', 'system_command',
+        'service_log_list', 'service_log_read', 'k8s_onboard', 'k8s_argocd_sync'
+    ))
 );
 
 -- Create index for faster agent command lookups

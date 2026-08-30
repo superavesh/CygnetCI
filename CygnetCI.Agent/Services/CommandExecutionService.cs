@@ -386,6 +386,18 @@ public class CommandExecutionService : ICommandExecutionService
     /// </summary>
     private string? FindServiceLogsDirectory(string serviceName)
     {
+        // Configured overrides take priority — lets a service's logs live somewhere other
+        // than next to its executable (e.g. a shared NFS folder named after the service).
+        foreach (var template in _config.MonitoredServices.LogPathOverrides)
+        {
+            if (string.IsNullOrWhiteSpace(template))
+                continue;
+
+            var resolved = template.Replace("[ServiceName]", serviceName, StringComparison.OrdinalIgnoreCase);
+            if (Directory.Exists(resolved))
+                return resolved;
+        }
+
         string? serviceDir = null;
 
         if (OperatingSystem.IsWindows())

@@ -85,6 +85,19 @@ public class MonitoredServicesConfig
     /// Windows default was "CI". Leave empty to skip prefix matching.
     /// </summary>
     public List<string> Prefixes { get; set; } = new List<string>();
+
+    /// <summary>
+    /// Candidate log folder path templates, checked (in order) before falling back to the
+    /// default convention of "the service's own install directory + a logs/Logs/log/Log
+    /// subfolder". Use the literal token "[ServiceName]" anywhere in the path — it's
+    /// replaced with the actual service name being queried. The first template whose
+    /// resolved path exists on disk wins; if none exist, the default lookup is used as
+    /// before. Leave empty to keep the old behaviour unchanged.
+    /// Example: "\\NFSShared\\AppLogs\\[ServiceName]\\logs" matches services whose logs
+    /// live under a shared folder named after the service, instead of next to the exe.
+    /// Multiple entries are supported for services with different layouts.
+    /// </summary>
+    public List<string> LogPathOverrides { get; set; } = new List<string>();
 }
 
 // Groups one K8s cluster's ArgoCD + Prometheus config under a friendly name.

@@ -149,7 +149,11 @@ class AgentCommand(Base):
 
     __table_args__ = (
         CheckConstraint("status IN ('pending', 'in_progress', 'completed', 'failed')", name="check_command_status"),
-        CheckConstraint("command_type IN ('service_control', 'execute_script', 'system_command')", name="check_command_type"),
+        CheckConstraint(
+            "command_type IN ('service_control', 'execute_script', 'system_command', "
+            "'service_log_list', 'service_log_read', 'k8s_onboard', 'k8s_argocd_sync')",
+            name="check_command_type",
+        ),
     )
 
 
@@ -877,6 +881,21 @@ class AppSetting(Base):
     key = Column(String(100), unique=True, nullable=False, index=True)
     value = Column(Text)
     description = Column(Text)
+    updated_at = Column(TIMESTAMP, server_default=func.now(), onupdate=func.now(), nullable=False)
+
+
+class SystemModule(Base):
+    """Deployment-level feature toggle — independent of per-user RBAC. When disabled, a
+    module's UI-facing endpoints 404 for every user including superusers, since this
+    represents "not licensed/installed at this premise" rather than a permission decision.
+    Agent-to-server traffic (heartbeat, pickup, monitoring push, etc.) is never gated by
+    this — only Bearer-authenticated UI requests are checked (see security_middleware)."""
+    __tablename__ = "system_modules"
+
+    id = Column(Integer, primary_key=True, index=True)
+    key = Column(String(50), unique=True, nullable=False, index=True)
+    display_name = Column(String(100), nullable=False)
+    enabled = Column(Boolean, default=True, nullable=False)
     updated_at = Column(TIMESTAMP, server_default=func.now(), onupdate=func.now(), nullable=False)
 
 

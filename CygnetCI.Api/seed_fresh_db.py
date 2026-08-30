@@ -5,12 +5,14 @@ Run this ONCE after the API has created the tables (the API calls
 `Base.metadata.create_all` on startup). It is idempotent — safe to re-run.
 
 Seeds:
-  1. roles         -> Administrator (full), Developer, Viewer   [required for RBAC]
-  2. customers     -> one "default" customer                    [agents/users reference it]
-  3. environments  -> Development, QA, Staging, Production       [required for releases]
-  4. users         -> one admin superuser (bcrypt password)     [needed to log in]
-  5. user_roles    -> admin -> Administrator
-  6. user_customers-> admin -> default customer (is_default)
+  1. roles          -> Administrator (full), Developer, Viewer   [required for RBAC]
+  2. customers      -> one "default" customer                    [agents/users reference it]
+  3. environments   -> Development, QA, Staging, Production       [required for releases]
+  4. users          -> one admin superuser (bcrypt password)     [needed to log in]
+  5. user_roles     -> admin -> Administrator
+  6. user_customers -> admin -> default customer (is_default)
+  7. system_modules -> all deployment-level module toggles, defaulted to enabled
+                        [keep this list in sync with _DEFAULT_MODULES in main.py]
 
 Usage:
     python seed_fresh_db.py
@@ -110,6 +112,23 @@ DEFAULT_CUSTOMER = {
     "is_active": True,
 }
 
+# Keep in sync with _DEFAULT_MODULES in main.py (main.py seeds the same list automatically
+# on every API startup — duplicated here so this script is self-sufficient even if it's
+# ever run before the API has started).
+SYSTEM_MODULES = [
+    ("pipelines", "Pipelines"),
+    ("releases", "Releases"),
+    ("tickets", "Tickets"),
+    ("transfer", "File Transfer"),
+    ("rollback", "Rollback Scripts"),
+    ("monitoring", "Monitoring"),
+    ("agents", "Agents"),
+    ("services", "Services"),
+    ("email", "Email Alerts"),
+    ("tasks", "Tasks"),
+    ("k8s", "Kubernetes"),
+]
+
 
 def main():
     db = SessionLocal()
@@ -184,6 +203,15 @@ def main():
         if not uc:
             db.add(models.UserCustomer(user_id=admin.id, customer_id=customer.id, is_default=True))
             print("[+] Linked admin -> default customer")
+
+        # 7) System modules (deployment-level toggles — see models.SystemModule)
+        existing_modules = {m.key for m in db.query(models.SystemModule.key).all()}
+        for key, display_name in SYSTEM_MODULES:
+            if key not in existing_modules:
+                db.add(models.SystemModule(key=key, display_name=display_name, enabled=True))
+                print(f"[+] Created module: {key}")
+            else:
+                print(f"[=] Module exists: {key}")
 
         db.commit()
         print("\n[SUCCESS] Fresh database seeded.")

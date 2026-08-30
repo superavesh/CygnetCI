@@ -6,6 +6,7 @@ import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useSidebar } from '@/lib/contexts/SidebarContext';
+import { useModules } from '@/lib/contexts/ModuleContext';
 import { canRead, isSuperuser } from '@/lib/permissions';
 import {
   BarChart3,
@@ -23,25 +24,28 @@ import {
   Settings
 } from 'lucide-react';
 
-// `resource` is the permission key that gates the item (null = always visible).
+// `resource` is the per-user permission key that gates the item (null = always visible).
+// `module` is the deployment-level toggle key (null = always-on, not a toggleable module) —
+// a module hidden this way is also 404'd server-side regardless of permissions.
 const navItems = [
-  { id: 'overview', name: 'Overview', icon: BarChart3, href: '/', resource: null },
-  { id: 'pipelines', name: 'Pipelines', icon: GitBranch, href: '/pipelines', resource: 'pipelines' },
-  { id: 'releases', name: 'Releases', icon: Rocket, href: '/releases', resource: 'releases' },
-  { id: 'transfer', name: 'Transfer', icon: Upload, href: '/transfer', resource: 'transfer' },
-  { id: 'rollback', name: 'Rollback', icon: RotateCcw, href: '/rollback', resource: 'rollback' },
-  { id: 'agents', name: 'Agents', icon: Server, href: '/agents', resource: 'agents' },
-  { id: 'monitoring', name: 'Monitoring', icon: Monitor, href: '/monitoring', resource: 'monitoring' },
-  { id: 'email-alerts', name: 'Email Alerts', icon: Mail, href: '/email-alerts', resource: 'email-alerts' },
-  { id: 'tickets', name: 'Tickets', icon: Ticket, href: '/tickets', resource: 'tickets' },
-  { id: 'customers', name: 'Customers', icon: Building2, href: '/customers', resource: 'customers' },
-  { id: 'users', name: 'Users', icon: Users, href: '/users', resource: 'users' },
-  { id: 'settings', name: 'Settings', icon: Settings, href: '/settings', resource: 'settings' }
+  { id: 'overview', name: 'Overview', icon: BarChart3, href: '/', resource: null, module: null },
+  { id: 'pipelines', name: 'Pipelines', icon: GitBranch, href: '/pipelines', resource: 'pipelines', module: 'pipelines' },
+  { id: 'releases', name: 'Releases', icon: Rocket, href: '/releases', resource: 'releases', module: 'releases' },
+  { id: 'transfer', name: 'Transfer', icon: Upload, href: '/transfer', resource: 'transfer', module: 'transfer' },
+  { id: 'rollback', name: 'Rollback', icon: RotateCcw, href: '/rollback', resource: 'rollback', module: 'rollback' },
+  { id: 'agents', name: 'Agents', icon: Server, href: '/agents', resource: 'agents', module: 'agents' },
+  { id: 'monitoring', name: 'Monitoring', icon: Monitor, href: '/monitoring', resource: 'monitoring', module: 'monitoring' },
+  { id: 'email-alerts', name: 'Email Alerts', icon: Mail, href: '/email-alerts', resource: 'email-alerts', module: 'email' },
+  { id: 'tickets', name: 'Tickets', icon: Ticket, href: '/tickets', resource: 'tickets', module: 'tickets' },
+  { id: 'customers', name: 'Customers', icon: Building2, href: '/customers', resource: 'customers', module: null },
+  { id: 'users', name: 'Users', icon: Users, href: '/users', resource: 'users', module: null },
+  { id: 'settings', name: 'Settings', icon: Settings, href: '/settings', resource: 'settings', module: null }
 ];
 
 export const Navigation: React.FC = () => {
   const pathname = usePathname();
   const { isCollapsed, setIsCollapsed } = useSidebar();
+  const { isModuleEnabled } = useModules();
   const [currentPath, setCurrentPath] = useState('');
   const [mounted, setMounted] = useState(false);
 
@@ -55,10 +59,14 @@ export const Navigation: React.FC = () => {
   }, []);
 
   // Before mount (SSR/static) show all items to avoid a hydration flash;
-  // after mount, filter by the logged-in user's permissions.
+  // after mount, filter by the logged-in user's permissions AND deployment-level module
+  // toggles (a disabled module is hidden for every user, including superusers).
   const visibleItems = !mounted
     ? navItems
-    : navItems.filter(item => item.resource === null || isSuperuser() || canRead(item.resource));
+    : navItems.filter(item =>
+        (item.module === null || isModuleEnabled(item.module)) &&
+        (item.resource === null || isSuperuser() || canRead(item.resource))
+      );
 
   return (
     <nav

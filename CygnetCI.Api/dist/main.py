@@ -46,6 +46,36 @@ from deps import (
 # Create tables
 models.Base.metadata.create_all(bind=engine)
 
+# Seed default module rows (idempotent — only inserts keys that don't exist yet, and
+# always defaults new modules to enabled so upgrading never silently hides a feature).
+_DEFAULT_MODULES = [
+    ("pipelines", "Pipelines"),
+    ("releases", "Releases"),
+    ("tickets", "Tickets"),
+    ("transfer", "File Transfer"),
+    ("rollback", "Rollback Scripts"),
+    ("monitoring", "Monitoring"),
+    ("agents", "Agents"),
+    ("services", "Services"),
+    ("email", "Email Alerts"),
+    ("tasks", "Tasks"),
+    ("k8s", "Kubernetes"),
+]
+
+def _seed_default_modules():
+    from database import SessionLocal
+    db = SessionLocal()
+    try:
+        existing = {m.key for m in db.query(models.SystemModule.key).all()}
+        for key, display_name in _DEFAULT_MODULES:
+            if key not in existing:
+                db.add(models.SystemModule(key=key, display_name=display_name, enabled=True))
+        db.commit()
+    finally:
+        db.close()
+
+_seed_default_modules()
+
 # Print configuration
 app_config.print_config()
 
@@ -194,6 +224,8 @@ def _set_cached_security(agent_uuid: str, data):
     with _security_cache_lock:
         _security_cache[agent_uuid] = {"ts": time.time(), "data": data}
 
+from module_flags import resolve_module_for_path, get_enabled_modules
+
 def _ip_in_allowlist(ip_str: str, allowlist: list) -> bool:
     """Check whether ip_str matches any entry in allowlist (IP, CIDR, or range)."""
     try:
@@ -240,15 +272,19 @@ def _is_public_ui_path(path: str, method: str) -> bool:
     return False
 
 
-def _auth_error(request: Request, detail: str):
-    """401 JSONResponse with CORS headers (the CORS middleware doesn't wrap
+def _cors_error(request: Request, status_code: int, detail: str):
+    """JSONResponse with CORS headers (the CORS middleware doesn't wrap
     responses returned from this outer middleware)."""
     headers = {}
     origin = request.headers.get("origin")
     if origin and origin in app_config.get_allowed_origins():
         headers["Access-Control-Allow-Origin"] = origin
         headers["Access-Control-Allow-Credentials"] = "true"
-    return JSONResponse(status_code=401, content={"detail": detail}, headers=headers)
+    return JSONResponse(status_code=status_code, content={"detail": detail}, headers=headers)
+
+
+def _auth_error(request: Request, detail: str):
+    return _cors_error(request, 401, detail)
 
 
 @app.middleware("http")
@@ -287,6 +323,16 @@ async def security_middleware(request: Request, call_next):
             }
         finally:
             db.close()
+
+        # Deployment-level module gate — applies to every UI user including superusers,
+        # since a disabled module means "not licensed at this premise", not a permission
+        # decision. 404 rather than 403 so a disabled module looks like it doesn't exist.
+        module_key = resolve_module_for_path(request.url.path)
+        if module_key is not None:
+            enabled_modules = get_enabled_modules()
+            if enabled_modules.get(module_key) is False:
+                return _cors_error(request, 404, "Not Found")
+
         return await call_next(request)
 
     if request.url.path == "/agents" and request.method == "POST":
@@ -387,6 +433,7 @@ from routers import transfer as transfer_router
 from routers import agent_exec as agent_exec_router
 from routers import auth as auth_api_router
 from routers import dashboard as dashboard_router
+from routers import modules as modules_router
 app.include_router(auth_api_router.router)
 app.include_router(dashboard_router.router)
 app.include_router(roles_router.router)
@@ -405,6 +452,7 @@ app.include_router(services_router.router)
 app.include_router(rollback_router.router)
 app.include_router(tasks_router.router)
 app.include_router(email_router.router)
+app.include_router(modules_router.router)
 
 
 # Email/settings helpers moved to notifications.py

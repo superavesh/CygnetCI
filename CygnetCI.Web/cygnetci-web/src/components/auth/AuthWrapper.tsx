@@ -5,6 +5,7 @@ import { usePathname, useRouter } from 'next/navigation';
 import { Header } from '@/components/layout/Header';
 import { Navigation } from '@/components/layout/Navigation';
 import { CustomerProvider } from '@/lib/contexts/CustomerContext';
+import { ModuleProvider } from '@/lib/contexts/ModuleContext';
 import { SidebarProvider, useSidebar } from '@/lib/contexts/SidebarContext';
 import { LoadingState } from '@/components/common/LoadingState';
 import { AlertCircle } from 'lucide-react';
@@ -122,9 +123,9 @@ export function AuthWrapper({ children }: { children: React.ReactNode }) {
   if (!mounted) {
     return (
       <SidebarProvider>
-        <CustomerProvider>
+        <CustomerProvider><ModuleProvider>
           <LayoutContent>{children}</LayoutContent>
-        </CustomerProvider>
+        </ModuleProvider></CustomerProvider>
       </SidebarProvider>
     );
   }
@@ -133,9 +134,9 @@ export function AuthWrapper({ children }: { children: React.ReactNode }) {
   if (!authChecked) {
     return (
       <SidebarProvider>
-        <CustomerProvider>
+        <CustomerProvider><ModuleProvider>
           <LoadingState />
-        </CustomerProvider>
+        </ModuleProvider></CustomerProvider>
       </SidebarProvider>
     );
   }
@@ -144,9 +145,9 @@ export function AuthWrapper({ children }: { children: React.ReactNode }) {
   if (!isAuthenticated) {
     return (
       <SidebarProvider>
-        <CustomerProvider>
+        <CustomerProvider><ModuleProvider>
           <LoadingState />
-        </CustomerProvider>
+        </ModuleProvider></CustomerProvider>
       </SidebarProvider>
     );
   }
@@ -155,9 +156,9 @@ export function AuthWrapper({ children }: { children: React.ReactNode }) {
   if (!apiChecked) {
     return (
       <SidebarProvider>
-        <CustomerProvider>
+        <CustomerProvider><ModuleProvider>
           <LoadingState />
-        </CustomerProvider>
+        </ModuleProvider></CustomerProvider>
       </SidebarProvider>
     );
   }
@@ -166,7 +167,7 @@ export function AuthWrapper({ children }: { children: React.ReactNode }) {
   if (apiError) {
     return (
       <SidebarProvider>
-        <CustomerProvider>
+        <CustomerProvider><ModuleProvider>
           <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 flex items-center justify-center">
             <div className="bg-white rounded-xl shadow-lg p-8 max-w-md">
               <div className="flex items-center space-x-3 mb-4">
@@ -177,7 +178,7 @@ export function AuthWrapper({ children }: { children: React.ReactNode }) {
               <p className="text-sm text-gray-500">Please check that the API server is running and accessible.</p>
             </div>
           </div>
-        </CustomerProvider>
+        </ModuleProvider></CustomerProvider>
       </SidebarProvider>
     );
   }
@@ -185,9 +186,9 @@ export function AuthWrapper({ children }: { children: React.ReactNode }) {
   // Authenticated - render with full layout
   return (
     <SidebarProvider>
-      <CustomerProvider>
+      <CustomerProvider><ModuleProvider>
         <LayoutContent>{children}</LayoutContent>
-      </CustomerProvider>
+      </ModuleProvider></CustomerProvider>
     </SidebarProvider>
   );
 }
