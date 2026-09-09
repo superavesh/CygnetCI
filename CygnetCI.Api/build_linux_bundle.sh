@@ -36,6 +36,28 @@ echo ">> Copying application code"
 cp -v *.py "$OUT/" 2>/dev/null || true
 cp -v config.ini.template "$OUT/config.ini" 2>/dev/null || true   # edit for the target
 
+# Copy Python sub-packages (any top-level dir with __init__.py, e.g. routers/) so
+# code that has been split into its own folder is still deployed, subfolders included.
+for d in */; do
+    d="${d%/}"
+    [ "$d" = "$OUT" ] && continue
+    if [ -f "$d/__init__.py" ]; then
+        echo ">> Copying package: $d/"
+        rm -rf "$OUT/$d"
+        cp -rv "$d" "$OUT/"
+        find "$OUT/$d" -name "__pycache__" -type d -prune -exec rm -rf {} +
+    fi
+done
+
+# Bundle the SQL migration files from the sibling CygnetCI.Database project so the
+# run_*_migration.py scripts can find them when run on the target server.
+DB_SRC_DIR="../CygnetCI.Database"
+if [ -d "$DB_SRC_DIR" ]; then
+    echo ">> Copying CygnetCI.Database/*.sql -> $OUT/CygnetCI.Database"
+    mkdir -p "$OUT/CygnetCI.Database"
+    cp -v "$DB_SRC_DIR"/*.sql "$OUT/CygnetCI.Database/" 2>/dev/null || true
+fi
+
 cat > "$OUT/start_api.sh" <<'EOF'
 #!/usr/bin/env bash
 cd "$(dirname "$0")"
