@@ -65,4 +65,39 @@ exec ./python/bin/python -m uvicorn main:app --host 0.0.0.0 --port 8000
 EOF
 chmod +x "$OUT/start_api.sh"
 
-echo ">> Done. Bundle is in ./$OUT  (run ./$OUT/start_api.sh)"
+# Self-contained Dockerfile so this bundle can be built as an image directly,
+# with no separate context/dockerignore juggling: cd "$OUT" && docker build -t <tag> .
+# Base image must match $TARGET's libc: musl target -> alpine, gnu target -> debian-slim.
+case "$TARGET" in
+    *musl*) BASE_IMAGE="alpine:3.20" ;;
+    *)      BASE_IMAGE="debian:12-slim" ;;
+esac
+
+if [[ "$BASE_IMAGE" == alpine:* ]]; then
+    APT_LINES='RUN apk add --no-cache ca-certificates curl'
+else
+    APT_LINES='RUN apt-get update && apt-get install -y --no-install-recommends ca-certificates curl \'$'\n''    && rm -rf /var/lib/apt/lists/*'
+fi
+
+cat > "$OUT/Dockerfile" <<EOF
+# CygnetCI API - built from this pre-built Linux bundle (produced by
+# build_linux_bundle.sh, target: ${TARGET}).
+# Build (from inside this directory):  docker build -t cygnetci-api:latest .
+FROM ${BASE_IMAGE}
+${APT_LINES}
+WORKDIR /app
+COPY . .
+# config.ini is provided at runtime via a mounted secret/volume at /app/config.ini.
+EXPOSE 8000
+CMD ["python/bin/python", "-m", "uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000"]
+EOF
+
+cat > "$OUT/.dockerignore" <<'EOF'
+__pycache__/
+*.pyc
+logs/
+EOF
+
+echo ">> Done. Bundle is in ./$OUT"
+echo ">>   Run directly:   ./$OUT/start_api.sh"
+echo ">>   Build image:    cd $OUT && docker build -t cygnetci-api:latest ."
