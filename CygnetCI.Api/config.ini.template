@@ -1,0 +1,58 @@
+# CygnetCI Configuration File
+# Copy this to config.ini and fill in real values for your environment.
+# NEVER commit config.ini itself — it is (and must stay) in .gitignore.
+
+[database]
+# PostgreSQL Database Configuration
+host = CHANGE_ME_DB_HOST
+port = 5432
+database = CygnetCI
+username = CHANGE_ME_DB_USERNAME
+password = CHANGE_ME_DB_PASSWORD
+
+[paths]
+# File Storage Paths
+nfs_shared_root = /data/nfsshared
+scripts_folder = scripts
+artifacts_folder = artifacts
+rollback_scripts_folder = rollback
+
+[server]
+# FastAPI Server Configuration
+host = 0.0.0.0
+port = 8000
+reload = false
+debug = false
+
+[cors]
+# CORS Configuration
+allowed_origins = https://your-web-domain.example.com
+allow_credentials = true
+
+[file_transfer]
+# File Transfer Settings
+max_file_size_mb = 5000
+allowed_script_extensions = .sh,.ps1,.py,.bat,.cmd
+allowed_artifact_extensions = .zip,.tar,.gz,.jar,.war,.exe,.msi
+calculate_checksum = true
+
+[rabbitmq]
+# Outbound email job queue. AMQP port is 5672 (15672 is the management UI).
+enabled = true
+host = CHANGE_ME_RABBITMQ_HOST
+port = 5672
+vhost = /
+username = CHANGE_ME_RABBITMQ_USERNAME
+password = CHANGE_ME_RABBITMQ_PASSWORD
+exchange = cygnetci.email
+queue = email.send
+dlq = email.send.dlq
+routing_key = email.send
+
+[claude_ai]
+# Claude AI API Configuration for Script Analysis
+api_url = https://api.anthropic.com/v1/messages
+api_key = CHANGE_ME_ANTHROPIC_API_KEY
+model = claude-3-5-sonnet-20241022
+max_tokens = 4096
+temperature = 0

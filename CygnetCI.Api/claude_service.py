@@ -1,24 +1,19 @@
 # Claude AI service for analyzing database scripts
-# Updated: Using official Anthropic SDK
+# Uses claude_client.py (the shared Anthropic API adapter) instead of
+# constructing its own SDK client.
 
 import json
-from configparser import ConfigParser
 from typing import Dict, Any
-from anthropic import Anthropic
+
+import claude_client
+from config import app_config
 
 class ClaudeAIService:
     def __init__(self):
-        self.config = self._load_config()
-        self.api_key = self.config.get('claude_ai', 'api_key')
-        self.model = self.config.get('claude_ai', 'model')
-        self.max_tokens = self.config.getint('claude_ai', 'max_tokens')
-        self.temperature = self.config.getfloat('claude_ai', 'temperature')
-        self.client = Anthropic(api_key=self.api_key)
-
-    def _load_config(self) -> ConfigParser:
-        config = ConfigParser()
-        config.read('config.ini')
-        return config
+        self.api_key = app_config.get_claude_api_key()
+        self.model = app_config.get_claude_model()
+        self.max_tokens = app_config.get_claude_max_tokens()
+        self.temperature = app_config.get_claude_temperature()
 
     async def analyze_database_script(self, script_content: str) -> Dict[str, Any]:
         """
@@ -91,11 +86,11 @@ SQL Script:
         print(f"[Claude AI Debug] Temperature: {self.temperature}")
 
         try:
-            # Use the official Anthropic SDK
-            print(f"[Claude AI Debug] Sending request to Anthropic API...")
             # SECURITY: do not log any portion of the API key.
+            print(f"[Claude AI Debug] Sending request to Anthropic API...")
 
-            message = self.client.messages.create(
+            message = await claude_client.create_message(
+                api_key=self.api_key,
                 model=self.model,
                 max_tokens=self.max_tokens,
                 temperature=self.temperature,

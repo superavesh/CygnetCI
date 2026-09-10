@@ -9,8 +9,11 @@ from fastapi.responses import FileResponse
 from pydantic import BaseModel
 from sqlalchemy.orm import Session
 
+import anthropic
+
 from database import get_db
 import models
+import claude_client
 from deps import require_permission, get_allowed_customer_ids, require_customer_access
 
 router = APIRouter()
@@ -754,40 +757,13 @@ async def ai_chat(
 
     async def stream_response():
         try:
-            import httpx as _httpx
-            headers = {
-                "x-api-key": api_key,
-                "anthropic-version": "2023-06-01",
-                "content-type": "application/json",
-            }
-            body = {
-                "model": model,
-                "max_tokens": 1024,
-                "system": system_prompt,
-                "stream": True,
-                "messages": [{"role": m.role, "content": m.content} for m in request.messages],
-            }
-            async with _httpx.AsyncClient(timeout=60) as client:
-                async with client.stream(
-                    "POST", "https://api.anthropic.com/v1/messages", headers=headers, json=body
-                ) as resp:
-                    async for line in resp.aiter_lines():
-                        if line.startswith("data: "):
-                            data = line[6:]
-                            if data == "[DONE]":
-                                yield "data: [DONE]\n\n"
-                                break
-                            try:
-                                event = _json.loads(data)
-                                if event.get("type") == "content_block_delta":
-                                    text = event.get("delta", {}).get("text", "")
-                                    if text:
-                                        yield f"data: {_json.dumps({'text': text})}\n\n"
-                                elif event.get("type") == "message_stop":
-                                    yield "data: [DONE]\n\n"
-                                    break
-                            except Exception:
-                                pass
+            messages = [{"role": m.role, "content": m.content} for m in request.messages]
+            async for text in claude_client.stream_text(
+                api_key=api_key, model=model, max_tokens=1024, system=system_prompt, messages=messages,
+            ):
+                if text:
+                    yield f"data: {_json.dumps({'text': text})}\n\n"
+            yield "data: [DONE]\n\n"
         except Exception as e:
             yield f"data: {_json.dumps({'error': str(e)})}\n\n"
 
@@ -938,8 +914,6 @@ async def ai_assist(
     _perm: dict = Depends(require_permission("tickets", "create")),
 ):
     """Agentic ticket assistant — searches, creates and updates tickets via tool use."""
-    import httpx as _httpx
-
     q = db.query(models.AISettings)
     s = (q.filter(models.AISettings.customer_id == request.customer_id).first()
          if request.customer_id
@@ -963,67 +937,55 @@ async def ai_assist(
 
     messages = [{"role": m.role, "content": m.content} for m in request.messages]
     actions: list = []
-    headers = {
-        "x-api-key": api_key,
-        "anthropic-version": "2023-06-01",
-        "content-type": "application/json",
-    }
 
-    async with _httpx.AsyncClient(timeout=60) as client:
-        for _ in range(6):  # max 6 rounds (tool call → result → response)
-            resp = await client.post(
-                "https://api.anthropic.com/v1/messages",
-                headers=headers,
-                json={
-                    "model": model,
-                    "max_tokens": 1024,
-                    "system": system_prompt,
-                    "tools": _TICKET_TOOLS,
-                    "messages": messages,
-                },
+    for _ in range(6):  # max 6 rounds (tool call → result → response)
+        try:
+            message = await claude_client.create_message(
+                api_key=api_key, model=model, max_tokens=1024,
+                system=system_prompt, tools=_TICKET_TOOLS, messages=messages,
             )
-            if not resp.is_success:
-                raise HTTPException(status_code=502, detail=f"AI API error: {resp.text[:300]}")
+        except anthropic.APIError as e:
+            raise HTTPException(status_code=502, detail=f"AI API error: {str(e)[:300]}")
 
-            data = resp.json()
-            stop = data.get("stop_reason")
+        stop = message.stop_reason
+        content = [blk.model_dump() for blk in message.content]
 
-            if stop == "end_turn":
-                reply = "".join(
-                    blk.get("text", "") for blk in data.get("content", []) if blk.get("type") == "text"
-                )
-                return {"reply": reply, "actions": actions}
-
-            if stop == "tool_use":
-                messages.append({"role": "assistant", "content": data["content"]})
-                tool_results = []
-                for blk in data["content"]:
-                    if blk.get("type") != "tool_use":
-                        continue
-                    result_str = _execute_ticket_tool(blk["name"], blk.get("input", {}), db)
-                    result_data = _json.loads(result_str)
-
-                    if blk["name"] == "create_ticket" and result_data.get("created"):
-                        actions.append({"type": "created", "ticket": result_data["ticket"]})
-                    elif blk["name"] == "update_ticket" and result_data.get("updated"):
-                        actions.append({"type": "updated", "ticket": result_data["ticket"]})
-                    elif blk["name"] == "search_tickets":
-                        actions.append({"type": "found", "tickets": result_data.get("tickets", [])})
-                    elif blk["name"] == "get_ticket" and result_data.get("id"):
-                        actions.append({"type": "found", "tickets": [result_data]})
-
-                    tool_results.append({
-                        "type": "tool_result",
-                        "tool_use_id": blk["id"],
-                        "content": result_str,
-                    })
-                messages.append({"role": "user", "content": tool_results})
-                continue
-
-            # Unexpected stop reason — return whatever text we have
+        if stop == "end_turn":
             reply = "".join(
-                blk.get("text", "") for blk in data.get("content", []) if blk.get("type") == "text"
+                blk.get("text", "") for blk in content if blk.get("type") == "text"
             )
-            return {"reply": reply or "Done.", "actions": actions}
+            return {"reply": reply, "actions": actions}
+
+        if stop == "tool_use":
+            messages.append({"role": "assistant", "content": content})
+            tool_results = []
+            for blk in content:
+                if blk.get("type") != "tool_use":
+                    continue
+                result_str = _execute_ticket_tool(blk["name"], blk.get("input", {}), db)
+                result_data = _json.loads(result_str)
+
+                if blk["name"] == "create_ticket" and result_data.get("created"):
+                    actions.append({"type": "created", "ticket": result_data["ticket"]})
+                elif blk["name"] == "update_ticket" and result_data.get("updated"):
+                    actions.append({"type": "updated", "ticket": result_data["ticket"]})
+                elif blk["name"] == "search_tickets":
+                    actions.append({"type": "found", "tickets": result_data.get("tickets", [])})
+                elif blk["name"] == "get_ticket" and result_data.get("id"):
+                    actions.append({"type": "found", "tickets": [result_data]})
+
+                tool_results.append({
+                    "type": "tool_result",
+                    "tool_use_id": blk["id"],
+                    "content": result_str,
+                })
+            messages.append({"role": "user", "content": tool_results})
+            continue
+
+        # Unexpected stop reason — return whatever text we have
+        reply = "".join(
+            blk.get("text", "") for blk in content if blk.get("type") == "text"
+        )
+        return {"reply": reply or "Done.", "actions": actions}
 
     return {"reply": "Completed.", "actions": actions}

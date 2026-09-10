@@ -1,6 +1,6 @@
 """Release endpoints: environments, releases, release/stage/pipeline execution, and agent release pickup."""
-from datetime import datetime, timedelta
-from typing import Any, Dict, List, Optional
+from datetime import datetime
+from typing import List, Optional
 
 from fastapi import APIRouter, Body, Depends, HTTPException, Query, Response
 from pydantic import BaseModel
@@ -10,6 +10,8 @@ from database import get_db
 import models
 from config import app_config
 from deps import get_agent_uuid, require_permission, get_allowed_customer_ids, require_customer_access
+import release_service
+from release_service import DeployReleaseRequest, ApprovalRequest
 
 router = APIRouter()
 
@@ -62,16 +64,6 @@ class ReleaseUpdate(BaseModel):
     version: Optional[str] = None
     pipelines: Optional[List[ReleasePipelineData]] = None
     stages: Optional[List[ReleaseStageData]] = None
-
-class DeployReleaseRequest(BaseModel):
-    triggered_by: str
-    artifact_version: Optional[str] = None
-    parameters: Optional[Dict[str, Any]] = None
-    agent_id: Optional[int] = None
-
-class ApprovalRequest(BaseModel):
-    approved_by: str
-    comments: Optional[str] = None
 
 # (FilePushRequest / FileAcknowledgeRequest belong to file transfer — kept in main.py)
 
@@ -451,106 +443,6 @@ def delete_release(
 
     return {"success": True, "message": "Release deleted successfully"}
 
-def deploy_release_pipelines(release_id: int, release, release_pipelines, request: DeployReleaseRequest, db: Session):
-    """Deploy a release using the pipeline-based approach"""
-    if not request.agent_id:
-        raise HTTPException(status_code=400, detail="Agent ID is required for pipeline-based releases")
-
-    agent = db.query(models.Agent).filter(models.Agent.id == request.agent_id).first()
-    if not agent:
-        raise HTTPException(status_code=404, detail="Agent not found")
-
-    # Generate release number
-    execution_count = db.query(models.ReleaseExecution)\
-        .filter(models.ReleaseExecution.release_id == release_id)\
-        .count()
-    release_number = f"Release-{execution_count + 1}"
-
-    # Create release execution
-    release_execution = models.ReleaseExecution(
-        release_id=release_id,
-        release_number=release_number,
-        triggered_by=request.triggered_by,
-        status="in_progress",
-        artifact_version=request.artifact_version,
-        started_at=datetime.now()
-    )
-    db.add(release_execution)
-    db.flush()
-
-    # Store parameters
-    if request.parameters:
-        for param_name, param_value in request.parameters.items():
-            exec_param = models.ReleaseExecutionParameter(
-                release_execution_id=release_execution.id,
-                parameter_name=param_name,
-                parameter_value=str(param_value)
-            )
-            db.add(exec_param)
-
-    # ── DAG execution: only root nodes (no depends_on) start immediately.
-    # Downstream nodes are created as 'pending' and get a pickup only when
-    # their dependency completes (handled in complete_pipeline_pickup).
-    root_rps = [rp for rp in release_pipelines if rp.depends_on is None]
-    downstream_rps = [rp for rp in release_pipelines if rp.depends_on is not None]
-
-    def _create_execution(rp, status: str):
-        pipeline = db.query(models.Pipeline).filter(models.Pipeline.id == rp.pipeline_id).first()
-        if not pipeline:
-            return None
-        pe = models.PipelineExecution(
-            pipeline_id=pipeline.id,
-            agent_id=agent.id,
-            agent_name=agent.name,
-            status=status,
-            commit=pipeline.branch or "main",
-            triggered_by=request.triggered_by,
-            started_at=datetime.now() if status == "running" else None,
-            release_execution_id=release_execution.id,
-            release_pipeline_id=rp.id,
-        )
-        db.add(pe)
-        db.flush()
-
-        if request.parameters:
-            for param_name, param_value in request.parameters.items():
-                db.add(models.PipelineExecutionParameter(
-                    pipeline_execution_id=pe.id,
-                    parameter_name=param_name,
-                    parameter_value=str(param_value)
-                ))
-        return pe, pipeline
-
-    # Start root pipelines immediately
-    for rp in root_rps:
-        result = _create_execution(rp, "running")
-        if not result:
-            continue
-        pe, pipeline = result
-        db.add(models.PipelinePickup(
-            pipeline_execution_id=pe.id,
-            pipeline_id=pipeline.id,
-            pipeline_name=pipeline.name,
-            agent_id=agent.id,
-            agent_uuid=agent.uuid,
-            agent_name=agent.name,
-            status="pending",
-            priority=rp.order_index
-        ))
-
-    # Register downstream nodes as pending — no pickup yet
-    for rp in downstream_rps:
-        _create_execution(rp, "pending")
-
-    db.commit()
-
-    return {
-        "success": True,
-        "release_execution_id": release_execution.id,
-        "release_number": release_number,
-        "message": f"Release '{release.name}' deployment started — {len(root_rps)} pipeline(s) running, {len(downstream_rps)} waiting on dependencies"
-    }
-
 @router.post("/releases/{release_id}/deploy", tags=["🌐 UI - Release Execution"])
 def deploy_release(
     release_id: int,
@@ -565,114 +457,7 @@ def deploy_release(
         raise HTTPException(status_code=404, detail="Release not found")
     require_customer_access(release.customer_id, allowed)
 
-    # Check if this is a pipeline-based release
-    release_pipelines = db.query(models.ReleasePipeline)\
-        .filter(models.ReleasePipeline.release_id == release_id)\
-        .order_by(models.ReleasePipeline.order_index)\
-        .all()
-
-    # If pipelines exist, use pipeline-based deployment
-    if release_pipelines:
-        return deploy_release_pipelines(release_id, release, release_pipelines, request, db)
-
-    # Otherwise, use legacy stage-based deployment
-    # Get all stages for this release
-    stages = db.query(models.ReleaseStage)\
-        .filter(models.ReleaseStage.release_id == release_id)\
-        .order_by(models.ReleaseStage.order_index)\
-        .all()
-
-    if not stages:
-        raise HTTPException(status_code=400, detail="Release has no stages or pipelines configured")
-
-    # Generate release number
-    execution_count = db.query(models.ReleaseExecution)\
-        .filter(models.ReleaseExecution.release_id == release_id)\
-        .count()
-    release_number = f"Release-{execution_count + 1}"
-
-    # Create release execution
-    release_execution = models.ReleaseExecution(
-        release_id=release_id,
-        release_number=release_number,
-        triggered_by=request.triggered_by,
-        status="in_progress",
-        artifact_version=request.artifact_version,
-        started_at=datetime.now()
-    )
-    db.add(release_execution)
-    db.flush()
-
-    # Store parameters
-    if request.parameters:
-        for param_name, param_value in request.parameters.items():
-            exec_param = models.ReleaseExecutionParameter(
-                release_execution_id=release_execution.id,
-                parameter_name=param_name,
-                parameter_value=str(param_value)
-            )
-            db.add(exec_param)
-
-    # Get agent information if provided
-    agent = None
-    if request.agent_id:
-        agent = db.query(models.Agent).filter(models.Agent.id == request.agent_id).first()
-        if not agent:
-            raise HTTPException(status_code=404, detail="Agent not found")
-
-    # Create stage executions and pickup entries
-    for stage in stages:
-        environment = db.query(models.Environment).filter(models.Environment.id == stage.environment_id).first()
-
-        # Determine which agent to use (stage-specific or release-level)
-        stage_agent = None
-        if stage.agent_id:
-            stage_agent = db.query(models.Agent).filter(models.Agent.id == stage.agent_id).first()
-        elif agent:
-            stage_agent = agent
-
-        # Determine initial status
-        if stage.pre_deployment_approval or (environment and environment.requires_approval):
-            initial_status = "awaiting_approval"
-            approval_status = "pending"
-        else:
-            initial_status = "pending"
-            approval_status = "not_required"
-
-        stage_execution = models.StageExecution(
-            release_execution_id=release_execution.id,
-            release_stage_id=stage.id,
-            environment_id=stage.environment_id,
-            environment_name=environment.name if environment else "Unknown",
-            agent_id=stage_agent.id if stage_agent else None,
-            agent_name=stage_agent.name if stage_agent else None,
-            status=initial_status,
-            approval_status=approval_status
-        )
-        db.add(stage_execution)
-        db.flush()
-
-        # Create pickup entry if agent is assigned and no approval is required
-        if stage_agent and initial_status == "pending":
-            pickup_entry = models.ReleasePickup(
-                release_execution_id=release_execution.id,
-                stage_execution_id=stage_execution.id,
-                agent_id=stage_agent.id,
-                agent_uuid=stage_agent.uuid,
-                agent_name=stage_agent.name,
-                status="pending",
-                priority=stage.order_index
-            )
-            db.add(pickup_entry)
-
-    db.commit()
-
-    return {
-        "success": True,
-        "message": "Release deployment initiated",
-        "executionId": release_execution.id,
-        "releaseNumber": release_number
-    }
+    return release_service.deploy(release, request, db)
 
 @router.get("/releases/{release_id}/executions", tags=["🌐 UI - Releases"])
 def get_release_executions(
@@ -910,72 +695,7 @@ def update_release_execution_status(
         raise HTTPException(status_code=404, detail="Release execution not found")
     _require_release_execution_access(release_execution, db, allowed)
 
-    # Get all pipeline executions for this release
-    time_window_start = release_execution.started_at
-    time_window_end = release_execution.completed_at if release_execution.completed_at else datetime.now() + timedelta(hours=1)
-
-    pipeline_executions = db.query(models.PipelineExecution)\
-        .filter(models.PipelineExecution.triggered_by == release_execution.triggered_by)\
-        .filter(models.PipelineExecution.started_at >= time_window_start)\
-        .filter(models.PipelineExecution.started_at <= time_window_end)\
-        .all()
-
-    # Get the release to see how many pipelines it should have
-    release = db.query(models.Release).filter(models.Release.id == release_execution.release_id).first()
-    if not release:
-        raise HTTPException(status_code=404, detail="Release not found")
-
-    release_pipelines = db.query(models.ReleasePipeline)\
-        .filter(models.ReleasePipeline.release_id == release.id)\
-        .all()
-
-    # Check if we have the expected number of pipeline executions
-    if len(pipeline_executions) >= len(release_pipelines):
-        # Check if all pipeline executions are complete
-        all_complete = all(
-            pe.status in ['success', 'failed', 'cancelled']
-            for pe in pipeline_executions
-        )
-
-        if all_complete:
-            # Determine overall status
-            any_failed = any(pe.status == 'failed' for pe in pipeline_executions)
-
-            release_execution.status = "failed" if any_failed else "succeeded"
-            release_execution.completed_at = datetime.now()
-
-            # Calculate duration
-            if release_execution.started_at:
-                duration = release_execution.completed_at - release_execution.started_at
-                release_execution.duration_seconds = int(duration.total_seconds())
-
-            db.commit()
-
-            return {
-                "success": True,
-                "status": release_execution.status,
-                "message": f"Release execution status updated to {release_execution.status}",
-                "pipeline_count": len(pipeline_executions),
-                "expected_count": len(release_pipelines)
-            }
-        else:
-            incomplete = [pe for pe in pipeline_executions if pe.status not in ['success', 'failed', 'cancelled']]
-            return {
-                "success": False,
-                "status": release_execution.status,
-                "message": "Not all pipelines are complete",
-                "pipeline_count": len(pipeline_executions),
-                "expected_count": len(release_pipelines),
-                "incomplete_count": len(incomplete)
-            }
-    else:
-        return {
-            "success": False,
-            "status": release_execution.status,
-            "message": "Not enough pipeline executions found",
-            "pipeline_count": len(pipeline_executions),
-            "expected_count": len(release_pipelines)
-        }
+    return release_service.update_release_execution_status(release_execution, db)
 
 @router.post("/release-executions/{execution_id}/abort", tags=["🌐 UI - Release Execution"])
 def abort_release_execution(
@@ -994,48 +714,8 @@ def abort_release_execution(
     if not release_execution:
         raise HTTPException(status_code=404, detail="Release execution not found")
     _require_release_execution_access(release_execution, db, allowed)
-    if release_execution.status != "in_progress":
-        raise HTTPException(status_code=400, detail=f"Release execution is already '{release_execution.status}', cannot abort")
 
-    # Get every pipeline execution that belongs to this release run
-    all_pe = db.query(models.PipelineExecution)\
-        .filter(models.PipelineExecution.release_execution_id == execution_id)\
-        .all()
-
-    now = datetime.now()
-    for pe in all_pe:
-        if pe.status in ("running", "pending"):
-            # Cancel the pickup so the agent stops picking it up
-            active_pickup = db.query(models.PipelinePickup)\
-                .filter(models.PipelinePickup.pipeline_execution_id == pe.id)\
-                .filter(models.PipelinePickup.status.in_(["pending", "picked_up", "in_progress"]))\
-                .first()
-            if active_pickup:
-                active_pickup.status = "cancelled"
-                active_pickup.completed_at = now
-                active_pickup.error_message = "Release aborted by user"
-
-            # Add a log entry for the pipeline execution
-            db.add(models.PipelineExecutionLog(
-                pipeline_execution_id=pe.id,
-                message="Pipeline execution aborted — release was cancelled by user",
-                log_level="warning",
-                source="system"
-            ))
-
-            pe.status = "cancelled"
-            pe.completed_at = now
-            if pe.started_at:
-                pe.duration = str(int((now - pe.started_at).total_seconds()))
-
-    # Mark the release execution itself as cancelled
-    release_execution.status = "cancelled"
-    release_execution.completed_at = now
-    if release_execution.started_at:
-        release_execution.duration_seconds = int((now - release_execution.started_at).total_seconds())
-
-    db.commit()
-    return {"success": True, "message": "Release execution aborted"}
+    return release_service.abort_release_execution(release_execution, db)
 
 
 @router.post("/stage-executions/{stage_execution_id}/approve", tags=["🌐 UI - Release Execution"])
@@ -1059,39 +739,7 @@ def approve_stage(
         if release_execution:
             _require_release_execution_access(release_execution, db, allowed)
 
-    if stage_execution.approval_status != "pending":
-        raise HTTPException(status_code=400, detail="Stage is not pending approval")
-
-    stage_execution.approval_status = "approved"
-    stage_execution.approved_by = request.approved_by
-    stage_execution.approved_at = datetime.now()
-    stage_execution.approval_comments = request.comments
-    stage_execution.status = "pending"  # Ready to run
-
-    # Create pickup entry if agent is assigned
-    if stage_execution.agent_id:
-        # Get agent details
-        agent = db.query(models.Agent).filter(models.Agent.id == stage_execution.agent_id).first()
-        if agent:
-            # Get release stage for priority
-            release_stage = db.query(models.ReleaseStage)\
-                .filter(models.ReleaseStage.id == stage_execution.release_stage_id)\
-                .first()
-
-            pickup_entry = models.ReleasePickup(
-                release_execution_id=stage_execution.release_execution_id,
-                stage_execution_id=stage_execution.id,
-                agent_id=agent.id,
-                agent_uuid=agent.uuid,
-                agent_name=agent.name,
-                status="pending",
-                priority=release_stage.order_index if release_stage else 0
-            )
-            db.add(pickup_entry)
-
-    db.commit()
-
-    return {"success": True, "message": "Stage approved successfully"}
+    return release_service.approve_stage(stage_execution, request, db)
 
 @router.post("/stage-executions/{stage_execution_id}/reject")
 def reject_stage(
@@ -1114,26 +762,7 @@ def reject_stage(
         if release_execution:
             _require_release_execution_access(release_execution, db, allowed)
 
-    if stage_execution.approval_status != "pending":
-        raise HTTPException(status_code=400, detail="Stage is not pending approval")
-
-    stage_execution.approval_status = "rejected"
-    stage_execution.approved_by = request.approved_by
-    stage_execution.approved_at = datetime.now()
-    stage_execution.approval_comments = request.comments
-    stage_execution.status = "cancelled"
-
-    # Update release execution status
-    release_execution = db.query(models.ReleaseExecution)\
-        .filter(models.ReleaseExecution.id == stage_execution.release_execution_id)\
-        .first()
-    if release_execution:
-        release_execution.status = "failed"
-        release_execution.completed_at = datetime.now()
-
-    db.commit()
-
-    return {"success": True, "message": "Stage rejected"}
+    return release_service.reject_stage(stage_execution, request, db)
 
 # ==============================================
 # EXECUTION LOGS ENDPOINTS

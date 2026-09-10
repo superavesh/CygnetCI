@@ -8,7 +8,8 @@ metadata:
   namespace: cygnetci
 type: Opaque
 stringData:
-  # Mounted at /app/config.ini. Keep DB creds in sync with cygnetci-db secret.
+  # Mounted at /app/config.ini. CHANGE_ME_STRONG_DB_PASSWORD must match the
+  # POSTGRES_PASSWORD set in the cygnetci-db secret (01-postgres.yaml).
   # NOTE: configparser treats '%' specially -> double any literal '%' as '%%'.
   config.ini: |
     [database]
@@ -16,7 +17,7 @@ stringData:
     port = 5432
     database = CygnetCI
     username = cygnetci
-    password = Cygnet_K8s_2026
+    password = CHANGE_ME_STRONG_DB_PASSWORD
 
     [paths]
     nfs_shared_root = /data/nfsshared
@@ -42,22 +43,26 @@ stringData:
 
     [claude_ai]
     api_url = https://api.anthropic.com/v1/messages
-    api_key = YOUR_ANTHROPIC_API_KEY
+    api_key = CHANGE_ME_ANTHROPIC_API_KEY
     model = claude-3-5-sonnet-20241022
     max_tokens = 4096
     temperature = 0
 ---
-# Shared storage for scripts / artifacts / rollback / uploads.
-# ReadWriteOnce works with a single API replica. To run multiple API replicas,
-# use a ReadWriteMany class (NFS / EFS / Azure Files / CephFS).
+# Shared storage for scripts / artifacts / rollback / uploads — the app's own
+# config (config.ini [paths] nfs_shared_root) already assumes this is shared,
+# NFS-style storage, so ReadWriteMany is the correct default here, not just a
+# scale-out nicety. Requires a storageClassName that supports RWX (NFS / EFS /
+# Azure Files / CephFS) — set one below. If only ReadWriteOnce storage is
+# available in this cluster, change back to ["ReadWriteOnce"] AND keep
+# cygnetci-api's replicas at 1 (multiple replicas cannot safely share an RWO volume).
 apiVersion: v1
 kind: PersistentVolumeClaim
 metadata:
   name: cygnetci-shared
   namespace: cygnetci
 spec:
-  accessModes: ["ReadWriteOnce"]
-  # storageClassName: standard
+  accessModes: ["ReadWriteMany"]
+  # storageClassName: <-- an RWX-capable class, e.g. nfs-client / efs-sc / azurefile
   resources:
     requests:
       storage: 10Gi
@@ -68,6 +73,10 @@ metadata:
   name: cygnetci-api
   namespace: cygnetci
 spec:
+  # Safe to raise above 1 now that cygnetci-shared is ReadWriteMany — but the
+  # brute-force login lockout is still in-memory per-pod as of this writing,
+  # so each replica tracks failed-login attempts independently. Fix that
+  # first if raising this (see the architecture assessment, Phase 7).
   replicas: 1
   selector:
     matchLabels: { app: cygnetci-api }
@@ -77,7 +86,11 @@ spec:
     spec:
       containers:
         - name: api
-          image: REGISTRY/cygnetci-api:latest   # <-- your image
+          # CHANGE_ME_VERSION: pin to a real, immutable tag (git SHA or semver,
+          # e.g. cygnetci-api:2026.09.10-a1b2c3d) — never deploy ":latest" to
+          # production, since it makes rollback and "what's actually running"
+          # both unreliable (a floating tag can silently change under you).
+          image: REGISTRY/cygnetci-api:CHANGE_ME_VERSION
           ports:
             - containerPort: 8000
           env:
@@ -91,6 +104,14 @@ spec:
               readOnly: true
             - name: shared
               mountPath: /data/nfsshared
+          # Starting-point sizing — tune from real memory/CPU usage once running.
+          resources:
+            requests:
+              cpu: 250m
+              memory: 256Mi
+            limits:
+              cpu: "1"
+              memory: 512Mi
           readinessProbe:
             httpGet: { path: /monitoring/api/ping, port: 8000 }
             initialDelaySeconds: 15

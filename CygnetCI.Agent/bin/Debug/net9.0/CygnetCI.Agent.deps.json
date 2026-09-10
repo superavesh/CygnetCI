@@ -13,7 +13,8 @@
           "Microsoft.Extensions.Hosting.WindowsServices": "10.0.0",
           "Microsoft.Extensions.Http": "10.0.0",
           "Microsoft.PowerShell.SDK": "7.5.4",
-          "System.Diagnostics.PerformanceCounter": "10.0.0"
+          "System.Diagnostics.PerformanceCounter": "10.0.0",
+          "System.Security.Cryptography.Xml": "9.0.20"
         },
         "runtime": {
           "CygnetCI.Agent.dll": {}
@@ -903,9 +904,9 @@
           "System.Private.ServiceModel": "4.10.3",
           "System.Reflection.Context": "9.0.10",
           "System.Runtime.Caching": "9.0.10",
-          "System.Security.Cryptography.Pkcs": "9.0.10",
+          "System.Security.Cryptography.Pkcs": "9.0.20",
           "System.Security.Cryptography.ProtectedData": "10.0.0",
-          "System.Security.Cryptography.Xml": "9.0.10",
+          "System.Security.Cryptography.Xml": "9.0.20",
           "System.Security.Permissions": "9.0.10",
           "System.ServiceModel.Duplex": "4.10.3",
           "System.ServiceModel.Http": "4.10.3",
@@ -1062,9 +1063,9 @@
           "System.Management": "9.0.10",
           "System.Reflection.Context": "9.0.10",
           "System.Runtime.Caching": "9.0.10",
-          "System.Security.Cryptography.Pkcs": "9.0.10",
+          "System.Security.Cryptography.Pkcs": "9.0.20",
           "System.Security.Cryptography.ProtectedData": "10.0.0",
-          "System.Security.Cryptography.Xml": "9.0.10",
+          "System.Security.Cryptography.Xml": "9.0.20",
           "System.Security.Permissions": "9.0.10",
           "System.Security.Principal.Windows": "5.0.0",
           "System.ServiceModel.Duplex": "4.10.3",
@@ -1626,7 +1627,7 @@
           "System.DirectoryServices": "9.0.10",
           "System.Management": "9.0.10",
           "System.Security.AccessControl": "6.0.1",
-          "System.Security.Cryptography.Pkcs": "9.0.10",
+          "System.Security.Cryptography.Pkcs": "9.0.20",
           "System.Security.Cryptography.ProtectedData": "10.0.0",
           "System.Security.Permissions": "9.0.10",
           "System.Text.Encoding.CodePages": "9.0.10",
@@ -1670,7 +1671,7 @@
           "Microsoft.Extensions.ObjectPool": "8.0.21",
           "System.Numerics.Vectors": "4.5.0",
           "System.Reflection.DispatchProxy": "4.7.1",
-          "System.Security.Cryptography.Xml": "9.0.10",
+          "System.Security.Cryptography.Xml": "9.0.20",
           "System.Security.Principal.Windows": "5.0.0"
         },
         "runtime": {
@@ -1751,11 +1752,11 @@
         }
       },
       "System.Security.AccessControl/6.0.1": {},
-      "System.Security.Cryptography.Pkcs/9.0.10": {
+      "System.Security.Cryptography.Pkcs/9.0.20": {
         "runtime": {
           "lib/net9.0/System.Security.Cryptography.Pkcs.dll": {
             "assemblyVersion": "9.0.0.0",
-            "fileVersion": "9.0.1025.47515"
+            "fileVersion": "9.0.2026.41315"
           }
         },
         "runtimeTargets": {
@@ -1763,7 +1764,7 @@
             "rid": "win",
             "assetType": "runtime",
             "assemblyVersion": "9.0.0.0",
-            "fileVersion": "9.0.1025.47515"
+            "fileVersion": "9.0.2026.41315"
           }
         }
       },
@@ -1775,14 +1776,14 @@
           }
         }
       },
-      "System.Security.Cryptography.Xml/9.0.10": {
+      "System.Security.Cryptography.Xml/9.0.20": {
         "dependencies": {
-          "System.Security.Cryptography.Pkcs": "9.0.10"
+          "System.Security.Cryptography.Pkcs": "9.0.20"
         },
         "runtime": {
           "lib/net9.0/System.Security.Cryptography.Xml.dll": {
             "assemblyVersion": "9.0.0.0",
-            "fileVersion": "9.0.1025.47515"
+            "fileVersion": "9.0.2026.41315"
           }
         }
       },
@@ -2798,12 +2799,12 @@
       "path": "system.security.accesscontrol/6.0.1",
       "hashPath": "system.security.accesscontrol.6.0.1.nupkg.sha512"
     },
-    "System.Security.Cryptography.Pkcs/9.0.10": {
+    "System.Security.Cryptography.Pkcs/9.0.20": {
       "type": "package",
       "serviceable": true,
-      "sha512": "sha512-Pg7QZz80fOJZrtJnAdEAIpeor8q7F1ofwXGYgLNr4dR8Mqf2l7lfeTaodQkRetrj+ClQwVVYoyi6g2eOsmstFw==",
-      "path": "system.security.cryptography.pkcs/9.0.10",
-      "hashPath": "system.security.cryptography.pkcs.9.0.10.nupkg.sha512"
+      "sha512": "sha512-ws6GNN2yrZQauKiu8+nqzbJ4RMjAwcnVcwmecx2zY7Aa4aqqYqf7TngEQSRURGRBlZsKKdx+PsHIVqDT+BvL5w==",
+      "path": "system.security.cryptography.pkcs/9.0.20",
+      "hashPath": "system.security.cryptography.pkcs.9.0.20.nupkg.sha512"
     },
     "System.Security.Cryptography.ProtectedData/10.0.0": {
       "type": "package",
@@ -2812,12 +2813,12 @@
       "path": "system.security.cryptography.protecteddata/10.0.0",
       "hashPath": "system.security.cryptography.protecteddata.10.0.0.nupkg.sha512"
     },
-    "System.Security.Cryptography.Xml/9.0.10": {
+    "System.Security.Cryptography.Xml/9.0.20": {
       "type": "package",
       "serviceable": true,
-      "sha512": "sha512-kkEBXInhetgK1+E0NzDSz4S2Yh3wpivGf1A7I88dN4SYINGrQnGciGDJj1RTgsE/zFeJNlAZhXs4XSqn7q8AhQ==",
-      "path": "system.security.cryptography.xml/9.0.10",
-      "hashPath": "system.security.cryptography.xml.9.0.10.nupkg.sha512"
+      "sha512": "sha512-98cio7NCRqBtwRHsM1SZk0ksDWgxycnLuYm4aXVJzEf2xfDHavCvoF6vQPOt9HGCrb/ns7yAt0+iehQJEN2MKQ==",
+      "path": "system.security.cryptography.xml/9.0.20",
+      "hashPath": "system.security.cryptography.xml.9.0.20.nupkg.sha512"
     },
     "System.Security.Permissions/9.0.10": {
       "type": "package",

@@ -1,0 +1,24 @@
+# Release signing config for the Android build.
+#
+# Copy this file to android/key.properties (that exact filename is already
+# gitignored — never commit the real one) and fill in the values below.
+#
+# ---- 1) Generate a real keystore (do this ONCE, then back it up securely) ----
+#
+#   keytool -genkey -v -keystore /secure/path/cygnetci-release.jks \
+#       -keyalg RSA -keysize 2048 -validity 10000 -alias cygnetci
+#
+# You will be prompted to set a keystore password and a key password (they
+# can be the same or different) and some certificate identity fields.
+#
+# IMPORTANT: back up cygnetci-release.jks and its passwords somewhere safe
+# (e.g. your organization's secrets manager), outside this repository. If you
+# lose this keystore, you can NEVER publish an update to an app already
+# installed from a build signed with it — the Play Store requires every
+# update to be signed with the exact same key. There is no recovery process.
+#
+# ---- 2) Fill in the values below, pointing at that keystore file ----
+storePassword=CHANGE_ME_STORE_PASSWORD
+keyPassword=CHANGE_ME_KEY_PASSWORD
+keyAlias=cygnetci
+storeFile=/secure/path/cygnetci-release.jks

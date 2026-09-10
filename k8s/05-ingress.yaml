@@ -1,5 +1,19 @@
 # Ingress exposes the web UI and the API on public hostnames.
-# Requires an ingress controller (e.g. ingress-nginx) and, ideally, cert-manager for TLS.
+# Requires an ingress controller (e.g. ingress-nginx).
+#
+# TLS: the "cygnetci-tls" secret referenced below must exist before this
+# Ingress can serve HTTPS. Two ways to get it, pick one:
+#
+#   A) cert-manager (automated, renews itself):
+#      - Install cert-manager and create a ClusterIssuer (e.g. letsencrypt-prod).
+#      - Uncomment the cert-manager.io/cluster-issuer annotation below.
+#      - Apply this file — cert-manager watches the "tls.secretName" below and
+#        creates/renews "cygnetci-tls" automatically. No manual secret needed.
+#
+#   B) Manual certificate (no cert-manager installed):
+#      kubectl create secret tls cygnetci-tls -n cygnetci \
+#        --cert=path/to/fullchain.pem --key=path/to/privkey.pem
+#      You are responsible for renewing this before it expires.
 apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
@@ -8,7 +22,7 @@ metadata:
   annotations:
     # Agents can upload large artifacts — raise the body-size limit.
     nginx.ingress.kubernetes.io/proxy-body-size: "5000m"
-    # cert-manager.io/cluster-issuer: letsencrypt-prod   # uncomment if using cert-manager
+    # cert-manager.io/cluster-issuer: letsencrypt-prod   # uncomment for path A above
 spec:
   ingressClassName: nginx
   tls:

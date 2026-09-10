@@ -3,16 +3,16 @@ Check release pickups in database
 """
 import psycopg2
 
-DB_CONFIG = {
-    'host': 'localhost',
-    'port': 5432,
-    'database': 'CygnetCI',
-    'user': 'postgres',
-    'password': 'Admin@123'
-}
+from config import app_config
 
 try:
-    conn = psycopg2.connect(**DB_CONFIG)
+    conn = psycopg2.connect(
+        host=app_config.get_db_host(),
+        port=app_config.get_db_port(),
+        database=app_config.get_db_name(),
+        user=app_config.get_db_username(),
+        password=app_config.get_db_password(),
+    )
     cursor = conn.cursor()
 
     # Check pickups

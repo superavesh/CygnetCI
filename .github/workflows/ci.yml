@@ -1,0 +1,173 @@
+name: CI
+
+on:
+  push:
+    branches: ["**"]
+  pull_request:
+    branches: [main]
+
+jobs:
+  api-tests:
+    name: API (Python) tests
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: CygnetCI.Api
+    services:
+      postgres:
+        image: postgres:15.8
+        env:
+          POSTGRES_DB: CygnetCI
+          POSTGRES_USER: cygnetci
+          # Ephemeral CI-only database, destroyed at the end of this job — not a real secret.
+          POSTGRES_PASSWORD: ci_test_password
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install dependencies
+        run: pip install -r requirements-dev.txt
+
+      - name: Write CI config.ini
+        run: |
+          cat > config.ini <<'EOF'
+          [database]
+          host = localhost
+          port = 5432
+          database = CygnetCI
+          username = cygnetci
+          password = ci_test_password
+
+          [paths]
+          nfs_shared_root = /tmp/cygnetci-nfs
+          scripts_folder = scripts
+          artifacts_folder = artifacts
+          rollback_scripts_folder = rollback
+
+          [server]
+          host = 0.0.0.0
+          port = 8000
+          reload = false
+          debug = false
+
+          [cors]
+          allowed_origins = http://localhost:3000
+          allow_credentials = true
+
+          [file_transfer]
+          max_file_size_mb = 5000
+          allowed_script_extensions = .sh,.ps1,.py,.bat,.cmd
+          allowed_artifact_extensions = .zip,.tar,.gz,.jar,.war,.exe,.msi
+          calculate_checksum = true
+
+          [rabbitmq]
+          enabled = false
+          host = localhost
+          port = 5672
+          vhost = /
+          username = guest
+          password = guest
+
+          [claude_ai]
+          api_url = https://api.anthropic.com/v1/messages
+          api_key = ci-placeholder-not-a-real-key
+          model = claude-3-5-sonnet-20241022
+          max_tokens = 4096
+          temperature = 0
+          EOF
+
+      - name: Seed a fresh database (creates tables via create_all + reference data + admin superuser)
+        run: python seed_fresh_db.py
+
+      - name: Run tests
+        run: python -m pytest tests/ -v
+
+      - name: Dependency vulnerability scan (pip-audit)
+        # Non-blocking for now: this is a new pipeline being added to an existing
+        # codebase whose current dependencies haven't been triaged yet. Once
+        # existing findings are reviewed/fixed, remove `continue-on-error` so new
+        # vulnerabilities actually fail the build.
+        continue-on-error: true
+        run: |
+          pip install pip-audit
+          pip-audit -r requirements.txt
+
+  web-tests:
+    name: Web (Playwright) E2E tests
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: CygnetCI.Web/cygnetci-web
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Install Playwright browsers
+        run: npx playwright install --with-deps chromium
+
+      - name: Run E2E tests
+        run: npm run test:e2e
+
+      - name: Dependency vulnerability scan (npm audit)
+        # Non-blocking for now — see the equivalent note in api-tests above.
+        continue-on-error: true
+        run: npm audit --audit-level=high
+
+  mobile-tests:
+    name: Mobile (Flutter) tests
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: CygnetCI.MobileApp
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: "3.47.1"
+          channel: "stable"
+
+      - run: flutter pub get
+      - run: flutter test
+      - run: flutter analyze
+
+  dotnet-build:
+    name: .NET build + vulnerability scan
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: "9.0.x"
+
+      # No test projects exist yet for either .NET service (see the architecture
+      # assessment) — this job builds them to catch compile errors and scans for
+      # known-vulnerable packages. It does not run any tests.
+      - name: Build CygnetCI.Agent
+        run: dotnet build CygnetCI.Agent/CygnetCI.Agent.csproj -c Release
+
+      - name: Build CygnetCI.EmailEngine
+        run: dotnet build CygnetCI.EmailEngine/CygnetCI.EmailEngine.csproj -c Release
+
+      - name: Dependency vulnerability scan
+        continue-on-error: true
+        run: |
+          dotnet list CygnetCI.Agent/CygnetCI.Agent.csproj package --vulnerable --include-transitive
+          dotnet list CygnetCI.EmailEngine/CygnetCI.EmailEngine.csproj package --vulnerable --include-transitive

@@ -1,29 +1,31 @@
 """
 Run database migration for execution logs schema
 """
+import os
 import psycopg2
 import sys
 
-# Database configuration
-DB_CONFIG = {
-    'host': 'localhost',
-    'port': 5432,
-    'database': 'CygnetCI',
-    'user': 'postgres',
-    'password': 'Admin@123'
-}
+from config import app_config
 
 def run_migration():
     """Execute the execution_logs_schema.sql migration"""
     try:
         # Read the SQL file
-        sql_file_path = r'd:\Avesh\CygnetCI\SourceCode\CygnetCI\CygnetCI.Database\execution_logs_schema.sql'
+        sql_file_path = os.path.join(
+            os.path.dirname(__file__), '..', 'CygnetCI.Database', 'execution_logs_schema.sql'
+        )
         with open(sql_file_path, 'r') as f:
             sql_script = f.read()
 
-        # Connect to database
-        print(f"Connecting to database {DB_CONFIG['database']}...")
-        conn = psycopg2.connect(**DB_CONFIG)
+        # Connect to database using the same config.ini the app uses
+        print(f"Connecting to database {app_config.get_db_name()}...")
+        conn = psycopg2.connect(
+            host=app_config.get_db_host(),
+            port=app_config.get_db_port(),
+            database=app_config.get_db_name(),
+            user=app_config.get_db_username(),
+            password=app_config.get_db_password(),
+        )
         conn.autocommit = True
         cursor = conn.cursor()
 

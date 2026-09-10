@@ -35,7 +35,9 @@ spec:
     spec:
       containers:
         - name: web
-          image: REGISTRY/cygnetci-web:latest   # <-- your image
+          # CHANGE_ME_VERSION: pin to a real, immutable tag (git SHA or semver)
+          # — see the matching comment in 02-api.yaml for why not ":latest".
+          image: REGISTRY/cygnetci-web:CHANGE_ME_VERSION
           ports:
             - containerPort: 80
           volumeMounts:
@@ -43,10 +45,22 @@ spec:
               mountPath: /usr/share/nginx/html/system.config.js
               subPath: system.config.js
               readOnly: true
+          # Starting-point sizing — this is a static nginx server, should stay light.
+          resources:
+            requests:
+              cpu: 50m
+              memory: 64Mi
+            limits:
+              cpu: 200m
+              memory: 128Mi
           readinessProbe:
             httpGet: { path: /, port: 80 }
             initialDelaySeconds: 5
             periodSeconds: 10
+          livenessProbe:
+            httpGet: { path: /, port: 80 }
+            initialDelaySeconds: 15
+            periodSeconds: 20
       volumes:
         - name: web-config
           configMap:

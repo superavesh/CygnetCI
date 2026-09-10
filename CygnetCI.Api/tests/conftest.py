@@ -12,10 +12,12 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 import pytest
 from fastapi.testclient import TestClient
+from sqlalchemy import event
+from sqlalchemy.orm import sessionmaker
 
 import main
 import auth as auth_lib
-from database import SessionLocal
+from database import SessionLocal, engine
 import models
 
 
@@ -57,3 +59,33 @@ def su_token():
 @pytest.fixture
 def su_headers(su_token):
     return {"Authorization": f"Bearer {su_token}"}
+
+
+@pytest.fixture
+def db_session():
+    """A DB session bound to an outer transaction that is ALWAYS rolled back.
+
+    Lets tests exercise real business logic (including code that calls
+    session.commit() internally) against the real configured database, without
+    ever persisting anything — every commit() just releases a SAVEPOINT nested
+    inside a transaction we roll back at the end. See SQLAlchemy's "Joining a
+    Session into an External Transaction" recipe.
+    """
+    connection = engine.connect()
+    outer_transaction = connection.begin()
+    TestSessionLocal = sessionmaker(bind=connection)
+    session = TestSessionLocal()
+
+    nested = connection.begin_nested()
+
+    @event.listens_for(session, "after_transaction_end")
+    def _restart_savepoint(sess, trans):
+        nonlocal nested
+        if not nested.is_active:
+            nested = connection.begin_nested()
+
+    yield session
+
+    session.close()
+    outer_transaction.rollback()
+    connection.close()

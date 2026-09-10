@@ -1,4 +1,13 @@
 # main.py - Complete FastAPI Implementation with Database
+
+# Configure logging before importing any application module, so their startup-time
+# log calls (e.g. database.py's connection banner) use this format.
+from logging_config import configure_logging
+configure_logging()
+
+import logging
+logger = logging.getLogger(__name__)
+
 from fastapi import FastAPI, HTTPException, Depends, Query, Body, UploadFile, File, Form, Response, Header, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse, JSONResponse
@@ -42,6 +51,7 @@ from deps import (
     get_current_auth, get_current_user,
     require_permission, require_superuser, get_agent_uuid, _get_real_ip,
 )
+from exceptions import AppError
 
 # Create tables
 models.Base.metadata.create_all(bind=engine)
@@ -191,6 +201,20 @@ app = FastAPI(
     openapi_tags=tags_metadata,
     dependencies=[Depends(swagger_bearer)],
 )
+
+
+@app.exception_handler(AppError)
+async def app_error_handler(request: Request, exc: AppError):
+    return JSONResponse(status_code=exc.status_code, content={"detail": exc.detail})
+
+
+@app.exception_handler(Exception)
+async def unhandled_exception_handler(request: Request, exc: Exception):
+    # Log the full traceback server-side; never return internals (stack trace, SQL
+    # text, etc.) to the client, regardless of the debug flag in config.ini.
+    logger.exception("Unhandled exception on %s %s", request.method, request.url.path)
+    return JSONResponse(status_code=500, content={"detail": "Internal server error"})
+
 
 # Configure CORS from config file
 app.add_middleware(
@@ -494,9 +518,9 @@ async def _agent_status_checker():
                         )
             finally:
                 db.close()
-        except Exception as e:
+        except Exception:
             # Never crash the loop, but don't swallow silently — surface the error in logs.
-            print(f"[agent_status_checker] error: {type(e).__name__}: {e}")
+            logger.exception("agent_status_checker error")
 
 @app.on_event("startup")
 async def startup_event():

@@ -22,5 +22,8 @@
     <PackageReference Include="Microsoft.Extensions.Http" Version="10.0.0" />
     <PackageReference Include="Microsoft.PowerShell.SDK" Version="7.5.4" />
     <PackageReference Include="System.Diagnostics.PerformanceCounter" Version="10.0.0" />
+    <!-- Transitive via Microsoft.PowerShell.SDK; pinned up to close high-severity
+         advisories against the resolved 9.0.10 (see "dotnet list package vulnerable"). -->
+    <PackageReference Include="System.Security.Cryptography.Xml" Version="9.0.20" />
   </ItemGroup>
 </Project>

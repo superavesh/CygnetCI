@@ -8,7 +8,9 @@ import 'api_service.dart';
 
 /// Foreground polling + breach detection. Drives the alarm and the UI.
 class MonitoringController extends ChangeNotifier {
-  final ApiService _api = ApiService();
+  MonitoringController({ApiService? api}) : _api = api ?? ApiService();
+
+  final ApiService _api;
 
   Timer? _timer;
   List<AgentMetric> agents = [];

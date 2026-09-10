@@ -1,6 +1,6 @@
 """Pipeline endpoints: UI pipelines, pipeline execution, and agent pipeline pickup."""
-from datetime import datetime, timedelta
-from typing import Any, Dict, List, Optional
+from datetime import datetime
+from typing import List, Optional
 
 from fastapi import APIRouter, Body, Depends, HTTPException, Query, Response
 from pydantic import BaseModel
@@ -10,13 +10,11 @@ from database import get_db
 import models
 from formatters import format_pipeline, format_pipeline_full
 from deps import get_agent_uuid, require_permission, get_allowed_customer_ids, require_customer_access
+import pipeline_service
+from pipeline_service import RunPipelineRequest
 
 router = APIRouter()
 
-
-class RunPipelineRequest(BaseModel):
-    agent_id: Optional[int] = None
-    parameters: Optional[Dict[str, Any]] = None
 
 class PipelineStepData(BaseModel):
     name: str
@@ -90,57 +88,7 @@ def get_pipeline_templates(
 def cleanup_stale_pipeline_executions(stale_minutes: int = 30, db: Session = Depends(get_db)):
     """Mark pipeline executions as failed if they have been 'running' with no new logs for stale_minutes.
     Called by the UI periodically as a safety net for when the agent fails to report completion."""
-    cutoff = datetime.now() - timedelta(minutes=stale_minutes)
-
-    # Find all executions that are still marked 'running'
-    running_executions = db.query(models.PipelineExecution)\
-        .filter(models.PipelineExecution.status == "running")\
-        .all()
-
-    cleaned = 0
-    for execution in running_executions:
-        # Check when the last log was received
-        last_log = db.query(models.PipelineExecutionLog)\
-            .filter(models.PipelineExecutionLog.pipeline_execution_id == execution.id)\
-            .order_by(models.PipelineExecutionLog.created_at.desc())\
-            .first()
-
-        last_activity = last_log.created_at if last_log else execution.started_at
-        if last_activity and last_activity < cutoff:
-            # No activity for stale_minutes — mark as failed
-            execution.status = "failed"
-            execution.completed_at = datetime.now()
-            if execution.started_at:
-                d = execution.completed_at - execution.started_at
-                execution.duration_seconds = int(d.total_seconds())
-
-            # Also update the pipeline status
-            pipeline = db.query(models.Pipeline)\
-                .filter(models.Pipeline.id == execution.pipeline_id).first()
-            if pipeline and pipeline.status == "running":
-                pipeline.status = "failed"
-
-            # Mark the pickup as failed too
-            pickup = db.query(models.PipelinePickup)\
-                .filter(models.PipelinePickup.pipeline_execution_id == execution.id,
-                        models.PipelinePickup.status.in_(["pending", "running", "acknowledged"]))\
-                .first()
-            if pickup:
-                pickup.status = "failed"
-                pickup.completed_at = datetime.now()
-                pickup.error_message = f"Execution timed out — no activity for over {stale_minutes} minutes"
-
-            # Add a log entry explaining why it was marked failed
-            db.add(models.PipelineExecutionLog(
-                pipeline_execution_id=execution.id,
-                message=f"[System] Execution marked as failed — no activity for over {stale_minutes} minutes. Agent may have crashed or lost connectivity.",
-                log_level="error",
-                source="system"
-            ))
-            cleaned += 1
-
-    db.commit()
-    return {"cleaned": cleaned, "message": f"Marked {cleaned} stale execution(s) as failed"}
+    return pipeline_service.cleanup_stale_executions(stale_minutes, db)
 
 @router.get("/pipelines", tags=["🌐 UI - Pipelines"])
 def get_pipelines(
@@ -345,57 +293,7 @@ def run_pipeline(
         raise HTTPException(status_code=404, detail="Pipeline not found")
     require_customer_access(db_pipeline.customer_id, allowed)
 
-    # Get agent - use provided agent_id or default agent from pipeline
-    agent_id = request.agent_id if request.agent_id else db_pipeline.agent_id
-    if not agent_id:
-        raise HTTPException(status_code=400, detail="No agent specified for pipeline execution")
-
-    agent = db.query(models.Agent).filter(models.Agent.id == agent_id).first()
-    if not agent:
-        raise HTTPException(status_code=404, detail="Agent not found")
-
-    db_pipeline.status = "pending"
-    db_pipeline.last_run = datetime.now()
-
-    # Create execution record
-    execution = models.PipelineExecution(
-        pipeline_id=pipeline_id,
-        status="running",
-        started_at=datetime.now()
-    )
-    db.add(execution)
-    db.flush()  # Get execution ID
-
-    # Store execution parameters
-    if request.parameters:
-        for param_name, param_value in request.parameters.items():
-            exec_param = models.PipelineExecutionParam(
-                execution_id=execution.id,
-                param_name=param_name,
-                param_value=str(param_value)
-            )
-            db.add(exec_param)
-
-    # Create pickup entry for agent
-    pickup_entry = models.PipelinePickup(
-        pipeline_execution_id=execution.id,
-        pipeline_id=pipeline_id,
-        pipeline_name=db_pipeline.name,
-        agent_id=agent.id,
-        agent_uuid=agent.uuid,
-        agent_name=agent.name,
-        status="pending",
-        priority=0
-    )
-    db.add(pickup_entry)
-
-    db.commit()
-
-    return {
-        "success": True,
-        "message": "Pipeline queued for execution",
-        "executionId": execution.id
-    }
+    return pipeline_service.run(db_pipeline, request, db)
 
 @router.get("/pipelines/{pipeline_id}/executions", tags=["🌐 UI - Pipelines"])
 def get_pipeline_executions(
@@ -454,46 +352,7 @@ def stop_pipeline(
         raise HTTPException(status_code=404, detail="Pipeline not found")
     require_customer_access(db_pipeline.customer_id, allowed)
 
-    # Find the currently running execution for this pipeline
-    running_execution = db.query(models.PipelineExecution)\
-        .filter(models.PipelineExecution.pipeline_id == pipeline_id)\
-        .filter(models.PipelineExecution.status == "running")\
-        .order_by(models.PipelineExecution.started_at.desc())\
-        .first()
-
-    if running_execution:
-        # Mark execution as cancelled
-        running_execution.status = "cancelled"
-        running_execution.completed_at = datetime.now()
-        if running_execution.started_at:
-            duration = running_execution.completed_at - running_execution.started_at
-            running_execution.duration = str(int(duration.total_seconds()))
-
-        # Find and cancel the active pickup for this execution
-        active_pickup = db.query(models.PipelinePickup)\
-            .filter(models.PipelinePickup.pipeline_execution_id == running_execution.id)\
-            .filter(models.PipelinePickup.status.in_(["pending", "picked_up", "in_progress"]))\
-            .first()
-
-        if active_pickup:
-            active_pickup.status = "cancelled"
-            active_pickup.completed_at = datetime.now()
-            active_pickup.error_message = "Cancelled by user"
-
-        # Add a cancellation log entry
-        cancel_log = models.PipelineExecutionLog(
-            pipeline_execution_id=running_execution.id,
-            message="Pipeline execution cancelled by user",
-            log_level="warning",
-            source="system"
-        )
-        db.add(cancel_log)
-
-    # Reset pipeline status to pending
-    db_pipeline.status = "pending"
-    db.commit()
-
-    return {"success": True, "message": "Pipeline stopped"}
+    return pipeline_service.stop(db_pipeline, db)
 
 
 # ==============================================
@@ -625,104 +484,7 @@ def complete_pipeline_pickup(pickup_id: int, completion_data: dict, db: Session 
     if not pickup:
         raise HTTPException(status_code=404, detail="Pickup not found")
 
-    success = completion_data.get("success", False)
-    error_message = completion_data.get("error_message")
-
-    pickup.status = "completed" if success else "failed"
-    pickup.completed_at = datetime.now()
-    pickup.error_message = error_message
-
-    # Update pipeline execution
-    pipeline_execution = db.query(models.PipelineExecution)\
-        .filter(models.PipelineExecution.id == pickup.pipeline_execution_id)\
-        .first()
-
-    if pipeline_execution:
-        pipeline_execution.status = "success" if success else "failed"
-        pipeline_execution.completed_at = datetime.now()
-
-        if pipeline_execution.started_at:
-            duration = pipeline_execution.completed_at - pipeline_execution.started_at
-            pipeline_execution.duration_seconds = int(duration.total_seconds())
-
-    # Update pipeline status
-    pipeline = db.query(models.Pipeline)\
-        .filter(models.Pipeline.id == pickup.pipeline_id)\
-        .first()
-
-    if pipeline:
-        pipeline.status = "success" if success else "failed"
-
-    # ── DAG advancement: if this execution is part of a release workflow,
-    # unlock dependent pipelines and check for overall release completion.
-    if pipeline_execution and pipeline_execution.release_execution_id and pipeline_execution.release_pipeline_id:
-        rel_exec_id = pipeline_execution.release_execution_id
-        completed_rp_id = pipeline_execution.release_pipeline_id
-
-        if success:
-            # Find all release_pipeline nodes that depend on the just-completed node
-            next_rps = db.query(models.ReleasePipeline)\
-                .filter(models.ReleasePipeline.depends_on == completed_rp_id)\
-                .all()
-
-            for next_rp in next_rps:
-                # Find the pending execution we created for this node at deploy time
-                pending_exec = db.query(models.PipelineExecution)\
-                    .filter(
-                        models.PipelineExecution.release_execution_id == rel_exec_id,
-                        models.PipelineExecution.release_pipeline_id == next_rp.id,
-                        models.PipelineExecution.status == "pending"
-                    ).first()
-
-                if not pending_exec:
-                    continue  # already started or missing — skip
-
-                # Transition to running and create the pickup so the agent picks it up
-                pending_exec.status = "running"
-                pending_exec.started_at = datetime.now()
-                db.flush()
-
-                next_pipeline = db.query(models.Pipeline)\
-                    .filter(models.Pipeline.id == next_rp.pipeline_id).first()
-                next_agent = db.query(models.Agent)\
-                    .filter(models.Agent.id == pending_exec.agent_id).first()
-
-                if next_pipeline and next_agent:
-                    db.add(models.PipelinePickup(
-                        pipeline_execution_id=pending_exec.id,
-                        pipeline_id=next_pipeline.id,
-                        pipeline_name=next_pipeline.name,
-                        agent_id=next_agent.id,
-                        agent_uuid=next_agent.uuid,
-                        agent_name=next_agent.name,
-                        status="pending",
-                        priority=next_rp.order_index
-                    ))
-
-        # Check if every node in this release execution is now terminal
-        all_executions = db.query(models.PipelineExecution)\
-            .filter(models.PipelineExecution.release_execution_id == rel_exec_id)\
-            .all()
-
-        all_terminal = all(
-            pe.status in ('success', 'failed', 'cancelled')
-            for pe in all_executions
-        )
-
-        if all_terminal:
-            release_execution = db.query(models.ReleaseExecution)\
-                .filter(models.ReleaseExecution.id == rel_exec_id).first()
-            if release_execution and release_execution.status == "in_progress":
-                any_failed = any(pe.status == 'failed' for pe in all_executions)
-                release_execution.status = "failed" if any_failed else "succeeded"
-                release_execution.completed_at = datetime.now()
-                if release_execution.started_at:
-                    d = release_execution.completed_at - release_execution.started_at
-                    release_execution.duration_seconds = int(d.total_seconds())
-
-    db.commit()
-
-    return {"success": True, "message": "Pipeline execution completed"}
+    return pipeline_service.complete_pickup(pickup, completion_data, db)
 
 @router.get("/pipelines/pickup/{pickup_id}/status", tags=["🤖 Agent - Pipeline Execution"])
 def get_pipeline_pickup_status(pickup_id: int, db: Session = Depends(get_db)):

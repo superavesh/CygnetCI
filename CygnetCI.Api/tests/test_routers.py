@@ -33,8 +33,24 @@ READ_ENDPOINTS = [
 PROTECTED = ["/users", "/agents", "/data", "/roles", "/settings/alert-thresholds", "/pipelines"]
 
 
+def _leaf_routes(routes):
+    """Flatten routes, descending into FastAPI's lazy `_IncludedRouter` wrapper.
+
+    FastAPI >=0.141 no longer flattens include_router() sub-routes onto
+    app.routes eagerly -- it wraps each included router in an internal
+    `_IncludedRouter` whose real routes live on `.original_router.routes`.
+    """
+    leaves = []
+    for r in routes:
+        if type(r).__name__ == "_IncludedRouter":
+            leaves.extend(_leaf_routes(r.original_router.routes))
+        elif getattr(r, "methods", None):
+            leaves.append(r)
+    return leaves
+
+
 def test_route_count(app):
-    routes = [r for r in app.routes if getattr(r, "methods", None)]
+    routes = _leaf_routes(app.routes)
     assert len(routes) >= 180, f"expected >=180 routes, got {len(routes)}"
 
 

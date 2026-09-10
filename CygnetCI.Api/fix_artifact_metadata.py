@@ -3,20 +3,19 @@ Fix artifact_metadata column name mismatch
 """
 import psycopg2
 
-# Database configuration
-DB_CONFIG = {
-    'host': 'localhost',
-    'port': 5432,
-    'database': 'CygnetCI',
-    'user': 'postgres',
-    'password': 'Admin@123'
-}
+from config import app_config
 
 def fix_metadata_column():
     """Rename metadata column to artifact_metadata if it exists"""
     try:
         print("Connecting to database...")
-        conn = psycopg2.connect(**DB_CONFIG)
+        conn = psycopg2.connect(
+            host=app_config.get_db_host(),
+            port=app_config.get_db_port(),
+            database=app_config.get_db_name(),
+            user=app_config.get_db_username(),
+            password=app_config.get_db_password(),
+        )
         conn.autocommit = True
         cursor = conn.cursor()
 

@@ -1,6 +1,6 @@
 {
   "version": 2,
-  "dgSpecHash": "tTDIQZTpS1w=",
+  "dgSpecHash": "3dQyv/cSAfU=",
   "success": true,
   "projectFilePath": "D:\\Avesh\\CygnetCI\\SourceCode\\CygnetCI\\CygnetCI.Agent\\CygnetCI.Agent.csproj",
   "expectedPackageFiles": [
@@ -114,9 +114,9 @@
     "C:\\Users\\amkhatri\\.nuget\\packages\\system.reflection.metadata\\8.0.1\\system.reflection.metadata.8.0.1.nupkg.sha512",
     "C:\\Users\\amkhatri\\.nuget\\packages\\system.runtime.caching\\9.0.10\\system.runtime.caching.9.0.10.nupkg.sha512",
     "C:\\Users\\amkhatri\\.nuget\\packages\\system.security.accesscontrol\\6.0.1\\system.security.accesscontrol.6.0.1.nupkg.sha512",
-    "C:\\Users\\amkhatri\\.nuget\\packages\\system.security.cryptography.pkcs\\9.0.10\\system.security.cryptography.pkcs.9.0.10.nupkg.sha512",
+    "C:\\Users\\amkhatri\\.nuget\\packages\\system.security.cryptography.pkcs\\9.0.20\\system.security.cryptography.pkcs.9.0.20.nupkg.sha512",
     "C:\\Users\\amkhatri\\.nuget\\packages\\system.security.cryptography.protecteddata\\10.0.0\\system.security.cryptography.protecteddata.10.0.0.nupkg.sha512",
-    "C:\\Users\\amkhatri\\.nuget\\packages\\system.security.cryptography.xml\\9.0.10\\system.security.cryptography.xml.9.0.10.nupkg.sha512",
+    "C:\\Users\\amkhatri\\.nuget\\packages\\system.security.cryptography.xml\\9.0.20\\system.security.cryptography.xml.9.0.20.nupkg.sha512",
     "C:\\Users\\amkhatri\\.nuget\\packages\\system.security.permissions\\9.0.10\\system.security.permissions.9.0.10.nupkg.sha512",
     "C:\\Users\\amkhatri\\.nuget\\packages\\system.security.principal.windows\\5.0.0\\system.security.principal.windows.5.0.0.nupkg.sha512",
     "C:\\Users\\amkhatri\\.nuget\\packages\\system.servicemodel.duplex\\4.10.3\\system.servicemodel.duplex.4.10.3.nupkg.sha512",

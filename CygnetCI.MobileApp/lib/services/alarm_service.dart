@@ -19,7 +19,7 @@ class AlarmService {
     // Looping vibration (repeat from index 0 = continuous until cancel).
     try {
       if (await Vibration.hasVibrator() ?? false) {
-        Vibration.vibrate(pattern: [0, 800, 500, 800, 500], repeat: 0);
+        await Vibration.vibrate(pattern: [0, 800, 500, 800, 500], repeat: 0);
       }
     } catch (_) {/* ignore */}
 
@@ -33,7 +33,7 @@ class AlarmService {
   Future<void> stop() async {
     _active = false;
     try {
-      Vibration.cancel();
+      await Vibration.cancel();
     } catch (_) {}
     try {
       await _player.stop();

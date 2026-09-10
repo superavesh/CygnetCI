@@ -12,8 +12,16 @@ spec:
       restartPolicy: OnFailure
       containers:
         - name: seed
-          image: REGISTRY/cygnetci-api:latest   # same image as the API
+          # Keep this in sync with cygnetci-api's image tag (02-api.yaml) — same image.
+          image: REGISTRY/cygnetci-api:CHANGE_ME_VERSION
           command: ["python", "seed_fresh_db.py"]
+          resources:
+            requests:
+              cpu: 100m
+              memory: 128Mi
+            limits:
+              cpu: 500m
+              memory: 256Mi
           env:
             - name: ADMIN_USERNAME
               value: admin

@@ -4328,7 +4328,7 @@
           }
         }
       },
-      "System.Security.Cryptography.Pkcs/9.0.10": {
+      "System.Security.Cryptography.Pkcs/9.0.20": {
         "type": "package",
         "compile": {
           "lib/net9.0/System.Security.Cryptography.Pkcs.dll": {
@@ -4366,10 +4366,10 @@
           "buildTransitive/net8.0/_._": {}
         }
       },
-      "System.Security.Cryptography.Xml/9.0.10": {
+      "System.Security.Cryptography.Xml/9.0.20": {
         "type": "package",
         "dependencies": {
-          "System.Security.Cryptography.Pkcs": "9.0.10"
+          "System.Security.Cryptography.Pkcs": "9.0.20"
         },
         "compile": {
           "lib/net9.0/System.Security.Cryptography.Xml.dll": {
@@ -8732,10 +8732,10 @@
         "useSharedDesignerContext.txt"
       ]
     },
-    "System.Security.Cryptography.Pkcs/9.0.10": {
-      "sha512": "Pg7QZz80fOJZrtJnAdEAIpeor8q7F1ofwXGYgLNr4dR8Mqf2l7lfeTaodQkRetrj+ClQwVVYoyi6g2eOsmstFw==",
+    "System.Security.Cryptography.Pkcs/9.0.20": {
+      "sha512": "ws6GNN2yrZQauKiu8+nqzbJ4RMjAwcnVcwmecx2zY7Aa4aqqYqf7TngEQSRURGRBlZsKKdx+PsHIVqDT+BvL5w==",
       "type": "package",
-      "path": "system.security.cryptography.pkcs/9.0.10",
+      "path": "system.security.cryptography.pkcs/9.0.20",
       "files": [
         ".nupkg.metadata",
         ".signature.p7s",
@@ -8760,7 +8760,7 @@
         "runtimes/win/lib/net8.0/System.Security.Cryptography.Pkcs.xml",
         "runtimes/win/lib/net9.0/System.Security.Cryptography.Pkcs.dll",
         "runtimes/win/lib/net9.0/System.Security.Cryptography.Pkcs.xml",
-        "system.security.cryptography.pkcs.9.0.10.nupkg.sha512",
+        "system.security.cryptography.pkcs.9.0.20.nupkg.sha512",
         "system.security.cryptography.pkcs.nuspec",
         "useSharedDesignerContext.txt"
       ]
@@ -8800,10 +8800,10 @@
         "useSharedDesignerContext.txt"
       ]
     },
-    "System.Security.Cryptography.Xml/9.0.10": {
-      "sha512": "kkEBXInhetgK1+E0NzDSz4S2Yh3wpivGf1A7I88dN4SYINGrQnGciGDJj1RTgsE/zFeJNlAZhXs4XSqn7q8AhQ==",
+    "System.Security.Cryptography.Xml/9.0.20": {
+      "sha512": "98cio7NCRqBtwRHsM1SZk0ksDWgxycnLuYm4aXVJzEf2xfDHavCvoF6vQPOt9HGCrb/ns7yAt0+iehQJEN2MKQ==",
       "type": "package",
-      "path": "system.security.cryptography.xml/9.0.10",
+      "path": "system.security.cryptography.xml/9.0.20",
       "files": [
         ".nupkg.metadata",
         ".signature.p7s",
@@ -8822,7 +8822,7 @@
         "lib/net9.0/System.Security.Cryptography.Xml.xml",
         "lib/netstandard2.0/System.Security.Cryptography.Xml.dll",
         "lib/netstandard2.0/System.Security.Cryptography.Xml.xml",
-        "system.security.cryptography.xml.9.0.10.nupkg.sha512",
+        "system.security.cryptography.xml.9.0.20.nupkg.sha512",
         "system.security.cryptography.xml.nuspec",
         "useSharedDesignerContext.txt"
       ]
@@ -9493,7 +9493,8 @@
       "Microsoft.Extensions.Hosting.WindowsServices >= 10.0.0",
       "Microsoft.Extensions.Http >= 10.0.0",
       "Microsoft.PowerShell.SDK >= 7.5.4",
-      "System.Diagnostics.PerformanceCounter >= 10.0.0"
+      "System.Diagnostics.PerformanceCounter >= 10.0.0",
+      "System.Security.Cryptography.Xml >= 9.0.20"
     ]
   },
   "packageFolders": {
@@ -9569,6 +9570,10 @@
           "System.Diagnostics.PerformanceCounter": {
             "target": "Package",
             "version": "[10.0.0, )"
+          },
+          "System.Security.Cryptography.Xml": {
+            "target": "Package",
+            "version": "[9.0.20, )"
           }
         },
         "imports": [

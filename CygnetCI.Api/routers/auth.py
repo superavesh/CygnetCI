@@ -2,9 +2,6 @@
 import bcrypt
 import hashlib
 import secrets
-import threading
-import time
-from collections import defaultdict
 from datetime import datetime, timedelta
 from typing import Any, Dict, Optional
 
@@ -16,6 +13,7 @@ from database import get_db
 import models
 import auth as auth_lib
 import email_publisher
+import login_attempt_repository
 from deps import get_current_user, _get_real_ip
 from notifications import _get_setting
 
@@ -33,34 +31,17 @@ class LoginResponse(BaseModel):
 
 # ==================== AUTHENTICATION ====================
 
-# SECURITY: simple in-memory brute-force throttle for login.
+# SECURITY: brute-force throttle for login, backed by the login_attempts table
+# (see login_attempt_repository.py) so it works correctly across multiple API
+# replicas — an in-memory counter per pod would let an attacker get
+# _LOGIN_MAX_ATTEMPTS free tries per replica instead of in total.
 # Tracks recent failed attempts per (client-ip, username) and locks out after a threshold.
 _LOGIN_MAX_ATTEMPTS = 5
 _LOGIN_WINDOW_SECONDS = 300   # attempts are counted within a rolling 5-minute window
 _LOGIN_LOCKOUT_SECONDS = 300  # lockout duration once the threshold is exceeded
-_login_attempts: dict = defaultdict(list)  # key -> list[timestamp of failed attempts]
-_login_attempts_lock = threading.Lock()
 
 def _login_key(request: Request, username: str) -> str:
     return f"{_get_real_ip(request)}|{(username or '').lower()}"
-
-def _login_is_locked(key: str) -> bool:
-    now = time.time()
-    with _login_attempts_lock:
-        attempts = [t for t in _login_attempts.get(key, []) if now - t < _LOGIN_LOCKOUT_SECONDS]
-        _login_attempts[key] = attempts
-        return len(attempts) >= _LOGIN_MAX_ATTEMPTS
-
-def _login_record_failure(key: str):
-    now = time.time()
-    with _login_attempts_lock:
-        attempts = [t for t in _login_attempts.get(key, []) if now - t < _LOGIN_WINDOW_SECONDS]
-        attempts.append(now)
-        _login_attempts[key] = attempts
-
-def _login_reset(key: str):
-    with _login_attempts_lock:
-        _login_attempts.pop(key, None)
 
 
 @router.post("/auth/login", response_model=LoginResponse, tags=["🔐 Authentication"])
@@ -71,7 +52,7 @@ def login(credentials: LoginRequest, request: Request, db: Session = Depends(get
     """
     # SECURITY: throttle repeated failed attempts before doing any work
     attempt_key = _login_key(request, credentials.username)
-    if _login_is_locked(attempt_key):
+    if login_attempt_repository.is_locked(db, attempt_key, _LOGIN_MAX_ATTEMPTS, _LOGIN_LOCKOUT_SECONDS):
         raise HTTPException(
             status_code=429,
             detail="Too many failed login attempts. Please try again in a few minutes."
@@ -81,11 +62,12 @@ def login(credentials: LoginRequest, request: Request, db: Session = Depends(get
     user = db.query(models.User).filter(models.User.username.ilike(credentials.username)).first()
 
     if not user:
-        _login_record_failure(attempt_key)
+        login_attempt_repository.record_failure(db, attempt_key, _LOGIN_WINDOW_SECONDS)
         raise HTTPException(status_code=401, detail="Invalid username or password")
 
     # Verify password - support both bcrypt and SHA256 for backward compatibility
     password_valid = False
+    needs_rehash = False
 
     # Check if password hash starts with $2b$ (bcrypt format)
     if user.password_hash.startswith('$2b$') or user.password_hash.startswith('$2a$'):
@@ -95,12 +77,15 @@ def login(credentials: LoginRequest, request: Request, db: Session = Depends(get
             user.password_hash.encode('utf-8')
         )
     else:
-        # Fallback to SHA256 for legacy passwords
+        # Fallback to SHA256 for legacy passwords. SECURITY: once verified correct,
+        # transparently upgrade the stored hash to bcrypt below — this is how the
+        # legacy scheme retires itself without a forced password-reset campaign.
         hashed_password = hashlib.sha256(credentials.password.encode()).hexdigest()
         password_valid = user.password_hash == hashed_password
+        needs_rehash = password_valid
 
     if not password_valid:
-        _login_record_failure(attempt_key)
+        login_attempt_repository.record_failure(db, attempt_key, _LOGIN_WINDOW_SECONDS)
         raise HTTPException(status_code=401, detail="Invalid username or password")
 
     # Check if user is active
@@ -108,7 +93,10 @@ def login(credentials: LoginRequest, request: Request, db: Session = Depends(get
         raise HTTPException(status_code=403, detail="User account is disabled")
 
     # Successful login — clear the failed-attempt counter
-    _login_reset(attempt_key)
+    login_attempt_repository.reset(db, attempt_key)
+
+    if needs_rehash:
+        user.password_hash = bcrypt.hashpw(credentials.password.encode('utf-8'), bcrypt.gensalt()).decode('utf-8')
 
     # Update last login timestamp
     user.last_login = datetime.now()

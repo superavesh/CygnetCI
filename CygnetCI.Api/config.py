@@ -1,8 +1,12 @@
 # config.py - Configuration Management for CygnetCI
 
 import configparser
+import logging
 import os
 from pathlib import Path
+
+logger = logging.getLogger(__name__)
+
 
 class Config:
     """Configuration manager for CygnetCI"""
@@ -26,7 +30,7 @@ class Config:
         nfs_root = self.get_nfs_shared_root()
         if not os.path.exists(nfs_root):
             os.makedirs(nfs_root)
-            print(f"Created NFS shared root directory: {nfs_root}")
+            logger.info("Created NFS shared root directory: %s", nfs_root)
 
         # Create scripts and artifacts folders
         scripts_path = os.path.join(nfs_root, self.get_scripts_folder())
@@ -35,7 +39,7 @@ class Config:
         for path in [scripts_path, artifacts_path]:
             if not os.path.exists(path):
                 os.makedirs(path)
-                print(f"Created directory: {path}")
+                logger.info("Created directory: %s", path)
 
     # Database Configuration
     def get_database_url(self):
@@ -171,36 +175,41 @@ class Config:
             'routing_key': g('routing_key', 'email.send'),
         }
 
+    # Claude AI Configuration (system-wide key, used for rollback script analysis;
+    # per-customer keys for the ticket AI assistant are stored encrypted in the DB)
+    def get_claude_api_key(self):
+        return self.config.get('claude_ai', 'api_key')
+
+    def get_claude_model(self):
+        return self.config.get('claude_ai', 'model')
+
+    def get_claude_max_tokens(self):
+        return self.config.getint('claude_ai', 'max_tokens')
+
+    def get_claude_temperature(self):
+        return self.config.getfloat('claude_ai', 'temperature')
+
     # Utility Methods
     def print_config(self):
-        """Print all configuration settings (for debugging)"""
-        print("=" * 60)
-        print("CygnetCI Configuration")
-        print("=" * 60)
-        print("\n[Database]")
-        print(f"  URL: {self.get_database_url()}")
-        print("\n[Paths]")
-        print(f"  NFS Root: {self.get_nfs_shared_root()}")
-        print(f"  Scripts: {self.get_scripts_path()}")
-        print(f"  Artifacts: {self.get_artifacts_path()}")
-        print("\n[Server]")
-        print(f"  Host: {self.get_server_host()}")
-        print(f"  Port: {self.get_server_port()}")
-        print(f"  Reload: {self.get_server_reload()}")
-        print(f"  Debug: {self.get_debug_mode()}")
-        print("\n[CORS]")
-        print(f"  Allowed Origins: {', '.join(self.get_allowed_origins())}")
-        print("\n[File Transfer]")
-        print(f"  Max File Size: {self.get_max_file_size_mb()} MB")
-        print(f"  Script Extensions: {', '.join(self.get_allowed_script_extensions())}")
-        print(f"  Artifact Extensions: {', '.join(self.get_allowed_artifact_extensions())}")
-        print("=" * 60)
+        """Log a summary of the loaded configuration at startup (secrets redacted)."""
+        logger.info("CygnetCI Configuration")
+        logger.info("[Database] Host: %s:%s  Database: %s  Username: %s  Password: ****** (redacted)",
+                    self.get_db_host(), self.get_db_port(), self.get_db_name(), self.get_db_username())
+        logger.info("[Paths] NFS Root: %s  Scripts: %s  Artifacts: %s",
+                    self.get_nfs_shared_root(), self.get_scripts_path(), self.get_artifacts_path())
+        logger.info("[Server] Host: %s  Port: %s  Reload: %s  Debug: %s",
+                    self.get_server_host(), self.get_server_port(), self.get_server_reload(), self.get_debug_mode())
+        logger.info("[CORS] Allowed Origins: %s", ", ".join(self.get_allowed_origins()))
+        logger.info("[File Transfer] Max File Size: %s MB  Script Extensions: %s  Artifact Extensions: %s",
+                    self.get_max_file_size_mb(),
+                    ", ".join(self.get_allowed_script_extensions()),
+                    ", ".join(self.get_allowed_artifact_extensions()))
 
 
 # Global configuration instance
 try:
     app_config = Config()
 except FileNotFoundError as e:
-    print(f"ERROR: {e}")
-    print("Please create a config.ini file in the application directory")
+    logger.error("%s", e)
+    logger.error("Please create a config.ini file in the application directory")
     raise
